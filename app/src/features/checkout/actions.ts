@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { requestOrigin, userAgent } from "@/features/configurator/actions/common";
 import { AccessDeniedError, assertProjectSession } from "@/features/configurator/server/session";
 import type { PaymentMethod } from "@/config/markets";
+import { isUiPreview, UI_PREVIEW_ERROR } from "@/lib/ui-preview";
 import type { CheckoutInput } from "./model";
 import { CheckoutError, submitCheckout } from "./server/checkout";
 import { getOrder } from "./server/orders";
@@ -45,6 +46,8 @@ export async function submitCheckoutAction(formData: FormData): Promise<void> {
     termsAccepted: formData.get("termsAccepted") === "on",
   };
 
+  if (isUiPreview()) redirect(`/${market}/objednavka?projekt=${projectId}&chyba=${UI_PREVIEW_ERROR}`);
+
   let redirectUrl: string;
   try {
     await assertProjectSession(projectId);
@@ -62,6 +65,7 @@ export async function submitCheckoutAction(formData: FormData): Promise<void> {
 export async function submitComplaintAction(formData: FormData): Promise<void> {
   const orderId = str(formData, "orderId");
   const market = str(formData, "market");
+  if (isUiPreview()) redirect(`/${market}/objednavka/${orderId}?chyba=${UI_PREVIEW_ERROR}`);
   const order = await getOrder(orderId);
   if (!order) redirect(`/${market}/objednavka/${orderId}`);
 

@@ -1,5 +1,7 @@
 import "server-only";
 
+import { isUiPreview } from "@/lib/ui-preview";
+
 import { and, eq, gte, inArray, sql } from "drizzle-orm";
 
 import { defaultsForAge } from "@/config/catalog";
@@ -225,6 +227,7 @@ export async function redeemLink(projectId: string, token: string): Promise<{ ma
 
 /** Zapamätá krok, na ktorom zákazník je – odkaz z e-mailu otvorí presne ten. */
 export async function touchStep(projectId: string, step: StepNumber) {
+  if (isUiPreview()) return;
   await db
     .update(schema.projects)
     .set({ currentStep: step, lastActivityAt: new Date() })

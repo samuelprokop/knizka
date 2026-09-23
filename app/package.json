@@ -20,7 +20,9 @@
     "admin:create-user": "tsx --env-file=.env.local scripts/admin/create-user.ts",
     "admin:seed-queue": "tsx --env-file=.env.local scripts/admin/seed-review-queue.ts",
     "test:render": "tsx --test --test-concurrency=1 \"src/**/*.render-test.ts\"",
-    "dev:next": "next dev"
+    "dev:next": "next dev",
+    "ui": "node scripts/ui-preview/dev.mjs",
+    "ui:setup": "node scripts/ui-preview/setup.mjs"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.3",

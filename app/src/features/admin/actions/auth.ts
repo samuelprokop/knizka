@@ -5,9 +5,12 @@ import { redirect } from "next/navigation";
 import { db, schema } from "@/db";
 import { AccountDisabledError, authenticate, InvalidCredentialsError } from "../server/auth";
 import { createSession, currentAdmin, destroySession } from "../server/session";
+import { isUiPreview, UI_PREVIEW_ADMIN_ERROR } from "@/lib/ui-preview";
+
 import type { ActionResult } from "./common";
 
 export async function loginAction(email: string, password: string): Promise<ActionResult> {
+  if (isUiPreview()) return { ok: false, error: UI_PREVIEW_ADMIN_ERROR };
   try {
     const user = await authenticate(email, password);
     await createSession(user);
@@ -23,6 +26,7 @@ export async function loginAction(email: string, password: string): Promise<Acti
 }
 
 export async function logoutAction(): Promise<void> {
+  if (isUiPreview()) redirect("/admin");
   const admin = await currentAdmin();
   if (admin) await db.insert(schema.auditLog).values({ actor: admin.email, action: "admin.logout", subjectType: "admin_user", subjectId: admin.id });
   await destroySession();

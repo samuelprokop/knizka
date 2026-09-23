@@ -5,6 +5,7 @@ import { getOrder, confirmPayment } from "@/features/checkout/server/orders";
 import { buttonClass, Notice, StepTitle } from "@/features/configurator/components/ui";
 import { hasProjectSession } from "@/features/configurator/server/session";
 import { getMarketContext } from "@/i18n/server";
+import { isUiPreview } from "@/lib/ui-preview";
 
 /*
   Návrat z platby (placeholderPaymentProvider rovno pripája ?payment=…&status=paid
@@ -24,7 +25,7 @@ export default async function PaymentResultPage({ params, searchParams }: PagePr
   const status = typeof query.status === "string" ? query.status : null;
 
   if (status === "paid" && payment) {
-    await confirmPayment(order.id, payment);
+    if (!isUiPreview()) await confirmPayment(order.id, payment);
     redirect(`/${market.code}/objednavka/${order.id}/dakujeme`);
   }
 

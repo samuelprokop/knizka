@@ -2,6 +2,8 @@ import "server-only";
 
 import { cookies } from "next/headers";
 
+import { isUiPreview } from "@/lib/ui-preview";
+
 import { signProjectSession, verifyProjectSession } from "./tokens";
 
 const cookieName = (projectId: string) => `kniha_${projectId}`;
@@ -20,6 +22,8 @@ export async function grantProjectSession(projectId: string) {
 }
 
 export async function hasProjectSession(projectId: string) {
+  // Náhľad UI: ukážkové projekty sú otvorené bez odkazu z e-mailu.
+  if (isUiPreview()) return true;
   const store = await cookies();
   return verifyProjectSession(projectId, store.get(cookieName(projectId))?.value);
 }

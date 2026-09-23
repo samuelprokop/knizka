@@ -24,7 +24,7 @@ export async function checkEditionAction(draft: EditionDraft, language: string):
   return adminAction("pribehy", async () => {
     if (!isBookLanguage(language)) throw new Error("Neznámy jazyk.");
     return checkEdition(draft, language);
-  });
+  }, { readOnly: true });
 }
 
 export async function previewDraftSpreadAction(
@@ -36,7 +36,7 @@ export async function previewDraftSpreadAction(
     if (!isBookLanguage(language)) throw new Error("Neznámy jazyk.");
     if (!(STYLES as readonly string[]).includes(style)) throw new Error("Neznámy štýl.");
     return previewDraftSpread(language as BookLanguage, style as StyleId, spread);
-  });
+  }, { readOnly: true });
 }
 
 export async function createStoryAction(input: {

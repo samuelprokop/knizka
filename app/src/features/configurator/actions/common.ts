@@ -3,6 +3,7 @@ import "server-only";
 import { headers } from "next/headers";
 
 import type { MessageKey } from "@/i18n/messages";
+import { isUiPreview, UI_PREVIEW_ERROR } from "@/lib/ui-preview";
 import { AccessDeniedError, assertProjectSession } from "../server/session";
 import { ValidationError } from "../server/projects";
 import { ProjectLockedError } from "../status";
@@ -23,6 +24,7 @@ function toErrorKey(error: unknown): MessageKey {
  * preto sa prístup overuje vždy znova (nie podľa toho, čo UI zobrazilo).
  */
 export async function projectAction<T>(projectId: unknown, run: (projectId: string) => Promise<T>): Promise<ActionResult<T>> {
+  if (isUiPreview()) return { ok: false, error: UI_PREVIEW_ERROR };
   try {
     if (typeof projectId !== "string") throw new AccessDeniedError();
     await assertProjectSession(projectId);
@@ -33,6 +35,7 @@ export async function projectAction<T>(projectId: unknown, run: (projectId: stri
 }
 
 export async function publicAction<T>(run: () => Promise<T>): Promise<ActionResult<T>> {
+  if (isUiPreview()) return { ok: false, error: UI_PREVIEW_ERROR };
   try {
     return { ok: true, data: await run() };
   } catch (error) {

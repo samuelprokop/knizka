@@ -1,5 +1,7 @@
 import "server-only";
 
+import { isUiPreview } from "@/lib/ui-preview";
+
 import { desc, eq, inArray } from "drizzle-orm";
 
 import { assertTransition } from "@/domain/project-status";
@@ -136,7 +138,7 @@ export async function getQueueDetail(projectId: string, viewer: string): Promise
     };
   });
 
-  await db.insert(schema.auditLog).values({
+  if (!isUiPreview()) await db.insert(schema.auditLog).values({
     actor: viewer,
     action: "queue.view_cards",
     subjectType: "project",

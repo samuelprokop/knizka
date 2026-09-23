@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 
+import { UiPreviewBadge } from "@/features/ui-preview/UiPreviewBadge";
+
 import "../globals.css";
 
 /*
@@ -20,7 +22,10 @@ export const metadata: Metadata = {
 export default function AdminLayout({ children }: LayoutProps<"/admin">) {
   return (
     <html lang="sk" className={`${body.variable} h-full antialiased`}>
-      <body className="min-h-full bg-paper font-body text-ink">{children}</body>
+      <body className="min-h-full bg-paper font-body text-ink">
+        {children}
+        <UiPreviewBadge />
+      </body>
     </html>
   );
 }

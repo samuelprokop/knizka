@@ -1,5 +1,7 @@
 import "server-only";
 
+import { isUiPreview } from "@/lib/ui-preview";
+
 import { createHash, randomBytes } from "node:crypto";
 import { and, eq, gt, isNull } from "drizzle-orm";
 import { cookies, headers } from "next/headers";
@@ -51,6 +53,8 @@ export type CurrentAdmin = { id: string; email: string; name: string; role: Admi
 
 /** Aktuálne prihlásený používateľ, alebo null – nevyhadzuje chybu (na použitie v layoute). */
 export async function currentAdmin(): Promise<CurrentAdmin | null> {
+  // Náhľad UI: administrácia je otvorená ako správca, bez prihlásenia.
+  if (isUiPreview()) return { id: "00000000-0000-0000-0000-000000000000", email: "nahlad@ui.local", name: "Náhľad UI", role: "admin" };
   const store = await cookies();
   const token = store.get(COOKIE_NAME)?.value;
   if (!token) return null;

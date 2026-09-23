@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { redeemLink } from "@/features/configurator/server/projects";
 import { grantProjectSession } from "@/features/configurator/server/session";
 import { stepHref } from "@/features/configurator/steps";
+import { isUiPreview } from "@/lib/ui-preview";
 
 /*
   Návrat cez jednorazový odkaz z e-mailu: token sa overí a spotrebuje,
@@ -13,6 +14,9 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/[market]/kni
   const { market } = await ctx.params;
   const projectId = request.nextUrl.searchParams.get("p") ?? "";
   const token = request.nextUrl.searchParams.get("t") ?? "";
+
+  // Náhľad UI: odkaz sa nespotrebuje, len otvorí projekt.
+  if (isUiPreview()) return NextResponse.redirect(new URL(stepHref(market, projectId, 1), request.nextUrl.origin));
 
   const result = await redeemLink(projectId, token);
   const target = new URL(request.nextUrl);

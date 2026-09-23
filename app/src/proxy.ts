@@ -27,5 +27,5 @@ export function proxy(request: NextRequest) {
 
 export const config = {
   // Mimo API, administrácie, interných ciest Next.js a súborov s príponou (public/).
-  matcher: ["/((?!api|admin|_next|.*\\..*).*)"],
+  matcher: ["/((?!api|admin|ui|_next|.*\\..*).*)"],
 };

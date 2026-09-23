@@ -15,6 +15,7 @@
 
 # next.js
 /.next/
+/.next-ui/
 /out/
 
 # production
@@ -36,6 +37,7 @@ yarn-error.log*
 
 # lokálne úložisko (fotky detí, ilustrácie) – nikdy do gitu
 /.storage
+/.storage-ui
 
 # vercel
 .vercel

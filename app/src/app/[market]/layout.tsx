@@ -3,6 +3,7 @@ import { Bitter, Inter } from "next/font/google";
 import { notFound } from "next/navigation";
 
 import { getMarket, isMarketCode, MARKET_CODES } from "@/config/markets";
+import { UiPreviewBadge } from "@/features/ui-preview/UiPreviewBadge";
 import { I18nProvider } from "@/i18n/client";
 import "../globals.css";
 
@@ -44,6 +45,7 @@ export default async function MarketLayout({ children, params }: LayoutProps<"/[
         <I18nProvider market={market.code} language={market.uiLanguage}>
           {children}
         </I18nProvider>
+        <UiPreviewBadge />
       </body>
     </html>
   );

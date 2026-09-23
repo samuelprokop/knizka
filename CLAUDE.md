@@ -39,6 +39,18 @@ negenerujú. Samotný Next.js: `npm run dev:next`, samotný worker: `npm run wor
 Prístup do administrácie (`/admin`): `npm run admin:create-user -- --email … --name "…" --role admin`
 (heslo sa vygeneruje a vypíše raz).
 
+### Náhľad UI (katalóg obrazoviek)
+
+```bash
+cd app
+npm run ui:setup   # oddelená DB knizka_ui + ukážkové projekty v každom stave (znova = nanovo)
+npm run ui         # http://localhost:3100/ui – beží aj popri npm run dev
+```
+
+V náhľade (`UI_PREVIEW=1`, len mimo produkcie) sa nič neukladá, negeneruje ani neplatí: obaly akcií
+vrátia `common.ui_preview`, administrácia je otvorená ako správca. Nová obrazovka alebo nový stav =
+doplniť ukážku do `scripts/ui-preview/seed.ts` a odkaz do `src/app/ui/page.tsx`.
+
 Kontroly pred odovzdaním: `npm run typecheck && npm run lint && npm test` (a pri zmene sadzby `npm run test:render`).
 
 ## Štruktúra (`app/src`)

@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { loadBundle } from "@/features/configurator/server/bundle";
 import { ACCEPTED_PHOTO_TYPES, addPhoto, MAX_PHOTO_BYTES } from "@/features/configurator/server/hero";
 import { hasProjectSession } from "@/features/configurator/server/session";
+import { isUiPreview, UI_PREVIEW_ERROR } from "@/lib/ui-preview";
 
 /*
   Nahratie fotky postavy (krok 2 a 4). Cez route handler, nie server action –
@@ -11,6 +12,7 @@ import { hasProjectSession } from "@/features/configurator/server/session";
 */
 export async function POST(request: NextRequest, ctx: RouteContext<"/[market]/kniha/[id]/nahrat">) {
   const { id } = await ctx.params;
+  if (isUiPreview()) return NextResponse.json({ ok: false, error: UI_PREVIEW_ERROR }, { status: 403 });
   if (!(await hasProjectSession(id))) return NextResponse.json({ ok: false, error: "error.session_expired" }, { status: 403 });
 
   const form = await request.formData().catch(() => null);
