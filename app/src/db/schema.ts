@@ -9,6 +9,7 @@
   - Zmeny schémy len cez `npm run db:generate` + `npm run db:migrate`.
 */
 
+import { sql } from "drizzle-orm";
 import {
   boolean,
   index,
@@ -74,6 +75,7 @@ export const consentType = pgEnum("consent_type", [
   "marketing",
   "other_person_photo",
   "save_hero",
+  "terms",
 ]);
 
 // ---------------------------------------------------------------- projekty
@@ -87,6 +89,11 @@ export const projects = pgTable(
     email: text("email"),
     /** SHA-256 jednorazového tokenu z e-mailového odkazu; samotný token sa neukladá. */
     accessTokenHash: text("access_token_hash"),
+    /** Neuhádnuteľný token osobnej stránky knihy za QR kódom (balík D) – na rozdiel od `id` sa dá voľne zdieľať. */
+    personalToken: text("personal_token")
+      .notNull()
+      .unique()
+      .default(sql`gen_random_uuid()::text`),
     status: projectStatus("status").notNull().default("draft"),
     /** Posledný krok, na ktorom zákazník bol – návrat cez odkaz otvorí presne ten. */
     currentStep: integer("current_step").notNull().default(1),

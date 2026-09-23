@@ -115,10 +115,13 @@ function imageKey(value: unknown): string | null {
   return null;
 }
 
-/** Adresa osobnej stránky knihy za QR kódom. PLACEHOLDER – tvar odkazu a token určí balík D. */
-export function personalPageUrl(market: string, projectId: string) {
+/**
+ * Adresa osobnej stránky knihy za QR kódom (balík D) – `personalToken` je neuhádnuteľný
+ * a nezávislý od `projects.id` (dá sa zdieľať bez odhalenia interného identifikátora).
+ */
+export function personalPageUrl(market: string, personalToken: string) {
   const base = process.env.APP_URL ?? "http://localhost:3000";
-  return `${base}/${market}/k/${projectId}`;
+  return `${base}/${market}/moja-kniha/${personalToken}`;
 }
 
 export class BookVersionError extends Error {}
@@ -245,7 +248,10 @@ export async function createBookVersion(
       heroFullBody: fullBodyKey ? { key: fullBodyKey } : null,
       heroPortrait: portraitKey ? { key: portraitKey } : null,
     },
-    meta: { personalPageUrl: personalPageUrl(project.market, projectId), date: new Date().toISOString().slice(0, 10) },
+    meta: {
+      personalPageUrl: personalPageUrl(project.market, project.personalToken),
+      date: new Date().toISOString().slice(0, 10),
+    },
   });
 
   const versionId = await saveBookVersion(

@@ -12,18 +12,21 @@ export type PriceInputs = {
   pageCount: number;
   format: string;
   coloringBook: boolean;
+  /** Variant a doplnky sa volia až v košíku (balík D) – v konfigurátore platia predvolené hodnoty. */
+  variant?: "print_ebook" | "ebook";
+  extraCopies?: number;
+  giftWrap?: boolean;
 };
 
 export function priceSelection(input: PriceInputs): PriceSelection {
   return {
-    // Variant (tlač / len e-kniha) a doplnky sa volia v košíku (balík D).
-    variant: "print_ebook",
+    variant: input.variant ?? "print_ebook",
     storyPath: input.storyPath ?? "A",
     extraCharacters: input.companionCount,
     pageCount: (input.pageCount === 40 ? 40 : 32) as PageCount,
     format: (input.format === "A4" ? "A4" : "A5") as BookFormat,
     coloringBook: input.coloringBook,
-    extraCopies: 0,
-    giftWrap: false,
+    extraCopies: input.extraCopies ?? 0,
+    giftWrap: input.giftWrap ?? false,
   };
 }

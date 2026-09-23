@@ -44,6 +44,12 @@ export type Market = {
   /** DPH na tlačenú knihu a e-knihu v percentách – potvrdí daňový poradca. */
   vatBookPercent: number;
   paymentMethods: PaymentMethod[];
+  /**
+   * Dobierka pre personalizovanú knihu – špecifikácia (O4) ju vypína, zadávateľ ju zatiaľ
+   * chce zapnutú (rozhodnutie balíka D, otvorené). Košík/pokladnica túto voľbu berie namiesto
+   * `"cod" in paymentMethods`, aby sa dala kedykoľvek vypnúť len konfiguráciou.
+   */
+  codAllowedForPersonalizedBook: boolean;
   carriers: Carrier[];
   freeShippingFromMinor: number;
   deliveryWorkingDays: number;
@@ -69,9 +75,10 @@ export const MARKETS: Record<MarketCode, Market> = {
       format: { A4: 0, A5: 0 },
     },
     vatBookPercent: 5,
-    // Dobierka je tu na želanie zadávateľa; špecifikácia (O4) ju pri
-    // personalizovanej knihe vypína – rozhodnúť pred spustením.
     paymentMethods: ["card", "apple_pay", "google_pay", "bank_button", "cod"],
+    // Dobierka je tu na želanie zadávateľa; špecifikácia (O4) ju pri personalizovanej
+    // knihe vypína – rozhodnutie balíka D (otvorené), pozri handoff.
+    codAllowedForPersonalizedBook: true,
     carriers: [
       { id: "packeta", name: "Packeta", priceMinor: 295, pickupPoint: true },
       { id: "gls", name: "GLS", priceMinor: 395, pickupPoint: false },
@@ -100,6 +107,7 @@ export const MARKETS: Record<MarketCode, Market> = {
     },
     vatBookPercent: 0,
     paymentMethods: ["card", "apple_pay", "google_pay", "bank_button", "cod"],
+    codAllowedForPersonalizedBook: true,
     carriers: [
       { id: "zasilkovna", name: "Zásilkovna", priceMinor: 7900, pickupPoint: true },
       { id: "gls", name: "GLS", priceMinor: 9900, pickupPoint: false },

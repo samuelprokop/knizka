@@ -35,7 +35,8 @@ Kontrakt dát projektu, ktoré číta `createBookVersion`, je v hlavičke `serve
   číslo objednávky v tiráži (`meta.orderRef`), AI označenie v XMP (S7).
 - Tlač: `"print-interior"` + `"print-cover"` – spadávka 3 mm, orezové značky, TrimBox/BleedBox,
   obálka s chrbtom podľa rozsahu a väzby.
-- QR v tiráži vedie na `personalPageUrl()` v `server/versions.ts` – **placeholder**, tvar odkazu určí D.
+- QR v tiráži vedie na `personalPageUrl()` v `server/versions.ts` → `/[market]/moja-kniha/[projects.personalToken]`,
+  neuhádnuteľný token nezávislý od `projects.id` (balík D).
 
 ## Vývoj
 
