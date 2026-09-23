@@ -34,3 +34,17 @@ export function splitText(text: string): [string, string] {
   }
   return [text, ""];
 }
+
+/*
+  Vlastné detaily príbehu (cesta B): značka {detail:toy|obľúbenú hračku}. Bez
+  vyplnenia zákazníkom sa použije predvolená hodnota redaktora za zvislou čiarou
+  (môže byť prázdna). Dosadzuje sa pred menom, lebo detail môže meno obsahovať.
+*/
+const DETAIL_TOKEN = /\{detail:(\w+)(?:\|([^}]*))?\}/g;
+
+export function renderDetails(template: string, details: Partial<Record<string, string>> = {}) {
+  return template
+    .replace(DETAIL_TOKEN, (_, slot: string, fallback = "") => details[slot]?.trim() || fallback)
+    .replace(/ {2,}/g, " ")
+    .replace(/ ([.,!?])/g, "$1");
+}

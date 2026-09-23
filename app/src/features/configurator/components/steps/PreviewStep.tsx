@@ -1,36 +1,38 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useId, useRef, useState, useTransition } from "react";
+import { useId, useMemo, useState, useTransition } from "react";
 
-import type { LayoutId } from "@/config/catalog";
+import { BookFlipbook } from "@/features/book/components/BookFlipbook";
+import { interiorPages } from "@/features/book/model/pages";
+import type { Book } from "@/features/book/model/types";
 import { useI18n } from "@/i18n/client";
 import type { MessageKey } from "@/i18n/messages";
 import { editPageImageAction, editPageTextAction, reportPageAction, rewritePageAction, undoPageAction } from "../../actions/book";
-import type { LookOptions } from "../../model";
 import { stepHref } from "../../steps";
 import { AutoRefresh } from "../AutoRefresh";
-import { SampleSpread } from "../SampleSpread";
 import { StepFooter } from "../StepFooter";
-import { Button, Chip, cx, Field, Notice, StepTitle, inputClass, splitOptions } from "../ui";
+import { Button, Chip, Field, Notice, StepTitle, inputClass, splitOptions } from "../ui";
 import { useWizard } from "../WizardContext";
 
 export type PreviewPage = {
   id: string;
-  position: number;
-  kind: string;
+  /** Index časti knihy v modeli renderera (book.parts). */
+  partIndex: number;
+  /** Poradie dvojstrany príbehu od 1 – pre nadpis editora. */
+  spread: number;
   status: string;
   text: string | null;
-  url: string | null;
   edited: boolean;
   canUndo: boolean;
   original: string | null;
 };
 
 type Props = {
+  /** Kniha z renderera s podpísanými URL obrázkov (withSignedImages). */
+  book: Book;
+  /** Dvojstrany príbehu, ktoré sa dajú upraviť. */
   pages: PreviewPage[];
-  layout: LayoutId;
-  look: Pick<LookOptions, "theme" | "font" | "frames">;
   rewritesLeft: number;
   imageEditsLeft: number;
   editorial: boolean;
@@ -40,21 +42,24 @@ type Props = {
 
 const PAGE_TEXT_MAX = 400;
 
-/** Krok 8: listovací náhľad s vodoznakom; „Upraviť“ pri každej strane otvorí editor (K8.1 – K8.5). */
+/** Krok 8: listovací náhľad s vodoznakom; „Upraviť“ pri strane otvorí editor (K8.1 – K8.5). */
 export function PreviewStep(props: Props) {
   const { t } = useI18n();
   const { market, projectId } = useWizard();
   const router = useRouter();
-  const [index, setIndex] = useState(0);
-  const [editing, setEditing] = useState(false);
-  const touch = useRef<number | null>(null);
-  const page = props.pages[index];
+  const [selected, setSelected] = useState<string | null>(null);
+  const [notice, setNotice] = useState(false);
   const busy = props.pages.some((p) => p.status === "generating" || p.status === "pending");
   const edited = props.pages.filter((p) => p.edited).length;
+  const page = props.pages.find((p) => p.id === selected) ?? null;
 
-  const go = (next: number) => {
-    setIndex(Math.min(props.pages.length - 1, Math.max(0, next)));
-    setEditing(false);
+  // Číslo strany z náhľadu → časť knihy → dvojstrana príbehu v editore.
+  const partOfPage = useMemo(() => new Map(interiorPages(props.book).map((p) => [p.number, p.partIndex])), [props.book]);
+  const editPage = (pageNumber: number) => {
+    const target = props.pages.find((p) => p.partIndex === partOfPage.get(pageNumber));
+    setSelected(target?.id ?? null);
+    // Osobné strany (venovanie, list, zadná strana) sa upravujú v kroku 9.
+    setNotice(!target);
   };
 
   return (
@@ -62,75 +67,10 @@ export function PreviewStep(props: Props) {
       <AutoRefresh active={busy} />
       <StepTitle title={t("preview.title")} subtitle={t("preview.watermark_hint")} />
 
-      <section
-        aria-roledescription={t("configurator.preview.book")}
-        aria-label={page.position === 0 ? t("configurator.preview.cover") : t("editor.title", { n: page.position })}
-        className="relative select-none"
-        onTouchStart={(e) => (touch.current = e.touches[0].clientX)}
-        onTouchEnd={(e) => {
-          if (touch.current === null) return;
-          const dx = e.changedTouches[0].clientX - touch.current;
-          if (Math.abs(dx) > 40) go(index + (dx < 0 ? 1 : -1));
-          touch.current = null;
-        }}
-      >
-        <div key={page.id} className="motion-safe:transition-opacity">
-          {page.kind === "cover" ? (
-            <div className="mx-auto aspect-square w-2/3 overflow-hidden rounded-2xl shadow-md">
-              {page.url && (
-                // eslint-disable-next-line @next/next/no-img-element -- súkromný súbor projektu
-                <img src={page.url} alt="" className="h-full w-full object-cover" />
-              )}
-            </div>
-          ) : (
-            <SampleSpread layout={props.layout} look={props.look} text={page.text ?? ""} image={page.url} imageAlt="" pending={page.status !== "ready"} />
-          )}
-        </div>
-        {/* Vodoznak – jemný, cez obrázky; text ostáva čitateľný na kontrolu. */}
-        <div aria-hidden className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden rounded-2xl">
-          <span className="-rotate-12 font-heading text-5xl font-extrabold tracking-widest text-ink/10 sm:text-7xl">{t("configurator.preview.watermark")}</span>
-        </div>
-        {page.status !== "ready" && (
-          <p className="absolute top-2 left-2 rounded-full bg-white/90 px-3 py-1 text-sm font-medium">
-            {page.status === "needs_review" ? t("gen.page_for_human") : t("editor.preparing")}
-          </p>
-        )}
-      </section>
+      <BookFlipbook book={props.book} onEditPage={editPage} />
 
-      <div className="flex items-center justify-between gap-2">
-        <Button variant="secondary" disabled={index === 0} onClick={() => go(index - 1)} aria-label={t("configurator.preview.prev")}>←</Button>
-        <p className="text-sm font-medium text-ink/70" aria-live="polite">
-          {page.position === 0 ? t("configurator.preview.cover") : t("editor.title", { n: page.position })} · {index + 1}/{props.pages.length}
-        </p>
-        <Button variant="secondary" disabled={index === props.pages.length - 1} onClick={() => go(index + 1)} aria-label={t("configurator.preview.next")}>→</Button>
-      </div>
-
-      <ol className="-mx-4 flex snap-x gap-2 overflow-x-auto px-4 pb-2" aria-label={t("configurator.preview.thumbs")}>
-        {props.pages.map((p, i) => (
-          <li key={p.id} className="shrink-0 snap-start">
-            <button
-              type="button"
-              onClick={() => go(i)}
-              aria-current={i === index || undefined}
-              aria-label={p.position === 0 ? t("configurator.preview.cover") : t("editor.title", { n: p.position })}
-              className={cx("relative block h-14 w-24 overflow-hidden rounded-lg outline-none focus-visible:ring-4 focus-visible:ring-brand-orange/40", i === index ? "ring-4 ring-brand-orange" : "ring-1 ring-ink/10")}
-            >
-              {p.url && (
-                // eslint-disable-next-line @next/next/no-img-element -- súkromný súbor projektu
-                <img src={p.url} alt="" className="h-full w-full object-cover" />
-              )}
-              {p.edited && <span className="absolute right-1 bottom-1 rounded-full bg-brand-teal px-1.5 text-[10px] font-bold text-white">✎</span>}
-            </button>
-          </li>
-        ))}
-      </ol>
-
-      {page.kind !== "cover" && !editing && (
-        <Button variant="secondary" className="self-start" onClick={() => setEditing(true)} disabled={page.status === "generating"}>
-          ✎ {t("preview.edit_page")}
-        </Button>
-      )}
-      {editing && page.kind !== "cover" && <PageEditor key={page.id} page={page} {...props} onClose={() => setEditing(false)} />}
+      {notice && <Notice>{t("configurator.preview.personal_pages")}</Notice>}
+      {page && <PageEditor key={page.id} page={page} {...props} onClose={() => setSelected(null)} />}
 
       {edited > 0 && <Notice>{t("editor.summary", { n: edited })}</Notice>}
       <StepFooter>
@@ -172,7 +112,7 @@ function PageEditor({ page, rewritesLeft, imageEditsLeft, editorial, rewriteChar
   return (
     <section className="flex flex-col gap-4 rounded-3xl bg-white p-4 ring-1 ring-ink/10" aria-labelledby={`${ids}-title`}>
       <div className="flex items-center justify-between">
-        <h2 id={`${ids}-title`} className="font-heading text-xl font-extrabold">{t("editor.title", { n: page.position })}</h2>
+        <h2 id={`${ids}-title`} className="font-heading text-xl font-extrabold">{t("editor.title", { n: page.spread })}</h2>
         <Button variant="ghost" onClick={onClose}>{t("common.done")}</Button>
       </div>
       <div className="grid grid-cols-3 gap-2">

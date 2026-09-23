@@ -4,12 +4,12 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { ACTIVITIES, ACTIVITY_PICK_COUNT, BOOK_FORMATS, COVER_DESIGNS, LAYOUTS, type ActivityId, type LayoutId } from "@/config/catalog";
+import { SampleSpread, type SampleSpreadData } from "@/features/book/components/SampleSpread";
 import { useI18n } from "@/i18n/client";
 import type { MessageKey } from "@/i18n/messages";
 import { generateBookAction, saveLookAction } from "../../actions/book";
-import { ENDPAPERS, FONT_PAIRS, THEME_COLORS, THEMES, TITLE_POSITIONS, type LookOptions } from "../../model";
+import { ENDPAPERS, FONT_PAIRS, THEME_SPECS, THEMES, TITLE_POSITIONS, type LookOptions } from "../../model";
 import { stepHref } from "../../steps";
-import { SampleSpread } from "../SampleSpread";
 import { StepFooter } from "../StepFooter";
 import { Button, Chip, cx, Disclosure, Notice, StepTitle, Toggle, splitOptions } from "../ui";
 import { useWizard } from "../WizardContext";
@@ -27,8 +27,8 @@ export type LookStepProps = {
   format: "A4" | "A5";
   pageCount: 32 | 40;
   forced40: boolean;
-  sampleText: string;
-  sampleImage: string | null;
+  /** Dáta ukážkovej dvojstrany z renderera (text prvej dvojstrany s menom, ilustrácie). */
+  sample: SampleSpreadData | null;
   canGenerate: boolean;
   bookExists: boolean;
   prices: { coloring: string; pages40: string };
@@ -75,7 +75,17 @@ export function LookStep(props: LookStepProps) {
     <>
       <StepTitle title={t("layout.title")} subtitle={t("layout.subtitle")} />
 
-      <SampleSpread layout={layout} look={look} text={props.sampleText} image={props.sampleImage} imageAlt={t("configurator.look.sample_alt")} />
+      {props.sample && (
+        <SampleSpread
+          data={props.sample}
+          layout={layout}
+          format={format}
+          theme={look.theme}
+          fontPair={look.fontPair}
+          frames={look.frames}
+          className="rounded-2xl shadow-md"
+        />
+      )}
 
       <fieldset className="flex flex-col gap-2">
         <legend className="sr-only">{t("layout.title")}</legend>
@@ -104,7 +114,7 @@ export function LookStep(props: LookStepProps) {
         <div className="grid grid-cols-2 gap-2">
           {BOOK_FORMATS.map((f) => (
             <Chip key={f} selected={format === f} onClick={() => { setFormat(f); save({ format: f }); }}>
-              {t(`configurator.format.${f}`)}
+              {t(`book.format.${f}`)}
             </Chip>
           ))}
         </div>
@@ -112,7 +122,7 @@ export function LookStep(props: LookStepProps) {
 
       <Disclosure summary={t("common.more_options")}>
         <p className="text-sm text-ink/70">{t("layout.change_later.free")}</p>
-        <OptionGroup label={t("cover.design")} ids={COVER_DESIGNS} value={look.cover} labelOf={(id) => t(`configurator.cover.${id}`)} onPick={(id) => setOption("cover", id)} />
+        <OptionGroup label={t("cover.design")} ids={COVER_DESIGNS} value={look.cover} labelOf={(id) => t(`book.cover.${id}`)} onPick={(id) => setOption("cover", id)} />
         <fieldset className="flex flex-col gap-2">
           <legend className="text-sm font-semibold">{t("cover.theme")}</legend>
           <div className="flex flex-wrap gap-2">
@@ -121,23 +131,23 @@ export function LookStep(props: LookStepProps) {
                 key={id}
                 type="button"
                 aria-pressed={look.theme === id}
-                aria-label={t(`configurator.theme.${id}`)}
-                title={t(`configurator.theme.${id}`)}
+                aria-label={t(`book.theme.${id}`)}
+                title={t(`book.theme.${id}`)}
                 onClick={() => setOption("theme", id)}
                 className={cx(
                   "flex size-12 overflow-hidden rounded-full border-4 outline-none focus-visible:ring-4 focus-visible:ring-brand-orange/40",
                   look.theme === id ? "border-brand-orange-dark" : "border-white ring-1 ring-ink/15"
                 )}
               >
-                <span className="h-full w-1/2" style={{ backgroundColor: THEME_COLORS[id][0] }} />
-                <span className="h-full w-1/2" style={{ backgroundColor: THEME_COLORS[id][1] }} />
+                <span className="h-full w-1/2" style={{ backgroundColor: THEME_SPECS[id].accent }} />
+                <span className="h-full w-1/2" style={{ backgroundColor: THEME_SPECS[id].soft }} />
               </button>
             ))}
           </div>
         </fieldset>
-        <OptionGroup label={t("cover.font")} ids={FONT_PAIRS} value={look.font} labelOf={(id) => t(`configurator.font.${id}`)} onPick={(id) => setOption("font", id)} />
-        <OptionGroup label={t("cover.title_position")} ids={TITLE_POSITIONS} value={look.titlePosition} labelOf={(id) => t(`configurator.title_position.${id}`)} onPick={(id) => setOption("titlePosition", id)} />
-        <OptionGroup label={t("cover.endpapers")} ids={ENDPAPERS} value={look.endpapers} labelOf={(id) => t(`configurator.endpapers.${id}`)} onPick={(id) => setOption("endpapers", id)} />
+        <OptionGroup label={t("cover.font")} ids={FONT_PAIRS} value={look.fontPair} labelOf={(id) => t(`book.font.${id}`)} onPick={(id) => setOption("fontPair", id)} />
+        <OptionGroup label={t("cover.title_position")} ids={TITLE_POSITIONS} value={look.titlePosition} labelOf={(id) => t(`book.title_position.${id}`)} onPick={(id) => setOption("titlePosition", id)} />
+        <OptionGroup label={t("cover.endpapers")} ids={ENDPAPERS} value={look.endpaper} labelOf={(id) => t(`book.endpaper.${id}`)} onPick={(id) => setOption("endpaper", id)} />
         <div className="flex flex-col divide-y divide-ink/10">
           <Toggle checked={look.frames} onChange={(v) => setOption("frames", v)} label={t("cover.frames")} />
           <Toggle checked={look.backPortrait} onChange={(v) => setOption("backPortrait", v)} label={t("cover.back_portrait")} />

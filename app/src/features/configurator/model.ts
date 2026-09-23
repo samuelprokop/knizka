@@ -7,15 +7,15 @@
 */
 
 import type {
-  ActivityId,
   BookFormat,
-  CoverDesign,
   GuideKind,
   LayoutId,
   PageCount,
   ReadingLevel,
   StyleId,
 } from "@/config/catalog";
+import { defaultBookOptions } from "@/features/book/model/options";
+import type { BookOptions } from "@/features/book/model/types";
 import type { MessageKey } from "@/i18n/messages";
 import type { StoryIdea } from "@/server/ai/types";
 
@@ -81,34 +81,32 @@ export const APPEARANCE_CHOICES = {
 // ---------------------------------------------------------------- vzhľad knihy (krok 6)
 
 /*
-  Identifikátory tém, písiem a predsádok. Balík C (renderer) ich premení na
-  skutočné palety a fonty – potom sa zoznamy presunú do config/catalog.ts.
+  Voľby vzhľadu sú tie isté identifikátory, ktoré pozná renderer (balík C) –
+  zdroj pravdy je features/book/design.ts. Konfigurátor ich ukladá do
+  projects.options.look, renderer ich odtiaľ číta (server/versions.ts).
 */
-export const THEMES = ["sunny", "forest", "sea", "berry", "night", "pastel"] as const;
-export const FONT_PAIRS = ["classic", "rounded", "handwritten", "large"] as const;
-export const TITLE_POSITIONS = ["top", "bottom", "over"] as const;
-export const ENDPAPERS = ["solid", "stars", "leaves", "dots", "waves", "name"] as const;
+export {
+  ENDPAPERS,
+  FONT_PAIRS,
+  THEME_SPECS,
+  THEMES,
+  TITLE_POSITIONS,
+} from "@/features/book/design";
 
-export const THEME_COLORS: Record<(typeof THEMES)[number], [string, string]> = {
-  sunny: ["#ff661a", "#fff4ec"],
-  forest: ["#2f7d4f", "#eef6ef"],
-  sea: ["#00a5a0", "#e8f7f6"],
-  berry: ["#b8336a", "#fbeef3"],
-  night: ["#2d3a6b", "#eceef7"],
-  pastel: ["#8e6bbf", "#f4effa"],
-};
-
-export type LookOptions = {
-  cover: CoverDesign;
-  theme: (typeof THEMES)[number];
-  font: (typeof FONT_PAIRS)[number];
-  titlePosition: (typeof TITLE_POSITIONS)[number];
-  endpapers: (typeof ENDPAPERS)[number];
-  frames: boolean;
-  backPortrait: boolean;
-  activities: ActivityId[];
-  parentGuide: boolean;
-  parentLetter: boolean;
+export type LookOptions = Pick<
+  BookOptions,
+  | "cover"
+  | "theme"
+  | "fontPair"
+  | "titlePosition"
+  | "endpaper"
+  | "frames"
+  | "backPortrait"
+  | "activities"
+  | "parentGuide"
+  | "parentLetter"
+> & {
+  /** Omaľovánková verzia (PDF) – príplatok, renderer ju nepotrebuje. */
   coloringBook: boolean;
 };
 
@@ -181,18 +179,20 @@ export const MASCOT_NAME = "Tiko";
 
 export const STYLE_BY_AGE = (age: number): StyleId => (age <= 4 ? "watercolor" : age <= 6 ? "animated" : "modern");
 
-export function defaultLook(activities: ActivityId[]): LookOptions {
+/** Predvolený vzhľad = predvolené voľby renderera podľa veku, štýlu a layoutu. */
+export function defaultLook(params: { age: number; style: StyleId; layout?: LayoutId }): LookOptions {
+  const o = defaultBookOptions(params);
   return {
-    cover: "hero_big",
-    theme: "sunny",
-    font: "classic",
-    titlePosition: "top",
-    endpapers: "solid",
-    frames: false,
-    backPortrait: true,
-    activities,
-    parentGuide: true,
-    parentLetter: false,
+    cover: o.cover,
+    theme: o.theme,
+    fontPair: o.fontPair,
+    titlePosition: o.titlePosition,
+    endpaper: o.endpaper,
+    frames: o.frames,
+    backPortrait: o.backPortrait,
+    activities: o.activities,
+    parentGuide: o.parentGuide,
+    parentLetter: o.parentLetter,
     coloringBook: false,
   };
 }

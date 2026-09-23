@@ -10,6 +10,10 @@ import type { Translator } from "@/i18n/format";
 import { createTranslator } from "@/i18n/format";
 import type { BookLanguage } from "@/i18n/locales";
 import type { MessageKey } from "@/i18n/messages";
+import type { StorySpreadPart } from "@/features/book/model/types";
+import { withSignedImages } from "@/features/book/server/media";
+import { getSampleSpreadData } from "@/features/book/server/sample";
+import { loadBookVersion } from "@/features/book/server/versions";
 import { SessionExpired, maskEmail } from "../components/SessionExpired";
 import { ApproveStep } from "../components/steps/ApproveStep";
 import { CharactersStep } from "../components/steps/CharactersStep";
@@ -21,10 +25,10 @@ import { PreviewStep } from "../components/steps/PreviewStep";
 import { StoryStep, type StoryView } from "../components/steps/StoryStep";
 import { StyleStep } from "../components/steps/StyleStep";
 import { fileUrl } from "../files";
-import { MASCOT_NAME, STYLE_BY_AGE, THEME_COLORS, WIZARD_MAX_IDEA_ROUNDS, type DetailSlot } from "../model";
+import { MASCOT_NAME, STYLE_BY_AGE, THEME_SPECS, WIZARD_MAX_IDEA_ROUNDS, type DetailSlot } from "../model";
 import { priceSelection } from "../pricing";
 import type { StepNumber } from "../steps";
-import { renderStoryText } from "../story-text";
+import { renderDetails, renderStoryText } from "../story-text";
 import { editorUsage, lookOf } from "./book";
 import {
   appearanceOf,
@@ -237,7 +241,7 @@ async function storyStep({ bundle, market, query }: Ctx) {
       storyChosen={statusAtLeast(bundle.project.status, "text_approved")}
       heroAge={age}
       heroPortrait={cardUrl(market.code, bundle.project.id, heroCard)}
-      themeColor={THEME_COLORS[lookOf(bundle).theme][0]}
+      themeColor={THEME_SPECS[lookOf(bundle).theme].accent}
       companions={bundle.companions.length}
       guideNone={bundle.options.guide === "none"}
       storyInput={bundle.storyInput}
@@ -262,7 +266,21 @@ async function lookStep({ bundle, market }: Ctx) {
   const language = bundle.project.bookLanguage as BookLanguage;
   const story = await storyOf(bundle);
   const first = story?.spreads[0];
-  const card = currentCard(bundle, hero.id, bundle.project.styleId);
+  const details = bundle.storyInput.details ?? {};
+  // Ukážková dvojstrana z renderera: text prvej dvojstrany s menom a detailmi.
+  const sample = first
+    ? await getSampleSpreadData({
+        market: market.code,
+        language,
+        name: nameContextOf(hero),
+        spread: {
+          ...first,
+          text: renderDetails(first.text, details),
+          fallbackText: first.fallbackText ? renderDetails(first.fallbackText, details) : undefined,
+        },
+        style: (bundle.project.styleId ?? "watercolor") as StyleId,
+      })
+    : null;
   return (
     <LookStep
       look={lookOf(bundle)}
@@ -270,14 +288,19 @@ async function lookStep({ bundle, market }: Ctx) {
       format={bundle.project.format === "A4" ? "A4" : "A5"}
       pageCount={bundle.project.pageCount === 40 ? 40 : 32}
       forced40={(bundle.storyInput.spreadCount ?? 12) === 16 || story?.spreads.length === 16}
-      sampleText={first ? renderStoryText(first.text, nameContextOf(hero), language, { fallbackText: first.fallbackText, details: bundle.storyInput.details }) : ""}
-      sampleImage={cardUrl(market.code, bundle.project.id, card, "fullBody")}
+      sample={sample}
       canGenerate={bundle.project.status === "text_approved"}
       bookExists={!!bundle.book && statusAtLeast(bundle.project.status, "preview")}
       prices={{ coloring: formatMoney(market.prices.coloringBook, market), pages40: formatMoney(market.prices.pages40, market) }}
     />
   );
 }
+
+/** Dvojstrany príbehu v poradí knihy (bez titulu, aktivít a ďalších strán). */
+const storySpreads = (bundle: ProjectBundle) =>
+  bundle.pages
+    .filter((p) => p.kind === "story_spread")
+    .map((p) => ({ page: p, spread: ((p.data as StorySpreadPart | null)?.spread ?? 0) + 1 }));
 
 function pageUrl(market: string, bundle: ProjectBundle, page: ProjectBundle["pages"][number]) {
   return page.illustrationKey && page.status === "ready" ? `${fileUrl(market, bundle.project.id, "strana", page.id)}?v=${encodeURIComponent(page.illustrationKey.slice(-12))}` : null;
@@ -287,31 +310,31 @@ function generatingStep({ bundle, market }: Ctx) {
   return (
     <GeneratingStep
       maskedEmail={bundle.project.email ? maskEmail(bundle.project.email) : ""}
-      pages={bundle.pages.map((p) => ({ id: p.id, position: p.position, status: p.status, url: pageUrl(market.code, bundle, p), text: p.text }))}
+      pages={storySpreads(bundle).map(({ page: p, spread }) => ({ id: p.id, position: spread, status: p.status, url: pageUrl(market.code, bundle, p), text: p.text }))}
     />
   );
 }
 
-function previewStep({ bundle, market }: Ctx) {
+async function previewStep({ bundle, market }: Ctx) {
   const usage = editorUsage(bundle);
-  const look = lookOf(bundle);
+  const book = bundle.book ? await loadBookVersion(bundle.book.id) : null;
+  if (!book) return null;
   return (
     <PreviewStep
-      layout={(bundle.project.layoutId ?? "classic") as LayoutId}
-      look={look}
+      book={withSignedImages(book, market.code)}
       rewritesLeft={Math.max(0, LIMITS.textAiRewrites - usage.rewrites)}
       imageEditsLeft={Math.max(0, LIMITS.illustrationEdits - usage.imageEdits)}
       editorial={bundle.project.storyPath === "A" || bundle.project.storyPath === "B"}
       rewriteCharacter={rewriteCharacter(bundle)}
-      pages={bundle.pages.map((p) => {
+      pages={storySpreads(bundle).map(({ page: p, spread }) => {
         const qa = (p.qa ?? {}) as { history?: unknown[]; original?: { text: string | null } };
         return {
           id: p.id,
-          position: p.position,
-          kind: p.kind,
+          // Časti knihy začínajú na pozícii 1 (0 = obálka).
+          partIndex: p.position - 1,
+          spread,
           status: p.status,
           text: p.text,
-          url: pageUrl(market.code, bundle, p),
           edited: p.editedByCustomer,
           canUndo: (qa.history?.length ?? 0) > 0,
           original: qa.original?.text ?? null,
@@ -350,7 +373,7 @@ async function approveStep({ bundle, market, t }: Ctx) {
     market
   );
   const surcharges = price.surcharges.reduce((sum, s) => sum + s.amountMinor, 0);
-  const edited = bundle.pages.filter((p) => p.editedByCustomer).map((p) => p.position);
+  const edited = storySpreads(bundle).filter(({ page }) => page.editedByCustomer).map(({ spread }) => spread);
   const levelKey = `story.options.level.${(bundle.options.readingLevel ?? defaultsForAge(hero.age ?? 5).readingLevel).toLowerCase()}` as MessageKey;
   const characters = [
     ...bundle.companions.map((c) => c.name),
@@ -382,7 +405,7 @@ async function approveStep({ bundle, market, t }: Ctx) {
         look: t("approve.look", {
           style: t(`style.${bundle.project.styleId ?? "watercolor"}` as MessageKey),
           layout: t(`layout.${bundle.project.layoutId === "panoramic" ? "panorama" : (bundle.project.layoutId ?? "classic")}` as MessageKey),
-          cover: t(`configurator.cover.${look.cover}` as MessageKey),
+          cover: t(`book.cover.${look.cover}`),
         }),
         edited: edited.length ? t("approve.edited", { numbers: edited.join(", ") }) : null,
         price: t("approve.price", {

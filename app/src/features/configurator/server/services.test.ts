@@ -242,26 +242,42 @@ describe("krok 5 – 9: príbeh, generovanie, schválenie", () => {
   });
 
   it("generovanie → náhľad → úpravy → schválenie uzamkne verziu", async () => {
+    const { eq } = await import("drizzle-orm");
+    const { loadBookVersion } = await import("@/features/book/server/versions");
+    const spreadsOf = (bundle: typeof b) => bundle.pages.filter((p) => p.kind === "story_spread");
     const project = await projectWithStory();
     await m.book.startGeneration(project.id);
     let b = (await m.bundle.loadBundle(project.id))!;
     assert.equal(b.project.status, "generating");
-    assert.equal(b.pages.length, 13);
-    assert.match(b.pages[2].text!, /Jankovi/);
-    assert.match(b.pages[2].text!, /dráčika|hračku/);
+    // Úplná kniha z renderera: obálka, titul, 12 dvojstrán, aktivity…, tiráž, zadná strana.
+    assert.equal(spreadsOf(b).length, 12);
+    assert.ok(b.pages.some((p) => p.kind === "title") && b.pages.some((p) => p.kind === "imprint"));
+    assert.ok(spreadsOf(b).every((p) => p.status === "pending" && !p.illustrationKey));
+    assert.match(spreadsOf(b)[1].text!, /Jankovi/);
+    assert.match(spreadsOf(b)[1].text!, /dráčika|hračku/);
 
     await m.book.runGeneration(project.id);
     b = (await m.bundle.loadBundle(project.id))!;
     assert.equal(b.project.status, "preview");
-    assert.ok(b.pages.every((p) => p.status === "ready" && p.illustrationKey));
-    assert.equal((await m.db.db.select().from(m.db.schema.aiJobs).where((await import("drizzle-orm")).eq(m.db.schema.aiJobs.projectId, project.id))).every((j) => j.status === "succeeded"), true);
+    assert.ok(spreadsOf(b).every((p) => p.status === "ready" && p.illustrationKey));
+    // Ilustrácia je aj v modeli strany a prvá dvojstrana je na obálke.
+    assert.ok(spreadsOf(b).every((p) => (p.data as { illustration?: { key: string } }).illustration?.key === p.illustrationKey));
+    assert.equal(b.pages.find((p) => p.kind === "cover")?.illustrationKey, spreadsOf(b)[0].illustrationKey);
+    const jobs = await m.db.db.select().from(m.db.schema.aiJobs).where(eq(m.db.schema.aiJobs.projectId, project.id));
+    assert.equal(jobs.every((j) => j.status === "succeeded"), true);
 
-    const page = b.pages[1];
+    // Úprava textu sa prejaví aj v knihe renderera (náhľad, e-kniha, tlač).
+    const page = spreadsOf(b)[0];
     await m.book.editPageText(project.id, page.id, "Nový text strany.");
+    let book = (await loadBookVersion(b.book!.id))!;
+    assert.ok(book.parts.some((part) => part.kind === "story_spread" && part.text === "Nový text strany."));
     await m.book.undoPage(project.id, page.id);
     b = (await m.bundle.loadBundle(project.id))!;
-    assert.equal(b.pages[1].text, page.text);
-    assert.equal(b.pages[1].editedByCustomer, false);
+    assert.equal(spreadsOf(b)[0].text, page.text);
+    assert.equal(spreadsOf(b)[0].editedByCustomer, false);
+    book = (await loadBookVersion(b.book!.id))!;
+    assert.equal(book.cover.scene?.key, spreadsOf(b)[0].illustrationKey);
+    assert.ok(!book.parts.some((part) => part.kind === "story_spread" && part.text === "Nový text strany."));
 
     await m.book.savePersonalTexts(project.id, { dedication: "Pre Janka", back: "x".repeat(900) });
     await m.book.approveBook(project.id);

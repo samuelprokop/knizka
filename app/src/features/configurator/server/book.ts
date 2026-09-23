@@ -11,7 +11,6 @@ import {
   LAYOUT_IMAGE_RATIO,
   LIMITS,
   PAGE_COUNTS,
-  defaultsForAge,
   type ActivityId,
   type LayoutId,
   type StyleId,
@@ -20,10 +19,13 @@ import { db, schema } from "@/db";
 import type { BookLanguage } from "@/i18n/locales";
 import { getImageProvider, getTextProvider } from "@/server/ai";
 import { withAiJob } from "./ai-jobs";
-import { currentCard, loadBundle, nameContextOf, type BookPage, type ProjectBundle } from "./bundle";
+import { currentCard, loadBundle, type BookPage, type ProjectBundle } from "./bundle";
 import { countRecentProjects, ValidationError } from "./projects";
 import { storyOf } from "./story";
 import { advanceStatus } from "../status";
+import { withSpreadChanges } from "@/features/book/model/edit";
+import type { StorySpreadPart } from "@/features/book/model/types";
+import { createBookVersion, setCoverScene } from "@/features/book/server/versions";
 import {
   ENDPAPERS,
   FONT_PAIRS,
@@ -34,14 +36,34 @@ import {
   type PersonalTexts,
   type ProjectOptions,
 } from "../model";
-import { renderStoryText } from "../story-text";
 import { cleanText } from "../validation";
 
 // ---------------------------------------------------------------- krok 6
 
 export function lookOf(bundle: ProjectBundle): LookOptions {
-  const age = bundle.hero?.age ?? 5;
-  return { ...defaultLook(defaultsForAge(age).activities), ...bundle.options.look };
+  const defaults = defaultLook({
+    age: bundle.hero?.age ?? 5,
+    style: (bundle.project.styleId ?? "watercolor") as StyleId,
+    layout: (bundle.project.layoutId ?? undefined) as LayoutId | undefined,
+  });
+  const saved = (bundle.options.look ?? {}) as Partial<Record<keyof LookOptions, unknown>>;
+  const bool = (value: unknown, fallback: boolean) => (typeof value === "boolean" ? value : fallback);
+  const activities = Array.isArray(saved.activities)
+    ? [...new Set(saved.activities.filter((a): a is ActivityId => ACTIVITIES.includes(a)))].slice(0, ACTIVITY_PICK_COUNT)
+    : defaults.activities;
+  return {
+    cover: oneOf(COVER_DESIGNS, saved.cover, defaults.cover),
+    theme: oneOf(THEMES, saved.theme, defaults.theme),
+    fontPair: oneOf(FONT_PAIRS, saved.fontPair, defaults.fontPair),
+    titlePosition: oneOf(TITLE_POSITIONS, saved.titlePosition, defaults.titlePosition),
+    endpaper: oneOf(ENDPAPERS, saved.endpaper, defaults.endpaper),
+    frames: bool(saved.frames, defaults.frames),
+    backPortrait: bool(saved.backPortrait, defaults.backPortrait),
+    activities,
+    parentGuide: bool(saved.parentGuide, defaults.parentGuide),
+    parentLetter: bool(saved.parentLetter, defaults.parentLetter),
+    coloringBook: bool(saved.coloringBook, defaults.coloringBook),
+  };
 }
 
 const oneOf = <T extends string>(list: readonly T[], value: unknown, fallback: T): T =>
@@ -67,9 +89,9 @@ export async function saveLook(projectId: string, input: LookInput) {
   const look: LookOptions = {
     cover: oneOf(COVER_DESIGNS, input.cover, current.cover),
     theme: oneOf(THEMES, input.theme, current.theme),
-    font: oneOf(FONT_PAIRS, input.font, current.font),
+    fontPair: oneOf(FONT_PAIRS, input.fontPair, current.fontPair),
     titlePosition: oneOf(TITLE_POSITIONS, input.titlePosition, current.titlePosition),
-    endpapers: oneOf(ENDPAPERS, input.endpapers, current.endpapers),
+    endpaper: oneOf(ENDPAPERS, input.endpaper, current.endpaper),
     frames: input.frames ?? current.frames,
     backPortrait: input.backPortrait ?? current.backPortrait,
     activities,
@@ -110,11 +132,16 @@ export async function saveLook(projectId: string, input: LookInput) {
 
 // ---------------------------------------------------------------- krok 7
 
-/** Po „Vygenerovať knihu“ sa voľby uzamknú do novej verzie knihy (proces: Krok 6). */
+/**
+ * Po „Vygenerovať knihu“ sa voľby uzamknú do novej verzie knihy (proces: Krok 6).
+ * Model strán zostaví renderer (balík C); dvojstrany čakajú na ilustrácie, ktoré
+ * runGeneration dopĺňa po jednej, takže kniha sa skladá pred očami (K7.1).
+ */
 export async function startGeneration(projectId: string) {
   const bundle = await loadBundle(projectId);
   if (!bundle?.hero || !bundle.project.styleId) throw new Error("Projekt nie je pripravený");
   if (bundle.project.status !== "text_approved") throw new ValidationError("error.generic");
+  if (lookOf(bundle).activities.length !== ACTIVITY_PICK_COUNT) throw new ValidationError("activities.help");
 
   if (bundle.project.email) {
     const previews = await countRecentProjects(bundle.project.email, "preview");
@@ -124,57 +151,20 @@ export async function startGeneration(projectId: string) {
 
   const story = await storyOf(bundle);
   if (!story) throw new ValidationError("story.refuse.retry");
-  const ctx = nameContextOf(bundle.hero);
-  const language = bundle.project.bookLanguage as BookLanguage;
-  const title = renderStoryText(story.title, ctx, language);
-  const layout = (bundle.project.layoutId ?? "classic") as LayoutId;
-  const version = (bundle.book?.version ?? 0) + 1;
 
-  await db.transaction(async (tx) => {
-    const [book] = await tx
-      .insert(schema.bookVersions)
-      .values({
-        projectId,
-        version,
-        snapshot: {
-          styleId: bundle.project.styleId,
-          layoutId: layout,
-          format: bundle.project.format,
-          pageCount: bundle.project.pageCount,
-          storyPath: bundle.project.storyPath,
-          storyId: bundle.project.storyId,
-          look: lookOf(bundle),
-          readingLevel: bundle.options.readingLevel,
-          title,
-        },
-      })
-      .returning();
-
-    // Zjednodušený zoznam strán (obálka + dvojstrany príbehu). Úplný model knihy
-    // (predsádky, venovanie, aktivity, tiráž…) dodá balík C.
-    const pages = [
-      { bookVersionId: book.id, position: 0, kind: "cover", text: title, layoutId: layout },
-      ...story.spreads.map((spread, i) => ({
-        bookVersionId: book.id,
-        position: i + 1,
-        kind: "story_spread",
-        text: renderStoryText(spread.text, ctx, language, { fallbackText: spread.fallbackText, details: bundle.storyInput.details }),
-        layoutId: layout,
-        qa: { scene: spread.scene ?? "" },
-      })),
-    ];
-    await tx.insert(schema.bookPages).values(pages);
-    await tx
-      .update(schema.projects)
-      .set({ status: advanceStatus("text_approved", "generating"), currentStep: 7 })
-      .where(eq(schema.projects.id, projectId));
-  });
+  await createBookVersion(projectId, { illustrations: "later" });
+  await db
+    .update(schema.projects)
+    .set({ status: advanceStatus("text_approved", "generating"), currentStep: 7 })
+    .where(eq(schema.projects.id, projectId));
 }
 
 const mockDelay = () =>
   getImageProvider().id === "mock"
     ? new Promise((resolve) => setTimeout(resolve, Number(process.env.MOCK_AI_DELAY_MS ?? 700)))
     : Promise.resolve();
+
+const spreadOf = (page: BookPage) => (page.kind === "story_spread" ? (page.data as StorySpreadPart | null) : null);
 
 async function renderPage(bundle: ProjectBundle, page: BookPage, extra?: string) {
   const style = bundle.project.styleId as StyleId;
@@ -184,16 +174,30 @@ async function renderPage(bundle: ProjectBundle, page: BookPage, extra?: string)
   const layout = (page.layoutId ?? bundle.project.layoutId ?? "classic") as LayoutId;
   const scene = String((page.qa as { scene?: string } | null)?.scene ?? "");
   const { image } = await withAiJob(
-    { projectId: bundle.project.id, kind: page.kind === "cover" ? "cover" : "scene", params: { style, layout, position: page.position, edit: extra } },
+    { projectId: bundle.project.id, kind: "scene", params: { style, layout, spread: spreadOf(page)?.spread, edit: extra } },
     () =>
       getImageProvider().scene({
         style,
         scene: extra ? `${scene} ${extra}` : scene,
         characterCardKeys: cardKeys,
-        aspect: page.kind === "cover" ? "1:1" : LAYOUT_IMAGE_RATIO[layout],
+        aspect: LAYOUT_IMAGE_RATIO[layout],
       })
   );
   return image.storageKey;
+}
+
+/** Nová ilustrácia dvojstrany – do stĺpca aj do modelu strany; pri prvej dvojstrane aj na obálku. */
+async function saveSpreadImage(page: BookPage, key: string) {
+  const part = spreadOf(page);
+  await db
+    .update(schema.bookPages)
+    .set({
+      status: "ready",
+      illustrationKey: key,
+      ...(part ? { data: withSpreadChanges(part, { illustrationKey: key }) as unknown as Record<string, unknown> } : {}),
+    })
+    .where(eq(schema.bookPages.id, page.id));
+  if (part?.spread === 0) await setCoverScene(page.bookVersionId, key);
 }
 
 /**
@@ -206,15 +210,14 @@ export async function runGeneration(projectId: string) {
   if (!bundle?.book || bundle.project.status !== "generating") return;
 
   for (const page of bundle.pages) {
-    if (page.status === "ready") continue;
+    if (page.kind !== "story_spread" || page.status === "ready") continue;
     await db
       .update(schema.bookPages)
       .set({ status: "generating", attempts: sql`${schema.bookPages.attempts} + 1` })
       .where(eq(schema.bookPages.id, page.id));
     try {
       await mockDelay();
-      const key = await renderPage(bundle, page);
-      await db.update(schema.bookPages).set({ status: "ready", illustrationKey: key }).where(eq(schema.bookPages.id, page.id));
+      await saveSpreadImage(page, await renderPage(bundle, page));
     } catch {
       // Po opakovaniach strana čaká na grafika; kniha sa dá dokončiť (proces: Krok 8).
       await db.update(schema.bookPages).set({ status: "needs_review" }).where(eq(schema.bookPages.id, page.id));
@@ -234,6 +237,12 @@ type PageQa = { scene?: string; history?: PageHistoryEntry[]; original?: PageHis
 
 const qaOf = (page: BookPage): PageQa => (page.qa ?? {}) as PageQa;
 
+/** Model strany po zmene – náhľad, e-kniha aj tlač čítajú book_pages.data. */
+const spreadData = (page: BookPage, changes: { text?: string; illustrationKey?: string | null }) => {
+  const part = spreadOf(page);
+  return (part ? withSpreadChanges(part, changes) : page.data) as Record<string, unknown> | null;
+};
+
 export type EditorUsage = { rewrites: number; imageEdits: number };
 export const editorUsage = (bundle: ProjectBundle): EditorUsage => bundle.options.editor ?? { rewrites: 0, imageEdits: 0 };
 
@@ -242,6 +251,8 @@ async function loadPage(projectId: string, pageId: string) {
   const page = bundle?.pages.find((p) => p.id === pageId);
   if (!bundle || !page) throw new Error("Strana nepatrí k projektu");
   if (bundle.project.status !== "preview") throw new ValidationError("editor.preparing");
+  // Upravovať sa dajú dvojstrany príbehu; osobné strany majú vlastný krok 9.
+  if (page.kind !== "story_spread") throw new ValidationError("error.generic");
   return { bundle, page };
 }
 
@@ -268,7 +279,7 @@ export async function editPageText(projectId: string, pageId: string, text: stri
   if (!clean) throw new ValidationError("editor.text_rejected");
   await db
     .update(schema.bookPages)
-    .set({ text: clean, editedByCustomer: true, qa: withHistory(page) })
+    .set({ text: clean, data: spreadData(page, { text: clean }), editedByCustomer: true, qa: withHistory(page) })
     .where(eq(schema.bookPages.id, page.id));
 }
 
@@ -283,7 +294,7 @@ export async function rewritePageText(projectId: string, pageId: string, instruc
   );
   await db
     .update(schema.bookPages)
-    .set({ text: text.slice(0, PAGE_TEXT_MAX), editedByCustomer: true, qa: withHistory(page) })
+    .set({ text: text.slice(0, PAGE_TEXT_MAX), data: spreadData(page, { text: text.slice(0, PAGE_TEXT_MAX) }), editedByCustomer: true, qa: withHistory(page) })
     .where(eq(schema.bookPages.id, page.id));
   await saveUsage(bundle, { ...usage, rewrites: usage.rewrites + 1 });
 }
@@ -307,8 +318,7 @@ export async function editPageImage(projectId: string, pageId: string, instructi
 export async function finishPageImage(bundle: ProjectBundle, page: BookPage, instruction: string) {
   try {
     await mockDelay();
-    const key = await renderPage(bundle, page, instruction);
-    await db.update(schema.bookPages).set({ status: "ready", illustrationKey: key }).where(eq(schema.bookPages.id, page.id));
+    await saveSpreadImage(page, await renderPage(bundle, page, instruction));
   } catch {
     await db.update(schema.bookPages).set({ status: "needs_review" }).where(eq(schema.bookPages.id, page.id));
   }
@@ -327,10 +337,14 @@ export async function undoPage(projectId: string, pageId: string) {
     .set({
       text: previous.text,
       illustrationKey: previous.illustrationKey,
+      data: spreadData(page, { text: previous.text ?? "", illustrationKey: previous.illustrationKey }),
       editedByCustomer: !backToOriginal,
       qa: { ...qa, history },
     })
     .where(eq(schema.bookPages.id, page.id));
+  if (spreadOf(page)?.spread === 0 && previous.illustrationKey !== page.illustrationKey) {
+    await setCoverScene(page.bookVersionId, previous.illustrationKey);
+  }
 }
 
 /** „Niečo nesedí“ – strana ide na kontrolu človekom. */

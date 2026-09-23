@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import {
   ACTIVITIES,
+  ACTIVITY_PICK_COUNT,
   BOOK_FORMATS,
   COVER_DESIGNS,
   LAYOUT_IMAGE_RATIO,
@@ -23,7 +24,8 @@ import { guessNameForms, type NameContext, type NameForms } from "@/lib/language
 import { ENDPAPERS, FONT_PAIRS, THEMES, TITLE_POSITIONS } from "../design";
 import { buildBook, type BookInput } from "../model/build";
 import { defaultBookOptions } from "../model/options";
-import type { BackCoverData, Book, BookImage, BookMeta, BookOptions, BookPart, CoverData } from "../model/types";
+import { renderDetails } from "../model/text";
+import type { BackCoverData, Book, BookImage, BookMeta, BookOptions, BookPart, CoverData, StorySpreadPart } from "../model/types";
 import { generateScene } from "./illustrations";
 
 /*
@@ -31,13 +33,14 @@ import { generateScene } from "./illustrations";
   každá časť má v book_pages.data celý obsah strany, takže náhľad, e-kniha aj
   tlač z nej vzniknú rovnako aj po zmene kódu generátorov.
 
-  Kontrakt s balíkom A (projects):
-    - projects.options: voľby kroku 6 v tvare BookOptions (cover, theme, fontPair,
-      titlePosition, endpaper, frames, activities, parentGuide, parentLetter,
-      backPortrait, readingLevel); chýbajúce = predvolené podľa veku
-    - projects.personalTexts: { dedication?, from?, date?, parentLetter?, backText? }
-    - projects.storyInput.story: pri cestách C a D hotový text
-      { title, annotation, spreads: [{ text, scene }], questions? } (značky {meno:X})
+  Kontrakt s balíkom A (projects) – tvar, ktorý ukladá konfigurátor:
+    - projects.options.look: voľby kroku 6 (cover, theme, fontPair, titlePosition,
+      endpaper, frames, activities, parentGuide, parentLetter, backPortrait);
+      projects.options.readingLevel a .bookTitle; chýbajúce/neplatné = predvolené
+    - projects.personalTexts: { dedication?, from?, date?, letter?, back? }
+    - projects.storyInput.generated: pri cestách C a D hotový text
+      { title, annotation, spreads: [{ text, scene }] } (značky {meno:X})
+    - projects.storyInput.details: vlastné detaily cesty B ({detail:slot|…})
 */
 
 /** Verzia formátu snímky – pri zmene tvaru BookPart zvýšiť a doplniť migráciu čítania. */
@@ -54,30 +57,45 @@ type Snapshot = {
 
 // ---------------------------------------------------------------- vstupy z projektu
 
-const optionsSchema = z
-  .object({
-    cover: z.enum(COVER_DESIGNS),
-    theme: z.enum(THEMES),
-    fontPair: z.enum(FONT_PAIRS),
-    titlePosition: z.enum(TITLE_POSITIONS),
-    endpaper: z.enum(ENDPAPERS),
-    frames: z.boolean(),
-    activities: z.array(z.enum(ACTIVITIES)).length(4),
-    parentGuide: z.boolean(),
-    parentLetter: z.boolean(),
-    backPortrait: z.boolean(),
-    readingLevel: z.enum(READING_LEVELS),
-    binding: z.enum(["hardcover", "softcover"]),
-  })
-  .partial();
+const lookFields = {
+  cover: z.enum(COVER_DESIGNS),
+  theme: z.enum(THEMES),
+  fontPair: z.enum(FONT_PAIRS),
+  titlePosition: z.enum(TITLE_POSITIONS),
+  endpaper: z.enum(ENDPAPERS),
+  frames: z.boolean(),
+  parentGuide: z.boolean(),
+  parentLetter: z.boolean(),
+  backPortrait: z.boolean(),
+  readingLevel: z.enum(READING_LEVELS),
+  binding: z.enum(["hardcover", "softcover"]),
+};
+
+/** Každá voľba sa overí zvlášť – jedna neplatná hodnota nezhodí ostatné na predvolené. */
+function parseLook(raw: Record<string, unknown>, defaults: BookOptions): BookOptions {
+  const options = { ...defaults } as Record<string, unknown>;
+  for (const [key, schema] of Object.entries(lookFields)) {
+    const parsed = schema.safeParse(raw[key]);
+    if (parsed.success) options[key] = parsed.data;
+  }
+  // Presne 4 rôzne aktivity: zvolené zákazníkom, doplnené predvolenými podľa veku.
+  const chosen = z.array(z.enum(ACTIVITIES)).safeParse(raw.activities);
+  const picked = [...new Set(chosen.success ? chosen.data : defaults.activities)];
+  for (const activity of [...defaults.activities, ...ACTIVITIES]) {
+    if (picked.length >= ACTIVITY_PICK_COUNT) break;
+    if (!picked.includes(activity)) picked.push(activity);
+  }
+  options.activities = picked.slice(0, ACTIVITY_PICK_COUNT);
+  return options as BookOptions;
+}
 
 const personalSchema = z
   .object({
     dedication: z.string(),
     from: z.string(),
     date: z.string(),
-    parentLetter: z.string(),
-    backText: z.string(),
+    letter: z.string(),
+    back: z.string(),
   })
   .partial();
 
@@ -106,37 +124,50 @@ export function personalPageUrl(market: string, projectId: string) {
 export class BookVersionError extends Error {}
 
 /**
- * Zostaví novú verziu knihy z projektu (krok 6 → „Vygenerovať knihu“): ilustrácie
- * scén cez ImageProvider (zatiaľ mock), model strán, uloženie. Stav projektu nemení –
- * to robí volajúci cez assertTransition.
+ * Zostaví novú verziu knihy z projektu (krok 6 → „Vygenerovať knihu“): model strán
+ * a uloženie. Stav projektu nemení – to robí volajúci cez assertTransition.
+ *
+ * illustrations: "now" = ilustrácie scén sa vygenerujú hneď (demo, testy);
+ * "later" = dvojstrany sa uložia bez obrázka so stavom "pending" a konfigurátor
+ * ich generuje po jednej (krok 7), každú cez withSpreadChanges + setCoverScene.
  */
-export async function createBookVersion(projectId: string): Promise<{ versionId: string; book: Book }> {
+export async function createBookVersion(
+  projectId: string,
+  opts: { illustrations?: "now" | "later" } = {}
+): Promise<{ versionId: string; book: Book }> {
   const project = await db.query.projects.findFirst({ where: eq(schema.projects.id, projectId) });
   if (!project) throw new BookVersionError("Projekt neexistuje");
   if (!isBookLanguage(project.bookLanguage) || !isMarketCode(project.market)) {
     throw new BookVersionError("Neznámy jazyk alebo trh projektu");
   }
   const language = project.bookLanguage;
+  const projectOptions = (project.options ?? {}) as { look?: Record<string, unknown>; readingLevel?: unknown; bookTitle?: unknown };
+  const storyInput = (project.storyInput ?? {}) as { generated?: unknown; story?: unknown; details?: Record<string, string> };
 
-  const hero = await db.query.characters.findFirst({
-    where: and(eq(schema.characters.projectId, projectId), eq(schema.characters.role, "hero")),
-  });
+  const characters = await db.query.characters.findMany({ where: eq(schema.characters.projectId, projectId) });
+  const hero = characters.find((c) => c.role === "hero");
   if (!hero?.gender) throw new BookVersionError("Projekt nemá hrdinu s rodom");
   const forms = (hero.nameForms as NameForms | null) ?? guessNameForms(hero.name, hero.gender, language).forms;
   const name: NameContext = { forms, gender: hero.gender, declinable: !hero.nameIndeclinable };
 
-  const card = await db.query.characterCards.findFirst({
-    where: and(eq(schema.characterCards.characterId, hero.id), eq(schema.characterCards.status, "approved")),
-    orderBy: desc(schema.characterCards.version),
-  });
-  const cardImages = (card?.images ?? {}) as Record<string, unknown>;
+  // Schválené Karty všetkých postáv – hrdina, spoločníci aj sprievodca (bez fotiek, S13).
+  const approvedCards = await Promise.all(
+    characters.map((c) =>
+      db.query.characterCards.findFirst({
+        where: and(eq(schema.characterCards.characterId, c.id), eq(schema.characterCards.status, "approved")),
+        orderBy: desc(schema.characterCards.version),
+      })
+    )
+  );
+  const heroCard = approvedCards[characters.indexOf(hero)];
+  const cardImages = (heroCard?.images ?? {}) as Record<string, unknown>;
   const portraitKey = imageKey(cardImages.portrait);
   const fullBodyKey = imageKey(cardImages.fullBody);
 
   // Text príbehu: knižnica (A, B) alebo hotový text na mieru (C, D).
   let story: BookInput["story"];
   let sources: Record<string, unknown>;
-  const custom = customStorySchema.safeParse((project.storyInput as { story?: unknown } | null)?.story);
+  const custom = customStorySchema.safeParse(storyInput.generated ?? storyInput.story);
   if ((project.storyPath === "C" || project.storyPath === "D") && custom.success) {
     story = { ...custom.data, author: null };
     sources = { storyPath: project.storyPath };
@@ -157,25 +188,44 @@ export async function createBookVersion(projectId: string): Promise<{ versionId:
     sources = { storyPath: project.storyPath ?? "A", storyId: project.storyId, editionId: edition.id, editionVersion: edition.version };
   }
 
+  // Vlastné detaily (cesta B) a vlastný názov knihy (K5.11).
+  const details = storyInput.details ?? {};
+  const bookTitle = typeof projectOptions.bookTitle === "string" ? projectOptions.bookTitle.trim() : "";
+  story = {
+    ...story,
+    title: bookTitle || renderDetails(story.title, details),
+    annotation: renderDetails(story.annotation, details),
+    spreads: story.spreads.map((spread) => ({
+      ...spread,
+      text: renderDetails(spread.text, details),
+      fallbackText: spread.fallbackText ? renderDetails(spread.fallbackText, details) : undefined,
+    })),
+  };
+
   const style: StyleId = STYLES.includes(project.styleId as StyleId) ? (project.styleId as StyleId) : "watercolor";
   const layout = LAYOUTS.find((l) => l === project.layoutId);
   const format = BOOK_FORMATS.find((f) => f === project.format) ?? "A5";
   const pageCount = PAGE_COUNTS.find((p) => p === project.pageCount) ?? 32;
-  const parsedOptions = optionsSchema.safeParse(project.options);
-  const options: BookOptions = {
-    ...defaultBookOptions({ age: hero.age ?? 5, style, format, pageCount, layout }),
-    ...(parsedOptions.success ? parsedOptions.data : {}),
-  };
+  const options = parseLook(
+    { ...(projectOptions.look ?? {}), readingLevel: projectOptions.readingLevel },
+    defaultBookOptions({ age: hero.age ?? 5, style, format, pageCount, layout })
+  );
   const personal = personalSchema.safeParse(project.personalTexts ?? {});
+  const texts = personal.success ? personal.data : {};
 
   // Ilustrácie scén v pomere layoutu – s kľúčmi Kariet, bez fotiek (S13).
   const aspect = LAYOUT_IMAGE_RATIO[options.layout];
-  const characterCardKeys = [portraitKey, fullBodyKey].filter((k): k is string => Boolean(k));
-  const scenes = await Promise.all(
-    story.spreads.map((spread) =>
-      generateScene(projectId, { style, aspect, scene: spread.scene ?? "", characterCardKeys })
-    )
-  );
+  const characterCardKeys = approvedCards
+    .map((card) => imageKey(((card?.images ?? {}) as Record<string, unknown>).portrait))
+    .filter((k): k is string => Boolean(k));
+  const later = opts.illustrations === "later";
+  const scenes = later
+    ? story.spreads.map(() => null)
+    : await Promise.all(
+        story.spreads.map((spread) =>
+          generateScene(projectId, { style, aspect, scene: spread.scene ?? "", characterCardKeys })
+        )
+      );
 
   const book = buildBook({
     language,
@@ -183,7 +233,13 @@ export async function createBookVersion(projectId: string): Promise<{ versionId:
     hero: { name, age: hero.age ?? 5 },
     story,
     options,
-    personal: personal.success ? personal.data : undefined,
+    personal: {
+      dedication: texts.dedication,
+      from: texts.from,
+      date: texts.date,
+      parentLetter: texts.letter,
+      backText: texts.back,
+    },
     images: {
       spreads: scenes,
       heroFullBody: fullBodyKey ? { key: fullBodyKey } : null,
@@ -192,7 +248,12 @@ export async function createBookVersion(projectId: string): Promise<{ versionId:
     meta: { personalPageUrl: personalPageUrl(project.market, projectId), date: new Date().toISOString().slice(0, 10) },
   });
 
-  const versionId = await saveBookVersion(projectId, book, { ...sources, style, aspect });
+  const versionId = await saveBookVersion(
+    projectId,
+    book,
+    { ...sources, style, aspect },
+    { scenes: story.spreads.map((spread) => spread.scene ?? ""), pendingIllustrations: later }
+  );
   return { versionId, book };
 }
 
@@ -215,7 +276,13 @@ function partRow(part: BookPart) {
   }
 }
 
-export async function saveBookVersion(projectId: string, book: Book, sources: Record<string, unknown> = {}) {
+export async function saveBookVersion(
+  projectId: string,
+  book: Book,
+  sources: Record<string, unknown> = {},
+  /** scenes: opis scény každej dvojstrany (pre generovanie po stranách); pendingIllustrations: dvojstrany bez obrázka čakajú. */
+  extra: { scenes?: string[]; pendingIllustrations?: boolean } = {}
+) {
   return db.transaction(async (tx) => {
     const [last] = await tx
       .select({ version: schema.bookVersions.version })
@@ -247,16 +314,21 @@ export async function saveBookVersion(projectId: string, book: Book, sources: Re
       { position: book.parts.length + 1, kind: "back_cover", text: book.back.text, data: null, layoutId: null, illustrationKey: null },
     ];
     await tx.insert(schema.bookPages).values(
-      rows.map((row) => ({
-        bookVersionId: version.id,
-        position: row.position,
-        kind: row.kind,
-        text: row.text,
-        data: row.data,
-        layoutId: row.layoutId,
-        illustrationKey: row.illustrationKey,
-        status: "ready" as const,
-      }))
+      rows.map((row) => {
+        const spread = row.kind === "story_spread" ? (row.data as unknown as StorySpreadPart).spread : null;
+        const waiting = spread !== null && extra.pendingIllustrations && !row.illustrationKey;
+        return {
+          bookVersionId: version.id,
+          position: row.position,
+          kind: row.kind,
+          text: row.text,
+          data: row.data,
+          layoutId: row.layoutId,
+          illustrationKey: row.illustrationKey,
+          qa: spread !== null && extra.scenes ? { scene: extra.scenes[spread] ?? "" } : null,
+          status: waiting ? ("pending" as const) : ("ready" as const),
+        };
+      })
     );
     return version.id;
   });
@@ -297,4 +369,22 @@ export async function loadBookVersion(versionId: string): Promise<Book | null> {
 /** Uzamknutie verzie po schválení (z nej sa robí e-kniha a tlač). */
 export async function lockBookVersion(versionId: string) {
   await db.update(schema.bookVersions).set({ lockedAt: new Date() }).where(eq(schema.bookVersions.id, versionId));
+}
+
+/** Obálka „hrdina v scéne“ používa ilustráciu prvej dvojstrany – po jej (pre)generovaní sa obnoví. */
+export async function setCoverScene(versionId: string, key: string | null) {
+  const version = await db.query.bookVersions.findFirst({ where: eq(schema.bookVersions.id, versionId) });
+  if (!version) return;
+  const snapshot = version.snapshot as unknown as Snapshot;
+  const scene = key ? { key } : null;
+  await db.transaction(async (tx) => {
+    await tx
+      .update(schema.bookVersions)
+      .set({ snapshot: { ...snapshot, cover: { ...snapshot.cover, scene } } as unknown as Record<string, unknown> })
+      .where(eq(schema.bookVersions.id, versionId));
+    await tx
+      .update(schema.bookPages)
+      .set({ illustrationKey: key })
+      .where(and(eq(schema.bookPages.bookVersionId, versionId), eq(schema.bookPages.kind, "cover")));
+  });
 }

@@ -2,22 +2,16 @@
   Dosadenie mena, rodu a vlastných detailov (cesta B) do textu príbehu.
   Meno sa neskloňuje tu – tvary dodá jazykový modul (renderNameTokens).
 
-  Značka detailu: {detail:toy|obľúbenú hračku} – bez vyplnenia zákazníkom
-  sa použije predvolená hodnota redaktora za zvislou čiarou (môže byť prázdna).
+  Značky detailov {detail:slot|predvolené} dosadzuje renderDetails z modelu
+  knihy (balík C), aby konfigurátor aj renderer dávali rovnaký text.
 */
 
+import { renderDetails } from "@/features/book/model/text";
 import type { BookLanguage } from "@/i18n/locales";
 import { applyTypography, CASE_KEYS, renderNameTokens, type NameContext, type NameForms } from "@/lib/language";
 import type { DetailSlot } from "./model";
 
-const DETAIL_TOKEN = /\{detail:(\w+)(?:\|([^}]*))?\}/g;
-
-export function renderDetails(template: string, details: Partial<Record<DetailSlot, string>> = {}) {
-  return template
-    .replace(DETAIL_TOKEN, (_, slot: string, fallback = "") => details[slot as DetailSlot]?.trim() || fallback)
-    .replace(/ {2,}/g, " ")
-    .replace(/ ([.,!?])/g, "$1");
-}
+export { renderDetails };
 
 export function renderStoryText(
   text: string,

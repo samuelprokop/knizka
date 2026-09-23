@@ -34,7 +34,7 @@ npm run db:migrate && npm run db:seed
 npm run dev                       # http://localhost:3000 → /sk alebo /cz
 ```
 
-Kontroly pred odovzdaním: `npm run typecheck && npm run lint && npm test`.
+Kontroly pred odovzdaním: `npm run typecheck && npm run lint && npm test` (a pri zmene sadzby `npm run test:render`).
 
 ## Štruktúra (`app/src`)
 
@@ -52,6 +52,9 @@ Kontroly pred odovzdaním: `npm run typecheck && npm run lint && npm test`.
 | `server/ai/` | rozhrania ImageProvider / TextProvider + mock adaptéry |
 | `server/storage/` | úložisko súborov (lokálne `.storage/`, mimo `public/`) |
 | `server/payments/` | platby – placeholder |
+| `features/configurator/` | konfigurátor, kroky 1 – 9 (balík A) – `/[market]/vytvorit`, `/[market]/kniha/[id]/[krok]` |
+| `features/book/` | model knihy, layouty, náhľad, dizajn (témy, písma) – zdroj pravdy pre vzhľad (balík C) |
+| `server/render/` | e-kniha a tlačové PDF cez Chrome (balík C) |
 | `content/` | marketingové texty (úvodná stránka) |
 | `components/BookHero.tsx` | hero s knihou – schválený, **nemeniť bez pokynu** |
 
