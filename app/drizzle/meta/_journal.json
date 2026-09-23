@@ -15,6 +15,13 @@
       "when": 1790155456017,
       "tag": "0001_jazykovy_modul",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790171895672,
+      "tag": "0002_book_pages_data",
+      "breakpoints": true
     }
   ]
 }

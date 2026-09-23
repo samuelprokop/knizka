@@ -268,6 +268,8 @@ export const bookPages = pgTable(
     /** cover, title, dedication, story_spread, activity, parent_guide, imprint, back_cover… */
     kind: text("kind").notNull(),
     text: text("text"),
+    /** Štruktúrovaný obsah strany (model knihy, balík C) – uzamknutý s verziou. */
+    data: jsonb("data").$type<Record<string, unknown>>(),
     illustrationKey: text("illustration_key"),
     layoutId: text("layout_id"),
     status: pageStatus("status").notNull().default("pending"),

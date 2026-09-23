@@ -6,6 +6,18 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["--prefix", "app", "run", "dev"],
       "port": 3000
+    },
+    {
+      "name": "web-a",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "../knizka-a/app", "run", "dev", "--", "-p", "3001"],
+      "port": 3001
+    },
+    {
+      "name": "web-c",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "../knizka-c/app", "run", "dev", "--", "-p", "3003"],
+      "port": 3003
     }
   ]
 }
