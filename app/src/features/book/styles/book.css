@@ -1,0 +1,675 @@
+/*
+  Sadzba knihy – spoločná pre náhľad v prehliadači aj PDF (headless Chrome).
+  Bez Tailwindu, aby sa dala vložiť do samostatného HTML dokumentu pre PDF.
+
+  Jednotky: strana je kontajner (container-type) a --mm je 1 milimeter strany,
+  takže rovnaká sadzba vyzerá rovnako pri 180 px aj pri 210 mm (zalomenie riadkov
+  sa nemení). --bleed je spadávka v mm: 0 na obrazovke, 3 v tlačovom PDF.
+
+  Premenné témy (nastavuje bookCssVars): --page-w, --page-h, --bk-paper, --bk-ink,
+  --bk-accent, --bk-soft, --bk-on-accent, --bk-heading, --bk-heading-weight,
+  --bk-body, --bk-body-weight.
+*/
+
+.bk-page {
+  position: relative;
+  width: 100%;
+  aspect-ratio: var(--page-w) / var(--page-h);
+  container-type: inline-size;
+  overflow: hidden;
+  background: var(--bk-paper);
+  color: var(--bk-ink);
+  font-family: var(--bk-body);
+  font-weight: var(--bk-body-weight);
+  font-kerning: normal;
+  text-rendering: geometricPrecision;
+  -webkit-font-smoothing: antialiased;
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+.bk-page *,
+.bk-page *::before,
+.bk-page *::after {
+  box-sizing: border-box;
+}
+
+/* V tlači obsah presahuje do spadávky; orez robí nadradený .bk-bleedbox. */
+.bk-page[data-bleed="true"] {
+  overflow: visible;
+}
+
+.bk-in {
+  --mm: calc(100cqw / var(--page-w));
+  position: absolute;
+  inset: 0;
+}
+
+/* Plocha na spadávku (ilustrácie a pozadia na doraz). */
+.bk-full {
+  position: absolute;
+  inset: calc(var(--bleed, 0) * var(--mm) * -1);
+  overflow: hidden;
+}
+
+.bk-paper-bg {
+  background: var(--bk-paper);
+}
+
+.bk-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.bk-heading {
+  font-family: var(--bk-heading);
+  font-weight: var(--bk-heading-weight);
+  line-height: 1.15;
+  margin: 0;
+}
+
+.bk-page p {
+  margin: 0;
+}
+
+/* Text, ktorý sa musí zmestiť – test sadzby kontroluje scrollHeight > clientHeight. */
+.bk-fit {
+  overflow: hidden;
+}
+
+.bk-story-text {
+  font-size: calc(var(--mm) * var(--bk-text-size));
+  line-height: var(--bk-line-height);
+  hyphens: manual;
+  overflow-wrap: break-word;
+  text-wrap: pretty;
+}
+
+.bk-folio {
+  position: absolute;
+  bottom: calc(var(--mm) * 7);
+  font-size: calc(var(--mm) * 3.2);
+  opacity: 0.55;
+  font-variant-numeric: tabular-nums;
+}
+.bk-folio[data-side="left"] {
+  left: calc(var(--mm) * 10);
+}
+.bk-folio[data-side="right"] {
+  right: calc(var(--mm) * 10);
+}
+
+/* Rámiky strán (voľba zákazníka). */
+.bk-frame::after {
+  content: "";
+  position: absolute;
+  inset: calc(var(--mm) * 7);
+  border: calc(var(--mm) * 0.6) solid var(--bk-soft);
+  border-radius: calc(var(--mm) * 3);
+  outline: calc(var(--mm) * 0.3) solid var(--bk-soft);
+  outline-offset: calc(var(--mm) * 1.2);
+  pointer-events: none;
+}
+
+/* Zástupný obrázok, kým ilustrácia nie je hotová. */
+.bk-placeholder {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: repeating-linear-gradient(
+    45deg,
+    var(--bk-soft) 0 calc(var(--mm) * 4),
+    var(--bk-paper) calc(var(--mm) * 4) calc(var(--mm) * 8)
+  );
+  color: var(--bk-accent);
+  font-size: calc(var(--mm) * 4.5);
+  text-align: center;
+  padding: calc(var(--mm) * 10);
+}
+
+.bk-watermark {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  user-select: none;
+}
+
+.bk-pending {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--bk-paper) 80%, transparent);
+  font-size: calc(var(--mm) * 5);
+  text-align: center;
+  padding: calc(var(--mm) * 16);
+  color: var(--bk-ink);
+}
+
+/* ---------------------------------------------------------------- layout: klasický */
+
+.bk-classic-text {
+  position: absolute;
+  inset: calc(var(--mm) * 18) calc(var(--mm) * 22);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: calc(var(--mm) * 6);
+  text-align: center;
+}
+.bk-classic-text .bk-fit {
+  max-height: 100%;
+}
+
+.bk-ornament {
+  width: calc(var(--mm) * 26);
+  height: calc(var(--mm) * 5);
+  color: var(--bk-accent);
+  flex: none;
+}
+
+/* ---------------------------------------------------------------- layout: panoramatický */
+
+.bk-pano-img {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  width: calc(var(--mm) * (var(--page-w) * 2 + var(--bleed, 0) * 2));
+  max-width: none;
+  object-fit: cover;
+}
+.bk-pano-left {
+  left: 0;
+}
+.bk-pano-right {
+  left: calc(var(--mm) * var(--page-w) * -1);
+}
+
+.bk-pano-box {
+  position: absolute;
+  width: 64%;
+  max-height: 62%;
+  padding: calc(var(--mm) * 6) calc(var(--mm) * 7);
+  background: color-mix(in srgb, var(--bk-paper) 90%, transparent);
+  border-radius: calc(var(--mm) * 4);
+  box-shadow: 0 calc(var(--mm) * 0.6) calc(var(--mm) * 3) rgb(0 0 0 / 0.12);
+}
+.bk-pano-box[data-v="top"] {
+  top: calc(var(--mm) * 14);
+}
+.bk-pano-box[data-v="bottom"] {
+  bottom: calc(var(--mm) * 14);
+}
+.bk-pano-box[data-h="left"] {
+  left: calc(var(--mm) * 14);
+}
+.bk-pano-box[data-h="right"] {
+  right: calc(var(--mm) * 14);
+}
+
+/* ---------------------------------------------------------------- layout: obrázkový */
+
+.bk-picture-img {
+  position: absolute;
+  top: calc(var(--bleed, 0) * var(--mm) * -1);
+  left: calc(var(--bleed, 0) * var(--mm) * -1);
+  right: calc(var(--bleed, 0) * var(--mm) * -1);
+  height: calc(68% + var(--bleed, 0) * var(--mm));
+  overflow: hidden;
+}
+.bk-picture-img[data-detail="true"] .bk-img {
+  transform: scale(1.5);
+  transform-origin: 55% 45%;
+}
+
+.bk-picture-text {
+  position: absolute;
+  top: 68%;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: calc(var(--mm) * 5) calc(var(--mm) * 16) calc(var(--mm) * 10);
+  text-align: center;
+}
+.bk-picture-text .bk-fit {
+  max-height: 100%;
+}
+
+/* ---------------------------------------------------------------- layout: prvé čítanie */
+
+.bk-reader-text {
+  position: absolute;
+  inset: calc(var(--mm) * 16) calc(var(--mm) * 20);
+  display: flex;
+  align-items: center;
+}
+.bk-reader-text .bk-fit {
+  max-height: 100%;
+}
+.bk-reader-text .bk-story-text {
+  max-width: 34ch;
+  letter-spacing: 0.01em;
+  word-spacing: 0.08em;
+}
+
+.bk-reader-img {
+  position: absolute;
+  inset: calc(var(--mm) * 14);
+  border-radius: calc(var(--mm) * 6);
+  overflow: hidden;
+  border: calc(var(--mm) * 1.2) solid var(--bk-soft);
+}
+
+/* ---------------------------------------------------------------- obálka */
+
+.bk-cover-title {
+  position: absolute;
+  left: calc(var(--mm) * 14);
+  right: calc(var(--mm) * 14);
+  text-align: center;
+  font-size: calc(var(--mm) * 15);
+  line-height: 1.08;
+  text-wrap: balance;
+  overflow-wrap: break-word;
+}
+.bk-cover-title[data-pos="top"] {
+  top: calc(var(--mm) * 14);
+}
+.bk-cover-title[data-pos="bottom"] {
+  bottom: calc(var(--mm) * 14);
+}
+.bk-cover-title[data-pos="over"] {
+  top: 50%;
+  transform: translateY(-50%);
+  text-shadow: 0 calc(var(--mm) * 0.5) calc(var(--mm) * 3) rgb(0 0 0 / 0.35);
+}
+
+.bk-cover-panel {
+  padding: calc(var(--mm) * 5) calc(var(--mm) * 8);
+  border-radius: calc(var(--mm) * 5);
+  background: color-mix(in srgb, var(--bk-paper) 92%, transparent);
+  color: var(--bk-ink);
+}
+.bk-cover-title[data-pos="over"] .bk-cover-panel {
+  background: transparent;
+  color: #fff;
+  padding: 0;
+}
+
+.bk-cover-hero {
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  top: 22%;
+  bottom: 6%;
+}
+.bk-cover-hero .bk-img {
+  object-fit: contain;
+  object-position: 50% 100%;
+}
+.bk-cover-hero[data-title="bottom"] {
+  top: 6%;
+  bottom: 26%;
+}
+
+.bk-cover-ornament {
+  position: absolute;
+  inset: calc(var(--mm) * 9);
+  border: calc(var(--mm) * 1.4) solid var(--bk-accent);
+  border-radius: calc(var(--mm) * 6);
+  outline: calc(var(--mm) * 0.5) solid var(--bk-accent);
+  outline-offset: calc(var(--mm) * 2);
+}
+.bk-cover-ornament-img {
+  position: absolute;
+  left: calc(var(--mm) * 18);
+  right: calc(var(--mm) * 18);
+  top: 30%;
+  bottom: calc(var(--mm) * 18);
+  border-radius: calc(var(--mm) * 4);
+  overflow: hidden;
+}
+.bk-cover-ornament-img[data-title="bottom"] {
+  top: calc(var(--mm) * 18);
+  bottom: 30%;
+}
+
+.bk-cover-minimal-portrait {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  width: 46%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  overflow: hidden;
+  border: calc(var(--mm) * 2) solid var(--bk-on-accent);
+  background: var(--bk-soft);
+}
+
+/* ---------------------------------------------------------------- zadná strana, titul, predsádky */
+
+.bk-back {
+  position: absolute;
+  inset: calc(var(--mm) * 20);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--mm) * 8);
+  text-align: center;
+  font-size: calc(var(--mm) * 5);
+  line-height: 1.5;
+}
+.bk-back-portrait {
+  width: calc(var(--mm) * 34);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  overflow: hidden;
+  border: calc(var(--mm) * 1.2) solid var(--bk-accent);
+  flex: none;
+}
+.bk-brand {
+  position: absolute;
+  bottom: calc(var(--mm) * 10);
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-family: var(--bk-heading);
+  font-weight: var(--bk-heading-weight);
+  font-size: calc(var(--mm) * 4.5);
+  letter-spacing: 0.2em;
+  color: var(--bk-accent);
+}
+
+.bk-title-page {
+  position: absolute;
+  inset: calc(var(--mm) * 20);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--mm) * 7);
+  text-align: center;
+}
+.bk-title-page .bk-heading {
+  font-size: calc(var(--mm) * 14);
+  color: var(--bk-accent);
+  text-wrap: balance;
+}
+.bk-dedication {
+  font-size: calc(var(--mm) * 5.4);
+  line-height: 1.5;
+  font-style: italic;
+  max-width: 80%;
+}
+.bk-small {
+  font-size: calc(var(--mm) * 3.8);
+  line-height: 1.45;
+  opacity: 0.8;
+}
+
+.bk-endpaper {
+  background: var(--bk-soft);
+  color: var(--bk-accent);
+}
+.bk-endpaper svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* ---------------------------------------------------------------- aktivity a doplnkové strany */
+
+.bk-sheet {
+  position: absolute;
+  inset: calc(var(--mm) * 14) calc(var(--mm) * 16);
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--mm) * 4);
+}
+.bk-sheet-head {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--mm) * 1.5);
+}
+.bk-sheet-head .bk-heading {
+  font-size: calc(var(--mm) * 8.5);
+  color: var(--bk-accent);
+}
+.bk-instruction {
+  font-size: calc(var(--mm) * 4.4);
+  line-height: 1.4;
+}
+.bk-sheet-body {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+.bk-sheet-body > svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.bk-letters {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  gap: calc(var(--mm) * 1.6);
+  align-content: center;
+  justify-content: center;
+}
+.bk-letters span {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  border: calc(var(--mm) * 0.5) solid var(--bk-accent);
+  border-radius: calc(var(--mm) * 2);
+  font-family: var(--bk-heading);
+  font-weight: var(--bk-heading-weight);
+  background: #fff;
+}
+
+.bk-count {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+}
+.bk-count-row {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--mm) * 2);
+  min-height: 0;
+  flex: 1;
+  max-height: calc(var(--mm) * 22);
+}
+.bk-count-items {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(var(--mm) * 1.5);
+  align-items: center;
+  height: 100%;
+}
+.bk-count-items svg {
+  height: min(100%, calc(var(--mm) * 12));
+  aspect-ratio: 1;
+  color: var(--bk-accent);
+}
+.bk-count-box {
+  flex: none;
+  width: calc(var(--mm) * 16);
+  aspect-ratio: 1;
+  border: calc(var(--mm) * 0.8) solid var(--bk-ink);
+  border-radius: calc(var(--mm) * 2);
+  background: #fff;
+}
+
+.bk-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--mm) * 4);
+  counter-reset: bk;
+}
+.bk-list li {
+  counter-increment: bk;
+  display: flex;
+  gap: calc(var(--mm) * 3);
+  font-size: calc(var(--mm) * 4.6);
+  line-height: 1.4;
+}
+.bk-list li::before {
+  content: counter(bk);
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: calc(var(--mm) * 7.5);
+  height: calc(var(--mm) * 7.5);
+  border-radius: 50%;
+  background: var(--bk-accent);
+  color: var(--bk-on-accent);
+  font-family: var(--bk-heading);
+  font-weight: var(--bk-heading-weight);
+  font-size: calc(var(--mm) * 4);
+}
+.bk-list[data-size="small"] li {
+  font-size: calc(var(--mm) * 3.9);
+}
+
+.bk-draw-frame {
+  position: absolute;
+  inset: 0;
+  border: calc(var(--mm) * 0.8) dashed var(--bk-accent);
+  border-radius: calc(var(--mm) * 4);
+  background: #fff;
+}
+.bk-quote {
+  font-size: calc(var(--mm) * 4.4);
+  line-height: 1.45;
+  font-style: italic;
+  padding-left: calc(var(--mm) * 4);
+  border-left: calc(var(--mm) * 1) solid var(--bk-soft);
+}
+
+.bk-diploma {
+  position: absolute;
+  inset: calc(var(--mm) * 10);
+  border: calc(var(--mm) * 1.6) double var(--bk-accent);
+  border-radius: calc(var(--mm) * 4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--mm) * 3.5);
+  text-align: center;
+  padding: calc(var(--mm) * 8);
+}
+.bk-diploma .bk-heading {
+  font-size: calc(var(--mm) * 16);
+  color: var(--bk-accent);
+  letter-spacing: 0.06em;
+}
+.bk-diploma-name {
+  font-family: "Patrick Hand", cursive;
+  font-size: calc(var(--mm) * 14);
+  line-height: 1.1;
+}
+.bk-signature {
+  margin-top: calc(var(--mm) * 4);
+  display: flex;
+  gap: calc(var(--mm) * 20);
+  font-size: calc(var(--mm) * 3.6);
+}
+.bk-signature span {
+  display: block;
+  min-width: calc(var(--mm) * 45);
+  padding-top: calc(var(--mm) * 1.5);
+  border-top: calc(var(--mm) * 0.4) solid var(--bk-ink);
+}
+
+.bk-guide {
+  font-size: calc(var(--mm) * 3.9);
+  line-height: 1.45;
+}
+.bk-guide h3 {
+  font-family: var(--bk-heading);
+  font-weight: var(--bk-heading-weight);
+  font-size: calc(var(--mm) * 5);
+  color: var(--bk-accent);
+  margin: 0 0 calc(var(--mm) * 2);
+}
+.bk-columns {
+  display: grid;
+  gap: calc(var(--mm) * 6);
+}
+.bk-page[data-orientation="landscape"] .bk-columns {
+  grid-template-columns: 1fr 1fr;
+}
+
+.bk-letter {
+  font-size: calc(var(--mm) * 4.8);
+  line-height: 1.6;
+  white-space: pre-line;
+}
+
+.bk-imprint {
+  position: absolute;
+  inset: calc(var(--mm) * 16);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: calc(var(--mm) * 4);
+  font-size: calc(var(--mm) * 3.4);
+  line-height: 1.5;
+}
+.bk-imprint .bk-heading {
+  font-size: calc(var(--mm) * 5.5);
+}
+.bk-qr {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--mm) * 4);
+}
+.bk-qr svg {
+  width: calc(var(--mm) * 26);
+  height: calc(var(--mm) * 26);
+  flex: none;
+}
+
+/* ---------------------------------------------------------------- dvojstrana */
+
+.bk-spread {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  width: 100%;
+  position: relative;
+}
+.bk-spread::after {
+  /* Jemný tieň v chrbte – len na obrazovke. */
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 6%;
+  transform: translateX(-50%);
+  background: linear-gradient(90deg, transparent, rgb(0 0 0 / 0.08) 50%, transparent);
+  pointer-events: none;
+}
