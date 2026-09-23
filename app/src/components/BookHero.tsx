@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, type ReactNode } from "react";
 import {
   animate,
@@ -10,6 +11,8 @@ import {
   useTransform,
   type MotionValue,
 } from "motion/react";
+
+import type { LandingCopy } from "@/content/landing";
 
 const FRAME_COUNT = 361;
 const frameSrc = (i: number) => `/hero/book/${String(i).padStart(3, "0")}.webp`;
@@ -90,29 +93,6 @@ function stepKeyframes(from: number, to: number) {
   return { values: points, times, duration };
 }
 
-const STEPS = [
-  {
-    number: "01",
-    title: "Poviete nám o dieťati",
-    text: "Meno, vek a jazyk knihy. Meno v príbehu správne vyskloňujeme.",
-  },
-  {
-    number: "02",
-    title: "Nahráte fotku",
-    text: "Vytvoríme ilustrovanú podobu vášho dieťaťa. Fotku potom zmažeme.",
-  },
-  {
-    number: "03",
-    title: "Vyberiete príbeh",
-    text: "Hotový od našich redaktorov, alebo napísaný na mieru.",
-  },
-  {
-    number: "04",
-    title: "Pozriete si celú knihu",
-    text: "Náhľad je zadarmo, platíte až keď sa vám páči. Tlač do 5 pracovných dní.",
-  },
-];
-
 function resolve(progress: number) {
   let x = Math.min(Math.max(progress, 0), 1) * TOTAL_WEIGHT;
   for (let i = 0; i < TIMELINE.length; i++) {
@@ -184,13 +164,15 @@ function Overlay({
   );
 }
 
-export function BookHero() {
+type HeroProps = { copy: LandingCopy; ctaHref: string };
+
+export function BookHero(props: HeroProps) {
   const reduced = useReducedMotion();
-  if (reduced) return <StaticHero />;
-  return <AnimatedHero />;
+  if (reduced) return <StaticHero {...props} />;
+  return <AnimatedHero {...props} />;
 }
 
-function AnimatedHero() {
+function AnimatedHero({ copy, ctaHref }: HeroProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const drawRef = useRef<(sample: Sample) => void>(() => {});
@@ -505,7 +487,7 @@ function AnimatedHero() {
           <canvas
             ref={canvasRef}
             className="absolute inset-0 h-full w-full opacity-0"
-            aria-label="Animácia knihy, ktorá sa pri posúvaní stránky otvára a listuje"
+            aria-label={copy.animationLabel}
             role="img"
           />
 
@@ -516,15 +498,15 @@ function AnimatedHero() {
               className="absolute left-[6%] top-[38%] w-[33%]"
             >
               <p className="font-heading text-[1.1cqw] font-bold uppercase tracking-wider text-brand-orange">
-                Personalizovaná detská kniha
+                {copy.eyebrow}
               </p>
               <h1 className="mt-[1cqw] font-heading text-[3.6cqw] font-extrabold leading-[1.05] text-ink">
-                Kniha, kde je hrdinom vaše dieťa
+                {copy.title}
               </h1>
-              <p className="mt-[1.4cqw] text-[1.2cqw] text-ink/60">Posuňte nižšie</p>
+              <p className="mt-[1.4cqw] text-[1.2cqw] text-ink/60">{copy.scrollHint}</p>
             </Overlay>
 
-            {STEPS.map((step, i) => (
+            {copy.steps.map((step, i) => (
               <Overlay key={step.number} progress={progress} overlay={i + 1} className="absolute inset-0">
                 <div className="absolute left-[19%] top-[24%] w-[26%]">
                   <span className="font-heading text-[4.5cqw] font-extrabold leading-none text-brand-orange">
@@ -547,23 +529,26 @@ function AnimatedHero() {
               className="absolute left-[63%] top-[36%] w-[31%]"
             >
               <h2 className="font-heading text-[3cqw] font-extrabold leading-[1.1] text-ink">
-                Vytvorte knihu ešte dnes
+                {copy.outroTitle}
               </h2>
               <p className="mt-[1cqw] text-[1.3cqw] text-ink/60">
-                Náhľad zadarmo, tlač do 5 pracovných dní.
+                {copy.outroText}
               </p>
-              <button className="mt-[1.8cqw] rounded-full bg-brand-orange px-[2cqw] py-[0.9cqw] text-[1.2cqw] font-semibold text-white transition duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-brand-orange-dark">
-                Vytvoriť knihu
-              </button>
+              <Link
+                href={ctaHref}
+                className="mt-[1.8cqw] inline-block rounded-full bg-brand-orange px-[2cqw] py-[0.9cqw] text-[1.2cqw] font-semibold text-white transition duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-brand-orange-dark"
+              >
+                {copy.cta}
+              </Link>
             </Overlay>
           </div>
         </div>
 
         <div className="absolute inset-x-6 bottom-10 md:hidden">
           {[
-            { eyebrow: "Personalizovaná detská kniha", title: "Kniha, kde je hrdinom vaše dieťa", text: "Posuňte nižšie" },
-            ...STEPS.map((s) => ({ eyebrow: s.number, title: s.title, text: s.text })),
-            { eyebrow: "", title: "Vytvorte knihu ešte dnes", text: "Náhľad zadarmo, tlač do 5 pracovných dní." },
+            { eyebrow: copy.eyebrow, title: copy.title, text: copy.scrollHint },
+            ...copy.steps.map((s) => ({ eyebrow: s.number, title: s.title, text: s.text })),
+            { eyebrow: "", title: copy.outroTitle, text: copy.outroText },
           ].map((item, i, all) => (
             <Overlay
               key={item.title}
@@ -580,9 +565,12 @@ function AnimatedHero() {
               </p>
               <p className="mt-2 text-sm text-ink/60">{item.text}</p>
               {i === all.length - 1 && (
-                <button className="mt-4 rounded-full bg-brand-orange px-5 py-2.5 text-sm font-semibold text-white">
-                  Vytvoriť knihu
-                </button>
+                <Link
+                  href={ctaHref}
+                  className="mt-4 inline-block rounded-full bg-brand-orange px-5 py-2.5 text-sm font-semibold text-white"
+                >
+                  {copy.cta}
+                </Link>
               )}
             </Overlay>
           ))}
@@ -592,20 +580,20 @@ function AnimatedHero() {
   );
 }
 
-function StaticHero() {
+function StaticHero({ copy, ctaHref }: HeroProps) {
   return (
     <section className="bg-white px-6 py-24">
       <div className="mx-auto max-w-2xl">
         <p className="font-heading text-sm font-bold uppercase tracking-wider text-brand-orange">
-          Personalizovaná detská kniha
+          {copy.eyebrow}
         </p>
         <h1 className="mt-2 font-heading text-4xl font-extrabold text-ink">
-          Kniha, kde je hrdinom vaše dieťa
+          {copy.title}
         </h1>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={frameSrc(80)} alt="Otvorená prázdna kniha" className="mt-10 w-full" />
+        <img src={frameSrc(80)} alt={copy.staticImageAlt} className="mt-10 w-full" />
         <ol className="mt-10 space-y-8">
-          {STEPS.map((step) => (
+          {copy.steps.map((step) => (
             <li key={step.number}>
               <span className="font-heading text-2xl font-extrabold text-brand-orange">{step.number}</span>
               <h2 className="font-heading text-xl font-extrabold text-ink">{step.title}</h2>
@@ -613,9 +601,12 @@ function StaticHero() {
             </li>
           ))}
         </ol>
-        <button className="mt-12 rounded-full bg-brand-orange px-5 py-2.5 text-sm font-semibold text-white">
-          Vytvoriť knihu
-        </button>
+        <Link
+          href={ctaHref}
+          className="mt-12 inline-block rounded-full bg-brand-orange px-5 py-2.5 text-sm font-semibold text-white"
+        >
+          {copy.cta}
+        </Link>
       </div>
     </section>
   );
