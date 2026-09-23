@@ -12,7 +12,9 @@
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "tsx --env-file=.env.local scripts/seed.ts",
     "db:studio": "drizzle-kit studio",
-    "test": "tsx --conditions=react-server --env-file-if-exists=.env.local --test \"src/**/*.test.ts\"",
+    "worker": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/worker.ts",
+    "bench:providers": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/provider-bench.ts",
+    "test": "tsx --conditions=react-server --env-file-if-exists=.env.local --test --test-concurrency=1 \"src/**/*.test.ts\"",
     "names:build": "tsx scripts/names/build.ts",
     "names:import": "tsx --env-file=.env.local scripts/names/import.ts",
     "test:render": "tsx --test --test-concurrency=1 \"src/**/*.render-test.ts\""
