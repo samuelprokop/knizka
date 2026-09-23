@@ -33,7 +33,7 @@ export const SEED_NAMES: SeedName[] = [
   { language: "sk", gender: "girl", forms: f("Nina Niny Nine Ninu Nina Nine Ninou"), diminutives: ["Ninka"] },
   { language: "sk", gender: "girl", forms: f("Katarína Kataríny Kataríne Katarínu Katarína Kataríne Katarínou"), diminutives: ["Katka", "Katarínka"] },
   { language: "sk", gender: "girl", forms: f("Katka Katky Katke Katku Katka Katke Katkou"), baseName: "Katarína" },
-  { language: "sk", gender: "girl", forms: indeclinable("Mia"), declinable: false },
+  { language: "sk", gender: "girl", forms: f("Mia Mie Mii Miu Mia Mii Miou") },
   { language: "sk", gender: "girl", forms: indeclinable("Zoe"), declinable: false },
   // ---------------------------------------------------------- slovenčina, chlapci
   { language: "sk", gender: "boy", forms: f("Ján Jána Jánovi Jána Ján Jánovi Jánom"), diminutives: ["Janko", "Janík", "Jano"] },
