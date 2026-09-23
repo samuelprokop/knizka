@@ -21,6 +21,7 @@ type Modules = {
   bundle: typeof import("./bundle");
   tokens: typeof import("./tokens");
   consents: typeof import("./consents");
+  jobs: typeof import("@/server/jobs");
 };
 
 let m: Modules;
@@ -54,6 +55,7 @@ async function projectWithStory() {
   await m.hero.addPhoto({ projectId: project.id, characterId: b.hero!.id, data: fakePhoto, contentType: "image/jpeg", width: 1000, height: 1250 });
   await m.hero.finishAppearance(project.id, "photo");
   await m.hero.generateStylePortraits(project.id);
+  await m.jobs.runPendingJobs();
   await m.hero.chooseStyle(project.id, "watercolor");
   await m.hero.approveHeroCard(project.id);
   const [item] = await m.story.listLibrary("sk");
@@ -72,6 +74,7 @@ before(async () => {
     bundle: await import("./bundle"),
     tokens: await import("./tokens"),
     consents: await import("./consents"),
+    jobs: await import("@/server/jobs"),
   };
 });
 
@@ -81,6 +84,7 @@ after(async () => {
   if (created.length) {
     await db.delete(schema.consents).where(inArray(schema.consents.projectId, created));
     await db.delete(schema.aiJobs).where(inArray(schema.aiJobs.projectId, created));
+    await db.delete(schema.jobs).where(inArray(schema.jobs.projectId, created));
     await db.delete(schema.projects).where(inArray(schema.projects.id, created));
   }
   await (globalThis as unknown as { pgPool?: { end(): Promise<void> } }).pgPool?.end();
@@ -156,6 +160,7 @@ describe("krok 2 – 3: fotka, súhlasy, Karta hrdinu", () => {
 
     assert.equal(await m.hero.finishAppearance(project.id, "photo"), true);
     await m.hero.generateStylePortraits(project.id);
+    await m.jobs.runPendingJobs();
     b = (await m.bundle.loadBundle(project.id))!;
     assert.equal(m.bundle.stylePortraits(b).filter((c) => c.status === "ready").length, 4);
     // Bez zmeny fotiek sa portréty nekreslia znova.
@@ -257,6 +262,7 @@ describe("krok 5 – 9: príbeh, generovanie, schválenie", () => {
     assert.match(spreadsOf(b)[1].text!, /dráčika|hračku/);
 
     await m.book.runGeneration(project.id);
+    await m.jobs.runPendingJobs();
     b = (await m.bundle.loadBundle(project.id))!;
     assert.equal(b.project.status, "preview");
     assert.ok(spreadsOf(b).every((p) => p.status === "ready" && p.illustrationKey));
@@ -291,6 +297,7 @@ describe("krok 5 – 9: príbeh, generovanie, schválenie", () => {
     const project = await projectWithStory();
     await m.book.startGeneration(project.id);
     await m.book.runGeneration(project.id);
+    await m.jobs.runPendingJobs();
     // Nezmenený krok 1 knihu nechá tak.
     await m.projects.updateChild(project.id, child());
     assert.equal((await m.bundle.loadBundle(project.id))!.project.status, "preview");

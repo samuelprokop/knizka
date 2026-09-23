@@ -17,7 +17,8 @@ import {
 } from "@/config/catalog";
 import { db, schema } from "@/db";
 import type { BookLanguage } from "@/i18n/locales";
-import { getImageProvider, getTextProvider } from "@/server/ai";
+import { getTextProvider } from "@/server/ai";
+import { enqueue } from "@/server/jobs/queue";
 import { withAiJob } from "./ai-jobs";
 import { currentCard, loadBundle, type BookPage, type ProjectBundle } from "./bundle";
 import { countRecentProjects, ValidationError } from "./projects";
@@ -159,35 +160,29 @@ export async function startGeneration(projectId: string) {
     .where(eq(schema.projects.id, projectId));
 }
 
-const mockDelay = () =>
-  getImageProvider().id === "mock"
-    ? new Promise((resolve) => setTimeout(resolve, Number(process.env.MOCK_AI_DELAY_MS ?? 700)))
-    : Promise.resolve();
-
 const spreadOf = (page: BookPage) => (page.kind === "story_spread" ? (page.data as StorySpreadPart | null) : null);
 
-async function renderPage(bundle: ProjectBundle, page: BookPage, extra?: string) {
+type SpreadRequest = { style: StyleId; layout: LayoutId; scene: string; characterCardKeys: string[]; aspect: "1:1" | "2:1" };
+
+/** Vstup pre ilustráciu dvojstrany – to isté, čo predtým čítal priamo renderPage. */
+function spreadRequestOf(bundle: ProjectBundle, page: BookPage): SpreadRequest {
   const style = bundle.project.styleId as StyleId;
   const cardKeys = [bundle.hero, ...bundle.companions]
     .map((c) => (c ? currentCard(bundle, c.id, style)?.images?.portrait : null))
     .filter((k): k is string => typeof k === "string");
   const layout = (page.layoutId ?? bundle.project.layoutId ?? "classic") as LayoutId;
   const scene = String((page.qa as { scene?: string } | null)?.scene ?? "");
-  const { image } = await withAiJob(
-    { projectId: bundle.project.id, kind: "scene", params: { style, layout, spread: spreadOf(page)?.spread, edit: extra } },
-    () =>
-      getImageProvider().scene({
-        style,
-        scene: extra ? `${scene} ${extra}` : scene,
-        characterCardKeys: cardKeys,
-        aspect: LAYOUT_IMAGE_RATIO[layout],
-      })
-  );
-  return image.storageKey;
+  return { style, layout, scene, characterCardKeys: cardKeys, aspect: LAYOUT_IMAGE_RATIO[layout] };
 }
 
-/** Nová ilustrácia dvojstrany – do stĺpca aj do modelu strany; pri prvej dvojstrane aj na obálku. */
-async function saveSpreadImage(page: BookPage, key: string) {
+/**
+ * Nová ilustrácia dvojstrany – do stĺpca aj do modelu strany; pri prvej dvojstrane aj
+ * na obálku. Volá ju úloha fronty (server/jobs) po úspešnej kontrole strany (K7.2),
+ * zápis ostáva na jednom mieste ako predtým.
+ */
+export async function applySpreadResult(pageId: string, key: string) {
+  const [page] = await db.select().from(schema.bookPages).where(eq(schema.bookPages.id, pageId));
+  if (!page) return;
   const part = spreadOf(page);
   await db
     .update(schema.bookPages)
@@ -200,10 +195,19 @@ async function saveSpreadImage(page: BookPage, key: string) {
   if (part?.spread === 0) await setCoverScene(page.bookVersionId, key);
 }
 
+/** Keď dopadli všetky dvojstrany (hotové alebo needs_review), kniha prejde do náhľadu. */
+export async function finalizeGenerationIfDone(projectId: string) {
+  const bundle = await loadBundle(projectId);
+  if (!bundle?.book || bundle.project.status !== "generating") return;
+  const unfinished = bundle.pages.some((p) => p.kind === "story_spread" && (p.status === "pending" || p.status === "generating"));
+  if (unfinished) return;
+  await db.update(schema.projects).set({ status: advanceStatus("generating", "preview"), currentStep: 8 }).where(eq(schema.projects.id, projectId));
+}
+
 /**
- * Generovanie po dvojstranách na pozadí (mock). Hotová strana sa ukáže až po
- * automatickej kontrole (K7.2) – kontrolu zatiaľ zastupuje „ok“; balík B dodá
- * frontu, kontrolu a 2 automatické opakovania.
+ * Zaradí ilustrácie všetkých čakajúcich dvojstrán do fronty (N3) – vygenerujú sa
+ * na pozadí workerom, s automatickou kontrolou a 2 opakovaniami (K7.2). Kniha
+ * prejde do náhľadu, keď dopadne posledná (finalizeGenerationIfDone).
  */
 export async function runGeneration(projectId: string) {
   const bundle = await loadBundle(projectId);
@@ -215,18 +219,14 @@ export async function runGeneration(projectId: string) {
       .update(schema.bookPages)
       .set({ status: "generating", attempts: sql`${schema.bookPages.attempts} + 1` })
       .where(eq(schema.bookPages.id, page.id));
-    try {
-      await mockDelay();
-      await saveSpreadImage(page, await renderPage(bundle, page));
-    } catch {
-      // Po opakovaniach strana čaká na grafika; kniha sa dá dokončiť (proces: Krok 8).
-      await db.update(schema.bookPages).set({ status: "needs_review" }).where(eq(schema.bookPages.id, page.id));
-    }
-  }
-
-  const [project] = await db.select({ status: schema.projects.status }).from(schema.projects).where(eq(schema.projects.id, projectId));
-  if (project?.status === "generating") {
-    await db.update(schema.projects).set({ status: advanceStatus("generating", "preview"), currentStep: 8 }).where(eq(schema.projects.id, projectId));
+    await enqueue({
+      type: "spread_illustration",
+      projectId,
+      payload: { pageId: page.id, ...spreadRequestOf(bundle, page) },
+      relatedType: "book_page",
+      relatedId: page.id,
+      maxAttempts: 3,
+    });
   }
 }
 
@@ -314,14 +314,16 @@ export async function editPageImage(projectId: string, pageId: string, instructi
   return { bundle, page, instruction: clean };
 }
 
-/** Beží na pozadí po editPageImage – strana má medzitým „Pripravujeme stranu…“. */
+/** Zaradí prekreslenie s pokynom do fronty – strana má medzitým „Pripravujeme stranu…“. */
 export async function finishPageImage(bundle: ProjectBundle, page: BookPage, instruction: string) {
-  try {
-    await mockDelay();
-    await saveSpreadImage(page, await renderPage(bundle, page, instruction));
-  } catch {
-    await db.update(schema.bookPages).set({ status: "needs_review" }).where(eq(schema.bookPages.id, page.id));
-  }
+  await enqueue({
+    type: "spread_edit",
+    projectId: bundle.project.id,
+    payload: { pageId: page.id, ...spreadRequestOf(bundle, page), instruction },
+    relatedType: "book_page",
+    relatedId: page.id,
+    maxAttempts: 3,
+  });
 }
 
 /** „Vrátiť späť“ – obnoví predchádzajúcu verziu strany. */

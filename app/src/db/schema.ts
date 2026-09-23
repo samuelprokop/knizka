@@ -57,6 +57,7 @@ export const photoVerdict = pgEnum("photo_verdict", ["good", "ok", "bad", "rejec
 export const cardStatus = pgEnum("card_status", ["generating", "ready", "approved", "rejected", "failed"]);
 export const pageStatus = pgEnum("page_status", ["pending", "generating", "ready", "needs_review", "failed"]);
 export const aiJobStatus = pgEnum("ai_job_status", ["queued", "running", "succeeded", "failed"]);
+export const jobStatus = pgEnum("job_status", ["queued", "running", "succeeded", "failed"]);
 export const orderStatus = pgEnum("order_status", [
   "pending_payment",
   "paid",
@@ -333,6 +334,35 @@ export const aiJobs = pgTable(
     createdAt: createdAt(),
   },
   (t) => [index("ai_jobs_project_idx").on(t.projectId), index("ai_jobs_status_idx").on(t.status)]
+);
+
+/**
+ * Fronta úloh na pozadí (N3): ilustrácie, portréty, Karty postáv. Worker si
+ * úlohu vyzdvihne cez `SELECT … FOR UPDATE SKIP LOCKED` podľa `runAt`, pri
+ * chybe adaptéra ju vráti do fronty s odloženým `runAt` (výpadok nestratí
+ * objednávku, N5). `relatedType`/`relatedId` ukazujú na riadok, ktorý úloha
+ * dokončí (napr. book_pages/character_cards), aby sa dal dohľadať jej výsledok.
+ */
+export const jobs = pgTable(
+  "jobs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    projectId: uuid("project_id").references(() => projects.id, { onDelete: "set null" }),
+    type: text("type").notNull(),
+    payload: jsonb("payload").$type<Record<string, unknown>>().notNull(),
+    status: jobStatus("status").notNull().default("queued"),
+    attempts: integer("attempts").notNull().default(0),
+    maxAttempts: integer("max_attempts").notNull().default(3),
+    runAt: timestamp("run_at", { withTimezone: true }).notNull().defaultNow(),
+    lockedAt: timestamp("locked_at", { withTimezone: true }),
+    lockedBy: text("locked_by"),
+    relatedType: text("related_type"),
+    relatedId: uuid("related_id"),
+    error: text("error"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index("jobs_claim_idx").on(t.status, t.runAt), index("jobs_project_idx").on(t.projectId)]
 );
 
 // ---------------------------------------------------------------- jazykový modul

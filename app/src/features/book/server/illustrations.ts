@@ -1,57 +1,21 @@
 import "server-only";
 
-import { eq } from "drizzle-orm";
-
 import type { StyleId } from "@/config/catalog";
-import { db, schema } from "@/db";
-import { getImageProvider, type CharacterPortraitRequest, type SceneRequest } from "@/server/ai";
+import { getImageProvider, withAiJob, type CharacterPortraitRequest, type SceneRequest } from "@/server/ai";
 import { storage } from "@/server/storage";
 import type { BookImage } from "../model/types";
 
 /*
   Ilustrácie pre renderer. Skutočný pipeline scén (vkladanie hrdinu, kontrola,
   pregenerovanie) je balík B – tu sú len volania adaptéra, ktoré renderer potrebuje
-  pre náhľad a vývoj, každé zalogované do ai_jobs (I2).
+  pre náhľad a vývoj, každé zalogované do ai_jobs (I2) cez server/ai::withAiJob.
 */
-
-async function logged<T>(
-  projectId: string | null,
-  kind: string,
-  params: Record<string, unknown>,
-  prompt: string | null,
-  call: () => Promise<T & { meta: { provider: string; model: string; costMicroUsd?: number } }>
-): Promise<T> {
-  const provider = getImageProvider();
-  const [job] = await db
-    .insert(schema.aiJobs)
-    .values({ projectId, kind, provider: provider.id, model: "?", params, prompt, status: "running", startedAt: new Date() })
-    .returning({ id: schema.aiJobs.id });
-  try {
-    const result = await call();
-    await db
-      .update(schema.aiJobs)
-      .set({
-        status: "succeeded",
-        provider: result.meta.provider,
-        model: result.meta.model,
-        costMicroUsd: result.meta.costMicroUsd ?? null,
-        finishedAt: new Date(),
-      })
-      .where(eq(schema.aiJobs.id, job.id));
-    return result;
-  } catch (error) {
-    await db
-      .update(schema.aiJobs)
-      .set({ status: "failed", error: String(error), finishedAt: new Date() })
-      .where(eq(schema.aiJobs.id, job.id));
-    throw error;
-  }
-}
 
 /** Ilustrácia scény cez ImageProvider (bez fotiek – len kľúče Kariet). */
 export async function generateScene(projectId: string | null, req: SceneRequest): Promise<BookImage> {
-  const { image } = await logged(projectId, "scene", { style: req.style, aspect: req.aspect }, req.scene, () =>
-    getImageProvider().scene(req)
+  const { image } = await withAiJob(
+    { projectId, kind: "scene", params: { style: req.style, aspect: req.aspect }, prompt: req.scene },
+    () => getImageProvider().scene(req)
   );
   return { key: image.storageKey };
 }
@@ -98,7 +62,7 @@ async function loadOrCreateDemo(style: StyleId): Promise<DemoIllustrations> {
   const wide = await Promise.all(Array.from({ length: DEMO_COUNT }, (_, i) => scene(i, "2:1")));
 
   const cardRequest: CharacterPortraitRequest = { photoKeys: [], appearance: {}, style };
-  const { images } = await logged(null, "character_card", { style }, null, () =>
+  const { images } = await withAiJob({ projectId: null, kind: "character_card", params: { style } }, () =>
     getImageProvider().characterCard(cardRequest)
   );
 

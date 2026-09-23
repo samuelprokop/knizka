@@ -4,9 +4,10 @@ import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 
 import { LIMITS, STYLES, type StyleId } from "@/config/catalog";
 import { db, schema } from "@/db";
-import { getImageProvider, type CharacterPortraitRequest } from "@/server/ai";
+import type { CharacterPortraitRequest } from "@/server/ai";
+import { enqueue } from "@/server/jobs/queue";
+import { runJobInline } from "@/server/jobs";
 import { storage } from "@/server/storage";
-import { withAiJob } from "./ai-jobs";
 import {
   appearanceOf,
   currentCard,
@@ -137,20 +138,16 @@ export async function generateStylePortraits(projectId: string) {
     .returning();
 
   await Promise.all(
-    rows.map(async (row) => {
-      try {
-        const { image } = await withAiJob(
-          { projectId, kind: "style_portrait", params: { style: row.styleId, source: hero.appearanceSource } },
-          () => getImageProvider().portrait(portraitRequest(bundle, hero, row.styleId as StyleId))
-        );
-        await db
-          .update(schema.characterCards)
-          .set({ status: "ready", images: { portrait: image.storageKey } })
-          .where(eq(schema.characterCards.id, row.id));
-      } catch {
-        await db.update(schema.characterCards).set({ status: "failed" }).where(eq(schema.characterCards.id, row.id));
-      }
-    })
+    rows.map((row) =>
+      enqueue({
+        type: "style_portrait",
+        projectId,
+        payload: { cardId: row.id, request: portraitRequest(bundle, hero, row.styleId as StyleId) },
+        relatedType: "character_card",
+        relatedId: row.id,
+        maxAttempts: 3,
+      })
+    )
   );
 }
 
@@ -207,21 +204,17 @@ export async function generateCard(input: {
     })
     .returning();
 
-  try {
-    const { images } = await withAiJob(
-      { projectId: input.projectId, kind: "character_card", params: { style: input.style, role: character.role, reason: input.reason } },
-      () => getImageProvider().characterCard(portraitRequest(bundle, character, input.style))
-    );
-    await db
-      .update(schema.characterCards)
-      .set({
-        status: "ready",
-        images: Object.fromEntries(Object.entries(images).map(([slot, img]) => [slot, img.storageKey])),
-      })
-      .where(eq(schema.characterCards.id, card.id));
-  } catch {
-    await db.update(schema.characterCards).set({ status: "failed" }).where(eq(schema.characterCards.id, card.id));
-  }
+  const jobId = await enqueue({
+    type: "character_card",
+    projectId: input.projectId,
+    payload: { cardId: card.id, request: portraitRequest(bundle, character, input.style) },
+    relatedType: "character_card",
+    relatedId: card.id,
+    maxAttempts: 3,
+  });
+  // Karta sa čaká synchrónne (UI ju hneď potom zobrazuje) – úloha vo fronte ostáva
+  // trvalým záznamom pre prípad pádu procesu (N5), worker ju doberie.
+  await runJobInline(jobId);
   return card.id;
 }
 
