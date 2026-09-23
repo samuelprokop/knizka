@@ -66,6 +66,7 @@ export const orderStatus = pgEnum("order_status", [
   "shipped",
   "delivered",
 ]);
+export const nameReviewStatus = pgEnum("name_review_status", ["pending", "approved", "rejected"]);
 export const consentType = pgEnum("consent_type", [
   "guardian",
   "ai_processing",
@@ -349,11 +350,55 @@ export const nameDictionary = pgTable(
     diminutives: text("diminutives").array().notNull().default([]),
     /** Základné meno, ak je toto domácka podoba. */
     baseName: text("base_name"),
+    /**
+     * Meniny podľa TRHU, nie jazyka (J8): { sk: "08-21", cz: "05-24" }.
+     * Kľúč = kód trhu z config/markets.ts.
+     */
+    nameDays: jsonb("name_days").$type<Record<string, string>>().notNull().default({}),
+    /** Pôvod tvarov: wiktionary | manual | rules | review (schválené z fronty jazykovej kontroly). */
+    source: text("source").notNull().default("manual"),
     verified: boolean("verified").notNull().default(false),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (t) => [uniqueIndex("name_dictionary_lang_name_idx").on(t.language, t.name)]
+  // Rovnaké meno môže byť mužské aj ženské (Nikola, Saša, Míša) – každé má iné tvary.
+  (t) => [uniqueIndex("name_dictionary_lang_name_gender_idx").on(t.language, t.name, t.gender)]
+);
+
+/**
+ * Fronta jazykovej kontroly (J4): meno mimo slovníka alebo s neovereným záznamom.
+ * Kniha nejde do tlače, kým úloha projektu nie je vybavená. Po schválení sa meno
+ * zapíše do slovníka ako overené. UI robí administrácia (balík E).
+ */
+export const nameReviewTasks = pgTable(
+  "name_review_tasks",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    /** Úloha patrí projektu – so zmazaním projektu zaniká aj meno dieťaťa v nej. */
+    projectId: uuid("project_id").references(() => projects.id, { onDelete: "cascade" }),
+    characterId: uuid("character_id").references(() => characters.id, { onDelete: "cascade" }),
+    language: text("language").notNull(),
+    name: text("name").notNull(),
+    gender: gender("gender").notNull(),
+    /** Návrh pravidlami (J4). */
+    proposedForms: jsonb("proposed_forms").$type<Record<string, string>>().notNull(),
+    /** Tvary potvrdené alebo opravené zákazníkom (K1.3). */
+    customerForms: jsonb("customer_forms").$type<Record<string, string>>(),
+    declinable: boolean("declinable").notNull().default(true),
+    status: nameReviewStatus("status").notNull().default("pending"),
+    /** Tvary schválené korektorom – tie idú do slovníka aj do knihy. */
+    approvedForms: jsonb("approved_forms").$type<Record<string, string>>(),
+    approvedDeclinable: boolean("approved_declinable"),
+    reviewer: text("reviewer"),
+    note: text("note"),
+    resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index("name_review_tasks_status_idx").on(t.status),
+    index("name_review_tasks_project_idx").on(t.projectId),
+    index("name_review_tasks_name_idx").on(t.language, t.name, t.gender),
+  ]
 );
 
 // ---------------------------------------------------------------- objednávky

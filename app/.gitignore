@@ -43,3 +43,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# jazykový modul – stiahnuté zdroje slovníka mien (npm run names:build)
+/data/names/.cache

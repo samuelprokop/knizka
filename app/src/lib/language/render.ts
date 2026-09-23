@@ -44,8 +44,15 @@ export function renderNameTokens(
 }
 
 /**
- * Typografia jazyka (J7): nezlomiteľná medzera po jednopísmenových
- * predložkách a spojkách, slovenské/české úvodzovky „ “.
+ * Typografia jazyka (J7) pre sadzbu:
+ *  - nezlomiteľná medzera po jednopísmenových predložkách a spojkách („a v lese“),
+ *  - úvodzovky „ “ a ‚ ‘ namiesto rovných,
+ *  - pomlčka – namiesto spojovníka medzi medzerami, pred ňou nezlomiteľná medzera
+ *    (pomlčka nesmie začínať riadok),
+ *  - trojbodka …, zlúčenie viacnásobných medzier,
+ *  - nezlomiteľná medzera v dátumoch (21. 8.), medzi číslom a jednotkou (5 km)
+ *    a po skratkách pred menom či číslom (sv. Mikuláš, p. učiteľka, č. 5).
+ * Delenie slov je samostatne v ./hyphenation (len server).
  */
 // Jednopísmenové predložky a spojky – v SK aj CZ rovnaké; ďalší jazyk dodá vlastné.
 const SINGLE_LETTER_WORDS: Record<BookLanguage, string> = {
@@ -53,10 +60,28 @@ const SINGLE_LETTER_WORDS: Record<BookLanguage, string> = {
   cs: "aAiIkKoOsSuUvVzZ",
 };
 
+// Skratky, za ktorými nesmie byť koniec riadku.
+const ABBREVIATIONS: Record<BookLanguage, string[]> = {
+  sk: ["sv", "p", "pí", "č", "tzv", "napr", "str", "Dr", "Ing", "Mgr"],
+  cs: ["sv", "p", "pí", "č", "tzv", "např", "tj", "str", "Dr", "Ing", "Mgr"],
+};
+
+const UNITS = "km|m|cm|mm|kg|g|l|ml|h|min|s|°C|%|€|Kč|EUR|CZK";
+
+const NBSP = "\u00A0";
+
 export function applyTypography(text: string, language: BookLanguage) {
   // Lookbehind, aby fungovali aj reťazce „a v lese“ (predložka hneď po predložke).
-  const nbspAfterSingle = new RegExp(`(?<=^|[\\s(„])([${SINGLE_LETTER_WORDS[language]}]) `, "g");
+  const nbspAfterSingle = new RegExp(`(?<=^|[\\s(„‚–])([${SINGLE_LETTER_WORDS[language]}]) `, "g");
+  const abbreviations = new RegExp(`(?<=^|[\\s(„])(${ABBREVIATIONS[language].join("|")})\\. (?=[\\p{L}\\d])`, "gu");
   return text
-    .replace(nbspAfterSingle, "$1 ")
-    .replace(/"([^"]*)"/g, "„$1“");
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/\.\.\./g, "…")
+    .replace(/ +[-–] +/g, `${NBSP}– `)
+    .replace(/"([^"]*)"/g, "„$1“")
+    .replace(/(?<=^|[\s(„])'([^']*)'/g, "‚$1‘")
+    .replace(/(\d+\.) (?=\d+\.)/g, `$1${NBSP}`)
+    .replace(new RegExp(`(\\d) (?=(?:${UNITS})(?![\\p{L}]))`, "gu"), `$1${NBSP}`)
+    .replace(abbreviations, `$1.${NBSP}`)
+    .replace(nbspAfterSingle, `$1${NBSP}`);
 }
