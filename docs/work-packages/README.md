@@ -11,10 +11,10 @@ Spoločné pravidlá sú v `/CLAUDE.md` – každá session ich načíta automat
 | 1 | [A – Konfigurátor](A-konfigurator.md) | základ | hotové, zlúčené a prepojené s C |
 | 1 | [J – Jazykový modul](J-jazykovy-modul.md) | základ | hotové, zlúčené (CZ slovník 1 063 mien – doplniť) |
 | 1 | [C – Renderer knihy](C-renderer.md) | základ | hotové, zlúčené |
-| 2 | [B – AI pipeline](B-ai-pipeline.md) | základ; reálne AI až s prístupmi | pripravené (s mockmi) |
-| 2 | [D – Košík a objednávky](D-objednavky.md) | A (krok 9), C (e-kniha) | pripravené |
-| 2 | [E – Administrácia](E-administracia.md) | základ | pripravené |
-| 3 | [F – Súkromie a súhlasy](F-sukromie.md) | A, B | čaká na B |
+| 2 | [B – AI pipeline](B-ai-pipeline.md) | základ; reálne AI až s prístupmi | hotové, zlúčené (chýbajú prompty C/D, prehľad nákladov, test poskytovateľov) |
+| 2 | [D – Košík a objednávky](D-objednavky.md) | A (krok 9), C (e-kniha) | hotové, zlúčené (bez vlastných testov) |
+| 2 | [E – Administrácia](E-administracia.md) | základ | hotové, zlúčené (chýbajú nastavenia trhu a audit; bez vlastných testov) |
+| 3 | [F – Súkromie a súhlasy](F-sukromie.md) | A, B | pripravené |
 
 Vlna 1 môže bežať naraz – balíky majú oddelené priečinky (pozri „Vlastníctvo“ v každom zadaní).
 

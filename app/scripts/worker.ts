@@ -17,10 +17,22 @@ process.on("SIGTERM", () => {
   stopping = true;
 });
 
+/** Spustený cez npm run dev: skonči, keď spúšťač (scripts/dev.mjs) zmizne. */
+const parentPid = Number(process.env.WORKER_PARENT_PID) || null;
+const parentAlive = () => {
+  if (!parentPid) return true;
+  try {
+    process.kill(parentPid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 async function main() {
   console.log("[worker] beží, čaká na úlohy…");
   let tick = 0;
-  while (!stopping) {
+  while (!stopping && parentAlive()) {
     const processed = await runOnce(`worker-${process.pid}`);
     if (!processed) {
       tick += 1;

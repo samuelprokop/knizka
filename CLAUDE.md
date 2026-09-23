@@ -31,8 +31,13 @@ cd app
 npm install
 cp .env.example .env.local        # ak ešte neexistuje
 npm run db:migrate && npm run db:seed
-npm run dev                       # http://localhost:3000 → /sk alebo /cz
+npm run dev                       # stránka + worker fronty úloh; http://localhost:3000 → /sk alebo /cz
 ```
+
+`npm run dev` spúšťa Next.js aj worker (`scripts/dev.mjs`) – bez workera sa ilustrácie v kroku 7
+negenerujú. Samotný Next.js: `npm run dev:next`, samotný worker: `npm run worker`.
+Prístup do administrácie (`/admin`): `npm run admin:create-user -- --email … --name "…" --role admin`
+(heslo sa vygeneruje a vypíše raz).
 
 Kontroly pred odovzdaním: `npm run typecheck && npm run lint && npm test` (a pri zmene sadzby `npm run test:render`).
 
@@ -52,6 +57,9 @@ Kontroly pred odovzdaním: `npm run typecheck && npm run lint && npm test` (a pr
 | `server/ai/` | rozhrania ImageProvider / TextProvider + mock adaptéry |
 | `server/storage/` | úložisko súborov (lokálne `.storage/`, mimo `public/`) |
 | `server/payments/` | platby – placeholder |
+| `server/jobs/`, `server/qa/` | fronta úloh (worker), kontrola strán a fotiek (balík B) |
+| `features/checkout/`, `server/email/` | košík, pokladňa, objednávky, e-maily do konzoly (balík D) |
+| `app/admin/`, `features/admin/` | administrácia: príbehy, slovník mien, fronty kontroly (balík E) |
 | `features/configurator/` | konfigurátor, kroky 1 – 9 (balík A) – `/[market]/vytvorit`, `/[market]/kniha/[id]/[krok]` |
 | `features/book/` | model knihy, layouty, náhľad, dizajn (témy, písma) – zdroj pravdy pre vzhľad (balík C) |
 | `server/render/` | e-kniha a tlačové PDF cez Chrome (balík C) |
