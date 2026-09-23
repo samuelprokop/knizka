@@ -22,6 +22,19 @@ Shopify vs. vlastná pokladnica nie je rozhodnuté – drž rozhranie `server/pa
 4. Stránka „Ďakujeme“, stránka stavu objednávky, osobná stránka knihy (neuhádnuteľný odkaz).
 5. Transakčné e-maily ako šablóny + lokálny výpis do konzoly (bez odosielania).
 
+## Napojenie na hotový kód (stav po vlne 1)
+
+| Čo | Kde |
+|---|---|
+| Vstup do košíka | krok 9 odkazuje na `/[market]/kosik?projekt=<id>`; projekt je v stave `approved_by_customer`, verzia knihy uzamknutá (`book_versions.lockedAt`) |
+| Prístup k projektu | podpísaná cookie konfigurátora: `hasProjectSession(projectId)` z `features/configurator/server/session.ts` |
+| Cena a príplatky | `computePrice` (`domain/pricing.ts`) + `priceSelection` (`features/configurator/pricing.ts`); variant tlač/e-kniha a doplnky sa volia až v košíku |
+| E-kniha po platbe | `renderBookPdfInWorker(book, "ebook")` z `server/render`, kniha cez `loadBookVersion(versionId)` z `features/book/server/versions.ts`; `meta.orderRef` = číslo objednávky |
+| Tlačové PDF | `"print-interior"` a `"print-cover"` – rovnaké volanie |
+| Osobná stránka knihy | QR v tiráži vedie na `personalPageUrl()` v `features/book/server/versions.ts` – **placeholder** `/[market]/k/<projectId>`; urč bezpečný tvar (neuhádnuteľný token) a uprav túto funkciu |
+| E-maily | `features/configurator/server/mailer.ts` je dočasný výpis do konzoly – tvoj `server/email` ho nahradí (konfigurátor len presmeruj) |
+| Stav projektu po platbe | `approved_by_customer → paid → in_review` cez `assertTransition` |
+
 ## Vlastníctvo
 
 `app/src/app/[market]/kosik/`, `app/src/app/[market]/objednavka/`, `app/src/app/[market]/moja-kniha/`,

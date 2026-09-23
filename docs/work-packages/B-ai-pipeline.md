@@ -22,6 +22,22 @@ dovtedy všetko nad mock adaptérmi, pripravené na výmenu.
 7. **Výber poskytovateľa:** pripraviť porovnávací test (fáza 0) – skript, ktorý na sade testovacích
    hrdinov spustí adaptér a uloží výsledky; tabuľka kritérií S3 (EÚ, retencia, fotky maloletých).
 
+## Napojenie na hotový kód (stav po vlne 1)
+
+Dnes beží generovanie synchrónne v procese Next.js nad mockmi. Fronta ho má prevziať
+bez zmeny UI konfigurátora:
+
+| Čo | Kde je dnes | Čo s tým |
+|---|---|---|
+| Ilustrácie dvojstrán po jednej (krok 7) | `features/configurator/server/book.ts` → `runGeneration`, `renderPage`, `saveSpreadImage` | presunúť do úloh fronty; zápis výsledku nechať cez `saveSpreadImage` (píše aj `book_pages.data` a obálku) |
+| Úprava ilustrácie s pokynom (krok 8) | `book.ts` → `editPageImage` + `finishPageImage` | úloha fronty |
+| Portréty vo 4 štýloch, Karta hrdinu | `features/configurator/server/hero.ts` → `generateStylePortraits`, `generateCard` | úlohy fronty |
+| Verdikt fotky | `features/configurator/server/photo-check.ts` → `PhotoChecker`, `getPhotoChecker()` (mock) | tvoja implementácia za rovnakým rozhraním |
+| Log volaní | `features/configurator/server/ai-jobs.ts` → `withAiJob`, `features/book/server/illustrations.ts` → `generateScene` | zjednotiť do jedného miesta v `server/ai` |
+| Stav strán | `book_pages.status`: pending → generating → ready / needs_review | zachovať – UI krokov 7 a 8 ho číta |
+
+Konfigurátor (UI) nemeň; ak treba iné rozhranie, uprav len volania v `server/*.ts` konfigurátora.
+
 ## Vlastníctvo
 
 `app/src/server/ai/`, `app/src/server/jobs/`, `app/src/server/qa/`, `app/scripts/worker.ts`.
