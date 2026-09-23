@@ -8,6 +8,7 @@ import { db, schema } from "@/db";
 import type { BookLanguage } from "@/i18n/locales";
 import { CASE_KEYS, type Gender, type NameForms } from "@/lib/language";
 import { resolveName } from "@/lib/language/resolve";
+import { requestNameReview } from "@/lib/language/review";
 import { recordConsents } from "./consents";
 import { loadBundle, nameContextOf, type Project } from "./bundle";
 import { generateLinkToken, hashToken, verifyLinkToken } from "./tokens";
@@ -51,6 +52,8 @@ export async function resolveChildName(input: ChildInput) {
   return {
     name: resolved.source === "dictionary" ? resolved.name : name,
     forms,
+    /** Návrh pred úpravou zákazníkom – ide do úlohy jazykovej kontroly ako `proposedForms`. */
+    proposedForms: resolved.forms,
     indeclinable: input.indeclinable || !resolved.declinable,
     needsLanguageReview: resolved.source === "rules" || !resolved.verified || edited || input.indeclinable,
   };
@@ -66,7 +69,7 @@ export async function createProject(input: {
   const name = await resolveChildName(input.child);
   const linkToken = generateLinkToken();
 
-  const project = await db.transaction(async (tx) => {
+  const created = await db.transaction(async (tx) => {
     const [project] = await tx
       .insert(schema.projects)
       .values({
@@ -81,24 +84,40 @@ export async function createProject(input: {
         options: { readingLevel: defaultsForAge(input.child.age).readingLevel } satisfies ProjectOptions,
       })
       .returning();
-    await tx.insert(schema.characters).values({
-      projectId: project.id,
-      role: "hero",
-      name: name.name,
-      nameForms: name.forms,
-      nameIndeclinable: name.indeclinable,
-      gender: input.child.gender,
-      age: input.child.age,
-    });
-    return project;
+    const [hero] = await tx
+      .insert(schema.characters)
+      .values({
+        projectId: project.id,
+        role: "hero",
+        name: name.name,
+        nameForms: name.forms,
+        nameIndeclinable: name.indeclinable,
+        gender: input.child.gender,
+        age: input.child.age,
+      })
+      .returning();
+    return { project, hero };
   });
 
+  if (name.needsLanguageReview) {
+    await requestNameReview({
+      projectId: created.project.id,
+      characterId: created.hero.id,
+      language: input.child.bookLanguage,
+      name: name.name,
+      gender: input.child.gender,
+      proposedForms: name.proposedForms,
+      customerForms: input.child.editedForms ?? undefined,
+      declinable: !name.indeclinable,
+    });
+  }
+
   await recordConsents(
-    project.id,
+    created.project.id,
     [{ type: "marketing", granted: input.marketingConsent, textKey: "common.email_dialog.marketing" }],
     { language: input.market.uiLanguage, userAgent: input.userAgent }
   );
-  return { project, linkToken };
+  return { project: created.project, linkToken };
 }
 
 /** Úprava kroku 1 v existujúcom projekte. Zmena mena po vygenerovaní vráti knihu pred generovanie. */
@@ -142,6 +161,19 @@ export async function updateChild(projectId: string, child: ChildInput) {
       })
       .where(eq(schema.projects.id, projectId));
   });
+
+  if (name.needsLanguageReview) {
+    await requestNameReview({
+      projectId,
+      characterId: hero.id,
+      language: child.bookLanguage,
+      name: name.name,
+      gender: child.gender,
+      proposedForms: name.proposedForms,
+      customerForms: child.editedForms ?? undefined,
+      declinable: !name.indeclinable,
+    });
+  }
 }
 
 // ---------------------------------------------------------------- návrat cez odkaz

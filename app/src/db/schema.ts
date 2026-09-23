@@ -76,6 +76,17 @@ export const consentType = pgEnum("consent_type", [
   "save_hero",
 ]);
 
+/** Roly interných používateľov (špecifikácia: Administrácia – Roly). */
+export const adminRole = pgEnum("admin_role", [
+  "content_editor", // Redaktor obsahu
+  "graphic", // Grafik
+  "support", // Podpora
+  "production", // Výroba
+  "market_admin", // Správca trhu
+  "art_director", // Art director a produkčný grafik
+  "admin", // Administrátor – všetko vrátane používateľov a auditu
+]);
+
 // ---------------------------------------------------------------- projekty
 
 export const projects = pgTable(
@@ -310,6 +321,42 @@ export const auditLog = pgTable("audit_log", {
   reason: text("reason"),
   createdAt: createdAt(),
 });
+
+// ---------------------------------------------------------------- administrácia (interní používatelia)
+
+/** Interný používateľ štúdia (balík E). Heslo nikdy v čitateľnej podobe – len scrypt hash + soľ. */
+export const adminUsers = pgTable("admin_users", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  email: text("email").notNull().unique(),
+  name: text("name").notNull(),
+  passwordHash: text("password_hash").notNull(),
+  passwordSalt: text("password_salt").notNull(),
+  role: adminRole("role").notNull(),
+  active: boolean("active").notNull().default(true),
+  /** Miesto pre TOTP tajomstvo, keď pribudne dvojfaktorové prihlásenie (fáza 2). */
+  totpSecret: text("totp_secret"),
+  lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});
+
+/** Relácia prihlásenia – v DB kvôli okamžitému odvolaniu (odhlásenie, deaktivácia používateľa). */
+export const adminSessions = pgTable(
+  "admin_sessions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => adminUsers.id, { onDelete: "cascade" }),
+    /** SHA-256 tokenu z cookie; samotný token sa neukladá (rovnaký vzor ako projects.accessTokenHash). */
+    tokenHash: text("token_hash").notNull().unique(),
+    userAgent: text("user_agent"),
+    createdAt: createdAt(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+  },
+  (t) => [index("admin_sessions_user_idx").on(t.userId)]
+);
 
 // ---------------------------------------------------------------- AI
 
