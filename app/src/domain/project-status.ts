@@ -13,8 +13,9 @@ const TRANSITIONS: Record<ProjectStatus, ProjectStatus[]> = {
   hero_approved: ["text_approved", "draft", "deleted"],
   text_approved: ["generating", "hero_approved", "deleted"],
   generating: ["preview", "deleted"],
-  // Úprava vyžadujúca generovanie vráti knihu do "generating".
-  preview: ["generating", "approved_by_customer", "deleted"],
+  // Úprava vyžadujúca generovanie vráti knihu do "generating"; zmena skoršieho
+  // kroku (príbeh, štýl, meno) ju vráti pred generovanie (balík A).
+  preview: ["generating", "text_approved", "approved_by_customer", "deleted"],
   // Pred platbou sa dá vrátiť k úpravám bez obmedzenia.
   approved_by_customer: ["paid", "preview"],
   paid: ["in_review"],
