@@ -36,6 +36,13 @@
       "when": 1790191317885,
       "tag": "0004_objednavky",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1790191337446,
+      "tag": "0005_administracia",
+      "breakpoints": true
     }
   ]
 }

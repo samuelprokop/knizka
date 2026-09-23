@@ -17,6 +17,8 @@
     "test": "tsx --conditions=react-server --env-file-if-exists=.env.local --test --test-concurrency=1 \"src/**/*.test.ts\"",
     "names:build": "tsx scripts/names/build.ts",
     "names:import": "tsx --env-file=.env.local scripts/names/import.ts",
+    "admin:create-user": "tsx --env-file=.env.local scripts/admin/create-user.ts",
+    "admin:seed-queue": "tsx --env-file=.env.local scripts/admin/seed-review-queue.ts",
     "test:render": "tsx --test --test-concurrency=1 \"src/**/*.render-test.ts\""
   },
   "dependencies": {
