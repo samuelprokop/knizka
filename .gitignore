@@ -1,0 +1,33 @@
+# dependencies
+node_modules/
+app/node_modules/
+
+# next.js
+app/.next/
+app/out/
+
+# production
+app/build/
+
+# env
+.env*.local
+*.env
+
+# logs
+*.log
+dev.log
+
+# os
+.DS_Store
+
+# editor
+.vscode/
+.idea/
+
+# veľké pracovné médiá – ostávajú lokálne, do gitu nepatria
+# (hero snímky pre web sú v app/public/hero/book)
+blender/renders/
+blender/*.blend1
+blender/render.log
+hero videos/
+brand manual/*.pdf

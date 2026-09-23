@@ -1,0 +1,35 @@
+@import "tailwindcss";
+
+/*
+  PLACEHOLDER IDENTITA: farby a písmo prevzaté z brand manuálu TAKTIK
+  (oranžová #FF661A, tyrkysová #00A5A0, fialová #5E3F61, Bitter ExtraBold).
+  Nová Značka bude mať podľa produktovej špecifikácie vlastnú identitu –
+  tieto tokeny sa po rozhodnutí vymenia na jednom mieste (nižšie).
+*/
+
+:root {
+  --background: #ffffff;
+  --foreground: #17140f;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-body: var(--font-body);
+  --font-heading: var(--font-heading);
+
+  --color-ink: #17140f;
+  --color-paper: #faf9f6;
+  --color-paper-page: #fffdf9;
+
+  --color-brand-orange: #ff661a;
+  --color-brand-orange-dark: #b23d00;
+  --color-brand-teal: #00a5a0;
+  --color-brand-purple: #5e3f61;
+}
+
+/* Čisto biela – hero video má biele pozadie a musí so stránkou splynúť bez okraja. */
+body {
+  background: #ffffff;
+  color: var(--color-ink);
+}
