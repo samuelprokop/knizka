@@ -9,14 +9,28 @@ import type { Translator } from "@/i18n/format";
 
   PLACEHOLDER: tlačidlá Apple Pay a Google Pay sú zatiaľ vlastné. So skutočnou
   bránou ich nahradia oficiálne tlačidlá (Apple Pay JS / Google Pay API) a Apple
-  Pay sa ukáže len na zariadeniach, ktoré ho podporujú. Údaje karty sa na našej
-  stránke nikdy nezadávajú – len na stránke brány (PCI DSS).
+  Pay sa ukáže len na zariadeniach, ktoré ho podporujú. Karta sa rozbalí do
+  formulára s náhľadom karty (CardPaymentForm) – jeho polia sa na náš server
+  nikdy neodošlú (PCI DSS).
 */
+
+import { CardPaymentForm } from "./CardPaymentForm";
 
 const focusRing = "outline-none focus-visible:ring-4 focus-visible:ring-brand-orange/40";
 const pressable = "transition active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100";
 
-export function PaymentPanel({ methods, total, t }: { methods: PaymentMethod[]; total: string; t: Translator }) {
+export function PaymentPanel({
+  methods,
+  total,
+  t,
+  cardOpen = false,
+}: {
+  methods: PaymentMethod[];
+  total: string;
+  t: Translator;
+  /** Formulár karty rozbalený hneď (odkaz z katalógu UI). */
+  cardOpen?: boolean;
+}) {
   const has = (m: PaymentMethod) => methods.includes(m);
   const wallets = has("apple_pay") || has("google_pay");
   const others = methods.filter((m) => m === "bank_button" || m === "cod");
@@ -63,17 +77,7 @@ export function PaymentPanel({ methods, total, t }: { methods: PaymentMethod[]; 
         </div>
       )}
 
-      {has("card") && (
-        <button
-          type="submit"
-          name="paymentMethod"
-          value="card"
-          className={`flex h-12 items-center justify-center gap-2.5 rounded-2xl bg-ink/[0.04] text-base font-semibold text-ink ring-1 ring-ink/10 hover:bg-ink/[0.07] ${pressable} ${focusRing}`}
-        >
-          <CardIcon />
-          {t("checkout.pay.card")}
-        </button>
-      )}
+      {has("card") && <CardPaymentForm total={total} defaultOpen={cardOpen} />}
 
       {others.length > 0 && (
         <div className="flex flex-col gap-2 pt-1">
@@ -116,15 +120,6 @@ function GoogleLogo() {
       <path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z" />
       <path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2A11.9 11.9 0 0 1 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z" />
       <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3a12 12 0 0 1-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z" />
-    </svg>
-  );
-}
-
-function CardIcon() {
-  return (
-    <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" className="size-5">
-      <rect x="2.5" y="5" width="19" height="14" rx="2.5" />
-      <path d="M2.5 10h19" />
     </svg>
   );
 }

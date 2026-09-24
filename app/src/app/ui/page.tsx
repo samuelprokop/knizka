@@ -128,6 +128,7 @@ export default async function UiCatalogPage() {
       items: [
         { label: "Košík", href: approved ? `/sk/kosik?projekt=${approved.id}` : null },
         { label: "Pokladňa", href: approved ? `/sk/objednavka?projekt=${approved.id}&variant=print_ebook&extraCopies=0&giftWrap=0&voucher=` : null },
+        { label: "Pokladňa – platba kartou", note: "rozbalený formulár karty", href: approved ? `/sk/objednavka?projekt=${approved.id}&variant=print_ebook&extraCopies=0&giftWrap=0&voucher=&karta=1` : null },
         { label: "Ďakujeme", href: demo.orderId ? `/sk/objednavka/${demo.orderId}/dakujeme` : null },
         { label: "Stav objednávky", href: demo.orderId ? `/sk/objednavka/${demo.orderId}` : null },
         { label: "Neúspešná platba", href: demo.orderId ? `/sk/objednavka/${demo.orderId}/vysledok` : null },

@@ -144,7 +144,7 @@ export default async function CheckoutPage({ searchParams }: PageProps<"/[market
           <span className="text-base text-ink">{t("checkout.terms")}</span>
         </label>
 
-        <PaymentPanel methods={paymentMethods} total={formatMoney(price.totalMinor, market)} t={t} />
+        <PaymentPanel methods={paymentMethods} total={formatMoney(price.totalMinor, market)} t={t} cardOpen={readParam(query.karta) === "1"} />
 
         <Link href={cartHref} className={buttonClass("ghost", "self-start")}>
           {t("checkout.back_to_cart")}
