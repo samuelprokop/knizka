@@ -12,6 +12,7 @@ import { buttonClass, Field, inputClass, Notice } from "@/features/configurator/
 import { hasProjectSession } from "@/features/configurator/server/session";
 import type { MessageKey } from "@/i18n/messages";
 import { getMarketContext } from "@/i18n/server";
+import { ShopHeader } from "@/components/ShopHeader";
 
 function readParam(value: string | string[] | undefined) {
   return typeof value === "string" ? value : undefined;
@@ -51,7 +52,9 @@ export default async function CheckoutPage({ searchParams }: PageProps<"/[market
   const cartHref = `/${market.code}/kosik?${new URLSearchParams({ projekt: projectId, variant, extraCopies: String(extraCopies), giftWrap: giftWrap ? "1" : "0", voucher: voucherCode })}`;
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-2xl flex-col gap-8 px-4 py-10">
+    <>
+      <ShopHeader />
+      <main className="mx-auto flex w-full flex-1 max-w-2xl flex-col gap-8 px-4 py-10">
       <header className="flex flex-col gap-2">
         <h1 className="font-heading text-[1.75rem] font-extrabold text-ink sm:text-4xl">{t("checkout.title")}</h1>
         <p className="text-base text-ink/70">{t("cart.item", { title: cart.bookTitle }, cart.hero)}</p>
@@ -71,14 +74,14 @@ export default async function CheckoutPage({ searchParams }: PageProps<"/[market
         <section className="flex flex-col gap-4">
           <h2 className="font-heading text-lg font-bold text-ink">{t("checkout.contact")}</h2>
           <Field label={t("checkout.email")} htmlFor="email">
-            <input id="email" name="email" type="email" required defaultValue={cart.email ?? ""} className={inputClass} />
+            <input id="email" name="email" type="email" required autoComplete="email" defaultValue={cart.email ?? ""} className={inputClass} />
           </Field>
         </section>
 
         {isPrint && (
           <section className="flex flex-col gap-4">
             <h2 className="font-heading text-lg font-bold text-ink">{t("checkout.shipping")}</h2>
-            <Field label={t("checkout.shipping")} htmlFor="carrierId">
+            <Field label={t("checkout.carrier")} htmlFor="carrierId">
               <select id="carrierId" name="carrierId" defaultValue={carrierId ?? undefined} className={inputClass}>
                 {market.carriers.map((c) => (
                   <option key={c.id} value={c.id}>
@@ -89,31 +92,45 @@ export default async function CheckoutPage({ searchParams }: PageProps<"/[market
               </select>
             </Field>
             <Field label={t("checkout.address.name")} htmlFor="addressName">
-              <input id="addressName" name="addressName" required className={inputClass} />
+              <input id="addressName" name="addressName" required autoComplete="name" className={inputClass} />
             </Field>
             <Field label={t("checkout.shipping.address")} htmlFor="addressStreet" help={t("checkout.shipping.pickup_placeholder")}>
-              <input id="addressStreet" name="addressStreet" placeholder={t("checkout.address.street")} className={inputClass} />
+              <input id="addressStreet" name="addressStreet" placeholder={t("checkout.address.street")} autoComplete="street-address" className={inputClass} />
             </Field>
-            <div className="grid grid-cols-2 gap-3">
-              <input name="addressCity" placeholder={t("checkout.address.city")} className={inputClass} />
-              <input name="addressZip" placeholder={t("checkout.address.zip")} className={inputClass} />
+            <div className="grid grid-cols-[2fr_1fr] gap-3">
+              <Field label={t("checkout.address.city")} htmlFor="addressCity">
+                <input id="addressCity" name="addressCity" autoComplete="address-level2" className={inputClass} />
+              </Field>
+              <Field label={t("checkout.address.zip")} htmlFor="addressZip">
+                <input id="addressZip" name="addressZip" inputMode="numeric" autoComplete="postal-code" className={inputClass} />
+              </Field>
             </div>
-            <input name="pickupPointLabel" placeholder={t("checkout.shipping.pickup")} className={inputClass} />
+            <Field label={t("checkout.shipping.pickup")} htmlFor="pickupPointLabel">
+              <input id="pickupPointLabel" name="pickupPointLabel" className={inputClass} />
+            </Field>
           </section>
         )}
 
-        <section className="flex flex-col gap-3">
+        {/* Údaje firmy sa ukážu až po zaškrtnutí (čisté CSS – funguje aj bez JS). */}
+        <section className="group/invoice flex flex-col gap-3">
           <label className="flex min-h-12 cursor-pointer items-center gap-3">
             <input type="checkbox" name="invoiceToggle" id="invoiceToggle" className="size-6 accent-brand-orange-dark" />
             <span className="text-base text-ink">{t("checkout.invoice.toggle")}</span>
           </label>
-          <div className="grid grid-cols-2 gap-3">
-            <input name="invoiceCompanyName" placeholder={t("checkout.invoice")} className={inputClass} />
-            <input name="invoiceIco" placeholder={t("checkout.invoice.ico")} className={inputClass} />
-            <input name="invoiceDic" placeholder={t("checkout.invoice.dic")} className={inputClass} />
+          <div className="hidden flex-col gap-4 group-has-[#invoiceToggle:checked]/invoice:flex">
+            <Field label={t("checkout.invoice.company")} htmlFor="invoiceCompanyName">
+              <input id="invoiceCompanyName" name="invoiceCompanyName" autoComplete="organization" className={inputClass} />
+            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label={t("checkout.invoice.ico")} htmlFor="invoiceIco">
+                <input id="invoiceIco" name="invoiceIco" inputMode="numeric" className={inputClass} />
+              </Field>
+              <Field label={t("checkout.invoice.dic")} htmlFor="invoiceDic">
+                <input id="invoiceDic" name="invoiceDic" className={inputClass} />
+              </Field>
+            </div>
           </div>
         </section>
-
 
         <section className="flex flex-col gap-2 rounded-2xl border-2 border-ink/10 bg-white p-4">
           {[{ id: price.base.id, quantity: price.base.quantity, amountMinor: price.base.amountMinor }, ...price.surcharges].map((line) => (
@@ -150,6 +167,7 @@ export default async function CheckoutPage({ searchParams }: PageProps<"/[market
           {t("checkout.back_to_cart")}
         </Link>
       </form>
-    </main>
+      </main>
+    </>
   );
 }

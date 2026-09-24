@@ -14,6 +14,8 @@ import { hasProjectSession } from "@/features/configurator/server/session";
 import { stepHref } from "@/features/configurator/steps";
 import type { MessageKey } from "@/i18n/messages";
 import { getMarketContext } from "@/i18n/server";
+import { ShopHeader } from "@/components/ShopHeader";
+import { CheckIcon, MinusIcon, PlusIcon } from "@/components/icons";
 
 /*
   Košík sa nikde neukladá – voľby (variant, ďalšie výtlačky, darčekové balenie,
@@ -112,7 +114,9 @@ export default async function CartPage({ params, searchParams }: PageProps<"/[ma
   ];
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-2xl flex-col gap-8 px-4 py-10">
+    <>
+      <ShopHeader />
+      <main className="mx-auto flex w-full flex-1 max-w-2xl flex-col gap-8 px-4 py-10">
       <StepTitle title={t(cart.reorder ? "cart.reorder.title" : "cart.title")} />
 
       <section className="flex gap-4 rounded-2xl border-2 border-ink/10 bg-white p-4">
@@ -133,22 +137,23 @@ export default async function CartPage({ params, searchParams }: PageProps<"/[ma
           <div className="flex items-center justify-between gap-4 rounded-2xl border-2 border-ink/10 bg-white px-4 py-3">
             <span className="text-base text-ink">{t("cart.addon.copy")}</span>
             <div className="flex items-center gap-3">
-              <Link href={qs({ extraCopies: String(Math.max(0, extraCopies - 1)) })} scroll={false} className={buttonClass("secondary", "min-h-9 min-w-9 px-0")} aria-label="−">
-                −
+              <Link href={qs({ extraCopies: String(Math.max(0, extraCopies - 1)) })} scroll={false} className={buttonClass("secondary", "min-h-11 min-w-11 px-0")} aria-label={t("cart.addon.copy_less")}>
+                <MinusIcon />
               </Link>
               <AnimatedNumber value={String(extraCopies)} className="w-4 justify-center font-semibold text-ink" />
-              <Link href={qs({ extraCopies: String(Math.min(20, extraCopies + 1)) })} scroll={false} className={buttonClass("secondary", "min-h-9 min-w-9 px-0")} aria-label="+">
-                +
+              <Link href={qs({ extraCopies: String(Math.min(20, extraCopies + 1)) })} scroll={false} className={buttonClass("secondary", "min-h-11 min-w-11 px-0")} aria-label={t("cart.addon.copy_more")}>
+                <PlusIcon />
               </Link>
             </div>
           </div>
           <Link
             href={qs({ giftWrap: giftWrap ? "0" : "1" })}
             scroll={false}
-            aria-pressed={giftWrap}
-            className={buttonClass(giftWrap ? "primary" : "secondary", "justify-between")}
+            className={buttonClass(giftWrap ? "primary" : "secondary")}
           >
+            {giftWrap ? <CheckIcon /> : <PlusIcon />}
             {t("cart.addon.giftwrap")}
+            {giftWrap && <span className="sr-only">({t("cart.plan.chosen")})</span>}
           </Link>
         </fieldset>
       )}
@@ -208,6 +213,7 @@ export default async function CartPage({ params, searchParams }: PageProps<"/[ma
           {t("cart.continue")}
         </Link>
       </div>
-    </main>
+      </main>
+    </>
   );
 }

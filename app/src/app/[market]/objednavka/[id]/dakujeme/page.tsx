@@ -8,6 +8,7 @@ import { nameContextOf } from "@/features/configurator/server/bundle";
 import { buttonClass, StepTitle } from "@/features/configurator/components/ui";
 import { hasProjectSession } from "@/features/configurator/server/session";
 import { getMarketContext } from "@/i18n/server";
+import { ShopHeader } from "@/components/ShopHeader";
 
 export default async function ThanksPage({ params }: PageProps<"/[market]/objednavka/[id]/dakujeme">) {
   const { market, t } = await getMarketContext();
@@ -25,7 +26,9 @@ export default async function ThanksPage({ params }: PageProps<"/[market]/objedn
   const heroName = nameContextOf(hero);
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-xl flex-col justify-center gap-6 px-4 py-16 text-center">
+    <>
+      <ShopHeader />
+      <main className="mx-auto flex w-full flex-1 max-w-xl flex-col justify-center gap-6 px-4 py-16 text-center">
       <StepTitle title={t("thanks.title", undefined, heroName)} subtitle={t("thanks.ebook")} />
       <p className="text-sm text-ink/60">{t("order.number", { ref: orderRefOf(order) })}</p>
       <div className="flex flex-col items-center gap-3">
@@ -36,9 +39,10 @@ export default async function ThanksPage({ params }: PageProps<"/[market]/objedn
           {t("thanks.view_order")}
         </Link>
         <Link href={`/${market.code}/moja-kniha/${project.personalToken}`} className={buttonClass("ghost")}>
-          {t("book.imprint.qr")}
+          {t("thanks.personal_page")}
         </Link>
       </div>
-    </main>
+      </main>
+    </>
   );
 }

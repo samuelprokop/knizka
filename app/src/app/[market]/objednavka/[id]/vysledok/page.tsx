@@ -6,6 +6,7 @@ import { buttonClass, Notice, StepTitle } from "@/features/configurator/componen
 import { hasProjectSession } from "@/features/configurator/server/session";
 import { getMarketContext } from "@/i18n/server";
 import { isUiPreview } from "@/lib/ui-preview";
+import { ShopHeader } from "@/components/ShopHeader";
 
 /*
   Návrat z platby (placeholderPaymentProvider rovno pripája ?payment=…&status=paid
@@ -30,12 +31,15 @@ export default async function PaymentResultPage({ params, searchParams }: PagePr
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-xl flex-col justify-center gap-6 px-4 py-16">
+    <>
+      <ShopHeader />
+      <main className="mx-auto flex w-full flex-1 max-w-xl flex-col justify-center gap-6 px-4 py-16">
       <StepTitle title={t("checkout.title")} />
       <Notice tone="error">{t("checkout.error.payment_failed")}</Notice>
       <Link href={`/${market.code}/kosik?projekt=${order.projectId}`} className={buttonClass("primary", "self-start")}>
         {t("common.try_again")}
       </Link>
-    </main>
+      </main>
+    </>
   );
 }

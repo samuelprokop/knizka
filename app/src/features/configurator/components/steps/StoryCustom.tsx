@@ -14,6 +14,7 @@ import { StepFooter } from "../StepFooter";
 import { Button, buttonClass, Chip, Field, Notice, StepTitle, inputClass, splitOptions } from "../ui";
 import { useWizard } from "../WizardContext";
 import { StoryOptions, useStoryNav, type StoryStepProps } from "./StoryStep";
+import { ChevronLeftIcon } from "@/components/icons";
 
 export function StoryCustom(props: StoryStepProps) {
   switch (props.view) {
@@ -34,7 +35,8 @@ function Chooser(props: StoryStepProps) {
   return (
     <>
       <Link href={nav()} className={buttonClass("ghost", "self-start px-0")}>
-        ← {t("common.back")}
+        <ChevronLeftIcon className="size-4" />
+        {t("common.back")}
       </Link>
       <StepTitle title={t("story.not_found.title")} subtitle={t("story.custom.surcharge", { price: props.prices.customStory })} />
       {props.customLimitReached ? (
@@ -50,7 +52,7 @@ function Chooser(props: StoryStepProps) {
         </div>
       )}
       <StoryOptions options={props.options} prices={props.prices} showLength />
-      <StepFooter />
+      <StepFooter back={false} />
     </>
   );
 }
@@ -246,7 +248,8 @@ function OwnStory(props: StoryStepProps) {
   return (
     <>
       <Link href={nav({ v: "vlastny" })} className={buttonClass("ghost", "self-start px-0")}>
-        ← {t("common.back")}
+        <ChevronLeftIcon className="size-4" />
+        {t("common.back")}
       </Link>
       <StepTitle title={t("own.title", undefined, hero ?? undefined)} />
       <Field label={t("configurator.own.label")} htmlFor={`${ids}-own`} help={t("own.counter", { n: text.length })}>
@@ -265,7 +268,7 @@ function OwnStory(props: StoryStepProps) {
       </div>
       {pending && <Notice>{t("text.generating")}</Notice>}
       {error && <Notice tone="error">{t(error)}</Notice>}
-      <StepFooter>
+      <StepFooter back={false}>
         <Button
           className="w-full sm:w-auto"
           pending={pending}

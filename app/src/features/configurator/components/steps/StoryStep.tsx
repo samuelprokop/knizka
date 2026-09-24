@@ -17,6 +17,7 @@ import { Button, buttonClass, Chip, cx, Disclosure, Field, Notice, StepTitle, in
 import { useWizard } from "../WizardContext";
 import { StoryCustom } from "./StoryCustom";
 import { StoryTextReview, type SpreadView } from "./StoryTextReview";
+import { ChevronLeftIcon } from "@/components/icons";
 
 export type StoryTile = {
   id: string;
@@ -235,7 +236,8 @@ function StoryDetail(props: StoryStepProps) {
   return (
     <>
       <Link href={nav()} className={buttonClass("ghost", "self-start px-0")}>
-        ← {t("common.back")}
+        <ChevronLeftIcon className="size-4" />
+        {t("common.back")}
       </Link>
       <div className="overflow-hidden rounded-3xl">
         <StoryCover title={tile.title} portrait={props.heroPortrait} color={props.themeColor} />
@@ -288,7 +290,7 @@ function StoryDetail(props: StoryStepProps) {
       {error && <Notice tone="error">{t(error)}</Notice>}
       <StoryOptions {...props} fixedLength={tile.spreads as 12 | 16} />
 
-      <StepFooter>
+      <StepFooter back={false}>
         <Button className="w-full sm:w-auto" pending={pending} onClick={choose}>
           {withDetails ? t("common.continue") : t("story.select")}
         </Button>

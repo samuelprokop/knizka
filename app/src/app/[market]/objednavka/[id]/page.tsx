@@ -4,13 +4,14 @@ import { notFound } from "next/navigation";
 import { submitComplaintAction } from "@/features/checkout/actions";
 import { COMPLAINT_TYPES } from "@/features/checkout/server/complaints";
 import { getOrder, orderRefOf } from "@/features/checkout/server/orders";
-import { buttonClass, Field, inputClass, Notice, StepTitle } from "@/features/configurator/components/ui";
+import { buttonClass, Disclosure, Field, inputClass, Notice, StepTitle } from "@/features/configurator/components/ui";
 import { hasProjectSession } from "@/features/configurator/server/session";
 import { db, schema } from "@/db";
 import { eq } from "drizzle-orm";
 import type { ProjectStatus } from "@/domain/project-status";
 import type { MessageKey } from "@/i18n/messages";
 import { getMarketContext } from "@/i18n/server";
+import { ShopHeader } from "@/components/ShopHeader";
 
 /** Stav objednávky zobrazuje stav PROJEKTU (jemnejšie kroky ako orders.status – K10 „Po platbe“). */
 function statusKey(orderStatus: string, projectStatus: ProjectStatus | undefined): MessageKey {
@@ -47,7 +48,9 @@ export default async function OrderStatusPage({ params, searchParams }: PageProp
   const complaintSent = query.reklamacia === "1";
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-xl flex-col gap-8 px-4 py-10">
+    <>
+      <ShopHeader />
+      <main className="mx-auto flex w-full flex-1 max-w-xl flex-col gap-8 px-4 py-10">
       <StepTitle title={t("order.status.title")} subtitle={t("order.number", { ref: orderRefOf(order) })} />
 
       <Notice tone={order.status === "cancelled" || order.status === "refunded" ? "warn" : "ok"}>{t(statusKey(order.status, project?.status))}</Notice>
@@ -69,10 +72,9 @@ export default async function OrderStatusPage({ params, searchParams }: PageProp
       {complaintSent ? (
         <Notice tone="ok">{t("complaint.received")}</Notice>
       ) : (
-        <details className="rounded-2xl border-2 border-ink/10 bg-white p-4">
-          <summary className="cursor-pointer font-semibold text-ink">{t("complaint.cta")}</summary>
-          <p className="mt-2 text-sm text-ink/60">{t("complaint.types")}</p>
-          <form action={submitComplaintAction} className="mt-4 flex flex-col gap-4">
+        <Disclosure summary={t("complaint.cta")}>
+          <p className="text-sm text-ink/60">{t("complaint.types")}</p>
+          <form action={submitComplaintAction} className="flex flex-col gap-4">
             <input type="hidden" name="orderId" value={order.id} />
             <input type="hidden" name="market" value={market.code} />
             <Field label={t("complaint.cta")} htmlFor="type">
@@ -91,8 +93,9 @@ export default async function OrderStatusPage({ params, searchParams }: PageProp
               {t("complaint.submit")}
             </button>
           </form>
-        </details>
+        </Disclosure>
       )}
-    </main>
+      </main>
+    </>
   );
 }

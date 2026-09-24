@@ -49,7 +49,7 @@ export function SiteFooter({ market, t }: { market: Market; t: Translator }) {
         <div className="grid grid-cols-2 gap-x-6 gap-y-8 md:grid-cols-[1.4fr_1fr_1fr_1fr] md:gap-12">
           <div className="col-span-2 flex flex-col items-start gap-4 md:col-span-1 md:gap-5">
             <p className="max-w-sm font-heading text-2xl leading-[1.1] font-extrabold md:text-4xl">{t("footer.tagline")}</p>
-            <p className="max-w-sm text-ink/75">{t("footer.subline")}</p>
+            <p className="max-w-sm text-ink/80">{t("footer.subline")}</p>
             <Link
               href={`/${market.code}/vytvorit`}
               className="rounded-full bg-ink px-6 py-3 text-sm font-semibold text-white transition hover:bg-ink/85 focus-visible:ring-4 focus-visible:ring-ink/30 focus-visible:outline-none"
@@ -60,7 +60,7 @@ export function SiteFooter({ market, t }: { market: Market; t: Translator }) {
 
           {columns.map((column) => (
             <nav key={column.title} aria-label={t(column.title)} className="flex flex-col gap-2 md:gap-3">
-              <p className="text-sm font-semibold tracking-wider uppercase text-ink/60">{t(column.title)}</p>
+              <p className="text-sm font-semibold tracking-wider uppercase text-ink/80">{t(column.title)}</p>
               <ul className="flex flex-col gap-1.5 text-sm md:gap-2 md:text-base">
                 {column.links.map((link) => (
                   <li key={link.label}>
@@ -79,7 +79,7 @@ export function SiteFooter({ market, t }: { market: Market; t: Translator }) {
           ))}
         </div>
 
-        <div className="flex flex-col gap-3 border-t border-ink/15 pt-5 text-xs text-ink/70 md:flex-row md:items-center md:justify-between md:gap-4 md:pt-6 md:text-sm">
+        <div className="flex flex-col gap-3 border-t border-ink/15 pt-5 text-xs text-ink/80 md:flex-row md:items-center md:justify-between md:gap-4 md:pt-6 md:text-sm">
           <div className="flex items-center gap-4">
             {/* Logo TAKTIK jednofarebne tmavé – oranžová značka by na oranžovom pozadí zanikla. */}
             <Image src="/brand/taktik-logo.svg" alt="TAKTIK" width={54} height={48} className="brightness-0" unoptimized />

@@ -72,7 +72,7 @@ export function WizardShell({
         <header className="sticky top-0 z-40 border-b border-ink/10 bg-white/95 backdrop-blur">
           <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-2 sm:px-6">
             <Link href={`/${market.code}`} aria-label="TAKTIK" className="rounded-lg outline-none focus-visible:ring-4 focus-visible:ring-brand-orange/40">
-              <Image src="/brand/taktik-logo.svg" alt="TAKTIK" width={40} height={36} unoptimized />
+              <Image src="/brand/taktik-logo.svg" alt="TAKTIK" width={56} height={50} unoptimized />
             </Link>
             {projectId && <SaveExitButton projectId={projectId} />}
           </div>

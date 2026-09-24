@@ -13,6 +13,7 @@ import { PhotoUploader, type PhotoView } from "../PhotoUploader";
 import { StepFooter } from "../StepFooter";
 import { Button, Check, Disclosure, Notice, StepTitle } from "../ui";
 import { useWizard } from "../WizardContext";
+import { BanIcon, SmileIcon } from "@/components/icons";
 
 const CONSENTS = ["photo.consent.guardian", "photo.consent.ai", "photo.consent.retention"] as const satisfies readonly MessageKey[];
 
@@ -79,13 +80,13 @@ export function PhotoStep({
       <StepTitle title={t("photo.title", undefined, heroCtx)} subtitle={t("photo.subtitle")} />
 
       <div className="grid grid-cols-2 gap-3 text-sm">
-        <div className="rounded-2xl bg-[#e3f4e6] p-3">
-          <p aria-hidden className="text-2xl">🙂</p>
-          <p className="mt-1 text-ink">{t("photo.tip.good")}</p>
+        <div className="flex flex-col gap-2 rounded-2xl bg-[#e3f4e6] p-4">
+          <SmileIcon className="size-6 text-[#1f7a3a]" />
+          <p className="text-ink">{t("photo.tip.good")}</p>
         </div>
-        <div className="rounded-2xl bg-[#fde8e6] p-3">
-          <p aria-hidden className="text-2xl">🚫</p>
-          <p className="mt-1 text-ink">{t("photo.tip.bad")}</p>
+        <div className="flex flex-col gap-2 rounded-2xl bg-[#fde8e6] p-4">
+          <BanIcon className="size-6 text-[#b3261e]" />
+          <p className="text-ink">{t("photo.tip.bad")}</p>
         </div>
       </div>
 

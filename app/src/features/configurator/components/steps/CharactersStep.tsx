@@ -29,6 +29,7 @@ import { PhotoUploader, type PhotoView } from "../PhotoUploader";
 import { StepFooter } from "../StepFooter";
 import { Button, Check, Chip, Field, Notice, StepTitle, inputClass, splitOptions } from "../ui";
 import { useWizard } from "../WizardContext";
+import { CheckIcon, CloseIcon, PlusIcon } from "@/components/icons";
 
 export type CompanionView = {
   id: string;
@@ -119,8 +120,8 @@ export function CharactersStep({
                     {c.storyRole && ` · ${t(c.storyRole === "companion" ? "chars.role.companion" : "chars.role.cameo")}`}
                   </span>
                 </div>
-                <Button variant="ghost" onClick={() => refresh(() => removeCompanionAction(projectId!, c.id))} aria-label={t("configurator.chars.remove", { name: c.name })}>
-                  ×
+                <Button variant="ghost" onClick={() => refresh(() => removeCompanionAction(projectId!, c.id))} aria-label={t("configurator.chars.remove", { name: c.name })} className="min-w-12 px-0">
+                  <CloseIcon />
                 </Button>
               </div>
 
@@ -138,7 +139,12 @@ export function CharactersStep({
                   {t("configurator.chars.approve_card", { name: c.name })}
                 </Button>
               )}
-              {c.card?.approved && <p className="text-sm font-medium text-[#1f7a3a]">✓ {t("configurator.chars.card_approved")}</p>}
+              {c.card?.approved && (
+                <p className="flex items-center gap-1.5 text-sm font-medium text-[#1f7a3a]">
+                  <CheckIcon className="size-4" />
+                  {t("configurator.chars.card_approved")}
+                </p>
+              )}
             </li>
           ))}
         </ul>
@@ -156,7 +162,8 @@ export function CharactersStep({
           />
         ) : (
           <Button variant="secondary" onClick={() => setAdding(true)}>
-            + {t("chars.add")}
+            <PlusIcon />
+            {t("chars.add")}
           </Button>
         )
       )}

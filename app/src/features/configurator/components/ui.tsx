@@ -4,6 +4,7 @@
 */
 
 import type { ButtonHTMLAttributes, ReactNode } from "react";
+import { ChevronDownIcon } from "@/components/icons";
 
 export const cx = (...classes: (string | false | null | undefined)[]) => classes.filter(Boolean).join(" ");
 
@@ -154,7 +155,7 @@ export function Disclosure({ summary, children, defaultOpen }: { summary: ReactN
     <details open={defaultOpen} className="group rounded-2xl border-2 border-ink/10 bg-white">
       <summary className={cx("flex min-h-12 cursor-pointer list-none items-center justify-between px-4 font-semibold text-ink", FOCUS, "rounded-2xl")}>
         {summary}
-        <span aria-hidden className="transition group-open:rotate-180">⌄</span>
+        <ChevronDownIcon className="size-5 shrink-0 text-ink/60 transition group-open:rotate-180 motion-reduce:transition-none" />
       </summary>
       <div className="flex flex-col gap-4 px-4 pb-4">{children}</div>
     </details>

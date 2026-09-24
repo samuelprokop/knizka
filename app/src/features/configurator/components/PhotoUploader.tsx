@@ -12,6 +12,7 @@ import { canDecode, PhotoCropper } from "./PhotoCropper";
 import { buttonClass, cx, Notice } from "./ui";
 import { fileUrl } from "../files";
 import { useWizard } from "./WizardContext";
+import { AlertIcon, CameraIcon, CheckIcon, CloseIcon } from "@/components/icons";
 
 export type PhotoView = { id: string; verdict: string; reason: string | null };
 
@@ -93,11 +94,11 @@ export function PhotoUploader({
               />
               <span
                 className={cx(
-                  "absolute top-2 left-2 rounded-full px-2 py-0.5 text-xs font-semibold",
+                  "absolute top-2 left-2 flex size-7 items-center justify-center rounded-full",
                   photo.verdict === "good" ? "bg-[#1f7a3a] text-white" : "bg-[#fff1d6] text-ink"
                 )}
               >
-                {photo.verdict === "good" ? "✓" : "!"}
+                {photo.verdict === "good" ? <CheckIcon className="size-4" /> : <AlertIcon className="size-4" />}
                 <span className="sr-only">{photo.verdict === "good" ? t("photo.verdict.good") : t("configurator.photo.usable")}</span>
               </span>
               <button
@@ -111,7 +112,7 @@ export function PhotoUploader({
                 aria-label={t("configurator.photo.remove")}
                 className="absolute top-1 right-1 flex size-10 items-center justify-center rounded-full bg-white/90 text-lg text-ink shadow outline-none focus-visible:ring-4 focus-visible:ring-brand-orange/40"
               >
-                ×
+                <CloseIcon className="size-5" />
               </button>
             </li>
           ))}
@@ -142,7 +143,7 @@ export function PhotoUploader({
             onClick={() => inputRef.current?.click()}
             className={buttonClass(usable.length ? "secondary" : "primary", "w-full")}
           >
-            <span aria-hidden>📷</span> {usable.length ? t("photo.add_more") : t("photo.upload")}
+            <CameraIcon /> {usable.length ? t("photo.add_more") : t("photo.upload")}
           </button>
         </>
       )}
