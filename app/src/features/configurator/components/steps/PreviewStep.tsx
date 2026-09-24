@@ -16,6 +16,7 @@ import { Button, Chip, Field, Notice, StepTitle, inputClass, splitOptions } from
 import { useWizard } from "../WizardContext";
 import { UndoIcon } from "@/components/icons";
 import { useToast } from "@/components/Toaster";
+import { useSubStep } from "../WizardMotion";
 
 export type PreviewPage = {
   id: string;
@@ -64,22 +65,30 @@ export function PreviewStep(props: Props) {
     setNotice(!target);
   };
 
+  useSubStep(page ? t("editor.title", { n: page.spread }) : null);
+
   return (
     <>
       <AutoRefresh active={busy} />
-      <StepTitle title={t("preview.title")} subtitle={t("preview.watermark_hint")} />
-
-      <BookFlipbook book={props.book} onEditPage={editPage} />
-
-      {notice && <Notice>{t("configurator.preview.personal_pages")}</Notice>}
-      {page && <PageEditor key={page.id} page={page} {...props} onClose={() => setSelected(null)} />}
-
-      {edited > 0 && <Notice>{t("editor.summary", { n: edited })}</Notice>}
-      <StepFooter>
-        <Button className="w-full sm:w-auto" disabled={busy} onClick={() => router.push(stepHref(market, projectId!, 9))}>
-          {t("preview.like")}
-        </Button>
-      </StepFooter>
+      {/* Úprava strany je podstránka – kniha a editor nie sú pod sebou (bez posúvania). */}
+      {page ? (
+        <PageEditor key={page.id} page={page} {...props} onClose={() => setSelected(null)} />
+      ) : (
+        <>
+          <StepTitle title={t("preview.title")} subtitle={t("preview.watermark_hint")} />
+          {(notice || edited > 0) && (
+            <p className="-mt-2 text-sm text-ink/65">
+              {notice && t("configurator.preview.personal_pages")} {edited > 0 && t("editor.summary", { n: edited })}
+            </p>
+          )}
+          <BookFlipbook book={props.book} onEditPage={editPage} reserveRem={36} />
+          <StepFooter>
+            <Button className="w-full sm:w-auto" disabled={busy} onClick={() => router.push(stepHref(market, projectId!, 9))}>
+              {t("preview.like")}
+            </Button>
+          </StepFooter>
+        </>
+      )}
     </>
   );
 }

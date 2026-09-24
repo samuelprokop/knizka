@@ -22,6 +22,7 @@ import { AutoRefresh } from "../AutoRefresh";
 import { StepFooter } from "../StepFooter";
 import { Button, buttonClass, Chip, cx, Notice, StepTitle } from "../ui";
 import { useWizard } from "../WizardContext";
+import { useSubStep } from "../WizardMotion";
 
 export type PortraitView = { style: StyleId; status: string; url: string | null };
 export type CardView = { status: string; portrait: string | null; fullBody: string | null; smile: string | null; surprise: string | null };
@@ -65,7 +66,7 @@ function StyleGrid({ portraits, recommended, chosenStyle, bookExists }: Paramete
     <>
       <StepTitle title={t("style.title")} subtitle={t("style.subtitle", undefined, heroCtx)} />
       {!readyAny && <p className="text-sm text-ink/70" aria-live="polite">{t("style.generating", undefined, heroCtx)}</p>}
-      <div role="group" aria-label={t("style.title")} className="grid grid-cols-2 gap-3">
+      <div role="group" aria-label={t("style.title")} className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {portraits.map((p) => (
           <button
             key={p.style}
@@ -145,17 +146,20 @@ function HeroCard({
     });
 
   const exhausted = retriesLeft <= 0;
+  useSubStep(panel === "edit" ? t("hero.edit") : panel === "retry" ? t("hero.retry") : null);
 
   return (
     <>
       <StepTitle title={t("hero.title", undefined, heroCtx)} subtitle={t("hero.subtitle")} />
 
-      <section aria-busy={busy} className="grid grid-cols-2 gap-3">
-        <CardImage loading={busy} src={card.portrait} alt={t("configurator.card.portrait")} className="col-span-2 aspect-square sm:col-span-1" />
-        <CardImage loading={busy} src={card.fullBody} alt={t("configurator.card.full_body")} className="aspect-[2/3] sm:row-span-2" />
-        <CardImage loading={busy} src={card.smile} alt={t("configurator.card.smile")} className="aspect-square" />
-        <CardImage loading={busy} src={card.surprise} alt={t("configurator.card.surprise")} className="aspect-square" />
+      {panel === "none" && (
+      <section aria-busy={busy} className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <CardImage loading={busy} src={card.portrait} alt={t("configurator.card.portrait")} className="col-span-2 aspect-square sm:col-span-1 lg:col-span-1 lg:aspect-[4/5]" />
+        <CardImage loading={busy} src={card.fullBody} alt={t("configurator.card.full_body")} className="aspect-[2/3] sm:row-span-2 lg:row-span-1 lg:aspect-[4/5]" />
+        <CardImage loading={busy} src={card.smile} alt={t("configurator.card.smile")} className="aspect-square lg:aspect-[4/5]" />
+        <CardImage loading={busy} src={card.surprise} alt={t("configurator.card.surprise")} className="aspect-square lg:aspect-[4/5]" />
       </section>
+      )}
       {busy && (
         <p className="text-sm text-ink/70" aria-live="polite">
           {t("hero.updating")}
@@ -173,9 +177,14 @@ function HeroCard({
             choices={["hairColor", "hairLength", "hairstyle", "eyes", "skin", "outfitColor", "accessory"]}
             flags={["glasses", "freckles", "braces", "hearingAid", "wheelchair"]}
           />
-          <Button pending={pending} onClick={() => run(() => updateAppearanceAction(projectId!, heroId, look), () => setPanel("none"))}>
-            {t("common.done")}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button pending={pending} onClick={() => run(() => updateAppearanceAction(projectId!, heroId, look), () => setPanel("none"))}>
+              {t("common.done")}
+            </Button>
+            <Button variant="ghost" onClick={() => setPanel("none")}>
+              {t("common.back")}
+            </Button>
+          </div>
         </section>
       )}
 
@@ -190,9 +199,14 @@ function HeroCard({
             ))}
           </div>
           <p className="text-sm text-ink/70">{t("hero.retry.counter", { n: retriesLeft })}</p>
-          <Button disabled={!reason} pending={pending} onClick={() => run(() => retryCardAction(projectId!, reason!), () => setPanel("none"))}>
-            {t("hero.retry")}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button disabled={!reason} pending={pending} onClick={() => run(() => retryCardAction(projectId!, reason!), () => setPanel("none"))}>
+              {t("hero.retry")}
+            </Button>
+            <Button variant="ghost" onClick={() => setPanel("none")}>
+              {t("common.back")}
+            </Button>
+          </div>
         </fieldset>
       )}
 
@@ -212,12 +226,13 @@ function HeroCard({
         </section>
       )}
 
+      {panel === "none" && (
       <div className="flex flex-wrap gap-2">
-        <Button variant="secondary" onClick={() => setPanel(panel === "edit" ? "none" : "edit")} disabled={busy}>
+        <Button variant="secondary" onClick={() => setPanel("edit")} disabled={busy}>
           {t("hero.edit")}
         </Button>
         {!exhausted && (
-          <Button variant="secondary" onClick={() => setPanel(panel === "retry" ? "none" : "retry")} disabled={busy}>
+          <Button variant="secondary" onClick={() => setPanel("retry")} disabled={busy}>
             {t("hero.retry")}
           </Button>
         )}
@@ -225,8 +240,10 @@ function HeroCard({
           {t("configurator.style.change")}
         </Link>
       </div>
+      )}
       {error && <Notice tone="error">{t(error)}</Notice>}
 
+      {panel === "none" && (
       <StepFooter>
         <Button
           className="w-full sm:w-auto"
@@ -246,6 +263,7 @@ function HeroCard({
           {approved ? t("common.continue") : t("hero.approve")}
         </Button>
       </StepFooter>
+      )}
     </>
   );
 }

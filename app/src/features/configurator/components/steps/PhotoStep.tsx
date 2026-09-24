@@ -79,45 +79,52 @@ export function PhotoStep({
     <>
       <StepTitle title={t("photo.title", undefined, heroCtx)} subtitle={t("photo.subtitle")} />
 
-      <div className="grid grid-cols-2 gap-3 text-sm">
-        <div className="flex flex-col gap-2 rounded-2xl bg-[#e3f4e6] p-4">
-          <SmileIcon className="size-6 text-[#1f7a3a]" />
-          <p className="text-ink">{t("photo.tip.good")}</p>
+      {/* Od lg dva stĺpce: vľavo rady a súhlasy, vpravo nahratie – všetko na jednej obrazovke. */}
+      <div className="grid gap-5 lg:grid-cols-2 lg:gap-8">
+        <div className="flex flex-col gap-4">
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div className="flex flex-col gap-2 rounded-2xl bg-[#e3f4e6] p-3.5">
+              <SmileIcon className="size-6 text-[#1f7a3a]" />
+              <p className="text-ink">{t("photo.tip.good")}</p>
+            </div>
+            <div className="flex flex-col gap-2 rounded-2xl bg-[#fde8e6] p-3.5">
+              <BanIcon className="size-6 text-[#b3261e]" />
+              <p className="text-ink">{t("photo.tip.bad")}</p>
+            </div>
+          </div>
+
+          <fieldset className="flex flex-col" disabled={consentsSaved}>
+            <legend className="sr-only">{t("configurator.photo.consents")}</legend>
+            {CONSENTS.map((key, i) => (
+              <Check key={key} id={`${ids}-c${i}`} checked={checks[i]} onChange={(v) => setChecks(checks.map((c, j) => (j === i ? v : c)))}>
+                {t(key)}
+              </Check>
+            ))}
+          </fieldset>
+          <Disclosure summary={t("photo.consent.link")}>
+            <p className="text-sm leading-relaxed text-ink/80">{t("photo.consent.explainer")}</p>
+          </Disclosure>
         </div>
-        <div className="flex flex-col gap-2 rounded-2xl bg-[#fde8e6] p-4">
-          <BanIcon className="size-6 text-[#b3261e]" />
-          <p className="text-ink">{t("photo.tip.bad")}</p>
+
+        <div className="flex flex-col gap-3">
+          <PhotoUploader
+            characterId={heroId}
+            photos={photos}
+            disabled={!allChecked}
+            beforeFirstUpload={async () => {
+              if (consentsSaved) return true;
+              const result = await savePhotoConsentsAction(projectId!);
+              if (result.ok) setConsentsSaved(true);
+              return result.ok;
+            }}
+          />
+          {!allChecked && <p className="text-sm text-ink/65">{t("configurator.photo.consents_first")}</p>}
+
+          <Button variant="ghost" className="self-center" onClick={() => setMode("description")}>
+            {t("photo.no_photo")}
+          </Button>
         </div>
       </div>
-
-      <fieldset className="flex flex-col gap-1" disabled={consentsSaved}>
-        <legend className="sr-only">{t("configurator.photo.consents")}</legend>
-        {CONSENTS.map((key, i) => (
-          <Check key={key} id={`${ids}-c${i}`} checked={checks[i]} onChange={(v) => setChecks(checks.map((c, j) => (j === i ? v : c)))}>
-            {t(key)}
-          </Check>
-        ))}
-      </fieldset>
-      <Disclosure summary={t("photo.consent.link")}>
-        <p className="text-sm leading-relaxed text-ink/80">{t("photo.consent.explainer")}</p>
-      </Disclosure>
-
-      <PhotoUploader
-        characterId={heroId}
-        photos={photos}
-        disabled={!allChecked}
-        beforeFirstUpload={async () => {
-          if (consentsSaved) return true;
-          const result = await savePhotoConsentsAction(projectId!);
-          if (result.ok) setConsentsSaved(true);
-          return result.ok;
-        }}
-      />
-      {!allChecked && <p className="text-sm text-ink/65">{t("configurator.photo.consents_first")}</p>}
-
-      <Button variant="secondary" onClick={() => setMode("description")}>
-        {t("photo.no_photo")}
-      </Button>
 
       {error && <Notice tone="error">{t(error)}</Notice>}
       <StepFooter>

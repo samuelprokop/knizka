@@ -19,6 +19,7 @@ import { StoryCustom } from "./StoryCustom";
 import { StoryTextReview, type SpreadView } from "./StoryTextReview";
 import { ChevronLeftIcon } from "@/components/icons";
 import { pluralForm } from "@/i18n/plural";
+import { useSubStep } from "../WizardMotion";
 
 export type StoryTile = {
   id: string;
@@ -223,6 +224,7 @@ function StoryDetail(props: StoryStepProps) {
   const bookT = useMemo(() => createTranslator(bookLanguage as BookLanguage), [bookLanguage]);
   const heroCtx = hero ?? undefined;
 
+  useSubStep(tile ? (props.view === "details" ? t("story.details") : tile.title) : null);
   if (!tile) return <Notice tone="error">{t("story.refuse.retry")}</Notice>;
   const withDetails = props.view === "details";
   const minutes = Math.max(3, Math.round(tile.spreads * 0.5));
@@ -240,9 +242,12 @@ function StoryDetail(props: StoryStepProps) {
         <ChevronLeftIcon className="size-4" />
         {t("common.back")}
       </Link>
-      <div className="overflow-hidden rounded-3xl">
+      {/* Od lg dva stĺpce: obálka vľavo, popis, ukážka a voľby vpravo. */}
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:items-start lg:gap-8">
+      <div className="overflow-hidden rounded-3xl lg:sticky lg:top-4">
         <StoryCover title={tile.title} portrait={props.heroPortrait} color={props.themeColor} />
       </div>
+      <div className="flex min-w-0 flex-col gap-4">
 
       {!withDetails ? (
         <>
@@ -256,7 +261,7 @@ function StoryDetail(props: StoryStepProps) {
           <section className="flex flex-col gap-3">
             <h2 className="font-semibold">{t("configurator.story.sample")}</h2>
             {tile.samples.map((text, i) => (
-              <blockquote key={i} lang={bookLanguage} className="rounded-3xl bg-paper-page p-5 font-heading text-lg leading-relaxed text-ink ring-1 ring-ink/10">
+              <blockquote key={i} lang={bookLanguage} className="rounded-2xl bg-paper-page p-4 font-heading text-base leading-relaxed text-ink ring-1 ring-ink/10">
                 {text}
               </blockquote>
             ))}
@@ -290,6 +295,8 @@ function StoryDetail(props: StoryStepProps) {
 
       {error && <Notice tone="error">{t(error)}</Notice>}
       <StoryOptions {...props} fixedLength={tile.spreads as 12 | 16} />
+      </div>
+      </div>
 
       <StepFooter back={false}>
         <Button className="w-full sm:w-auto" pending={pending} onClick={choose}>

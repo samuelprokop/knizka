@@ -14,7 +14,7 @@ import { WIZARD_OCCASIONS } from "../../model";
 import { stepHref } from "../../steps";
 import { AGE_OPTIONS, capitalizeName, isAgeOutsideStories, validateChildName } from "../../validation";
 import { StepFooter } from "../StepFooter";
-import { Button, Check, Chip, Disclosure, Field, FieldError, Notice, StepTitle, Toggle, inputClass, splitOptions } from "../ui";
+import { Button, Check, Chip, Field, FieldError, Notice, StepTitle, Toggle, inputClass, splitOptions } from "../ui";
 import { useWizard } from "../WizardContext";
 import { pluralForm } from "@/i18n/plural";
 
@@ -106,7 +106,9 @@ export function ChildStep({ initial, bookLanguages }: { initial: ChildInitial; b
     <>
       <StepTitle title={t("child.title")} />
 
-      <div className="flex flex-col gap-7">
+      {/* Od lg dva stĺpce: vľavo kto je dieťa, vpravo vek a kontrola mena – bez posúvania. */}
+      <div className="grid gap-7 lg:grid-cols-2 lg:gap-x-10 lg:gap-y-6">
+        <div className="flex flex-col gap-6 lg:gap-5">
         <Field
           label={t("child.name.label")}
           htmlFor={`${ids}-name`}
@@ -135,7 +137,7 @@ export function ChildStep({ initial, bookLanguages }: { initial: ChildInitial; b
             <p className="text-sm text-ink/65">{t("child.name.forms.help")}</p>
             <div className="flex flex-wrap gap-2">
               {lookup.variants.map((variant) => (
-                <Chip key={variant} shape="pill" selected={capitalizeName(name) === variant} onClick={() => setName(variant)}>
+                <Chip key={variant} shape="pill" selected={capitalizeName(name) === variant} onClick={() => setName(variant)} className="min-h-11 py-1.5 text-sm lg:min-h-10">
                   {variant}
                 </Chip>
               ))}
@@ -165,6 +167,21 @@ export function ChildStep({ initial, bookLanguages }: { initial: ChildInitial; b
           {touched && !gender && <FieldError>{t("configurator.required")}</FieldError>}
         </fieldset>
 
+        {bookLanguages.length > 1 && (
+          <fieldset className="flex flex-col gap-2.5">
+            <legend className="mb-2.5 text-sm font-semibold text-ink">{t("child.language.label")}</legend>
+            <div className="grid grid-cols-2 gap-2">
+              {bookLanguages.map((l) => (
+                <Chip key={l} shape="pill" selected={language === l} onClick={() => setLanguage(l)} className="text-center">
+                  {t(`configurator.language.${l}`)}
+                </Chip>
+              ))}
+            </div>
+          </fieldset>
+        )}
+
+        </div>
+        <div className="flex flex-col gap-6 lg:gap-5">
         <div className="flex flex-col gap-2.5">
           <div className="flex items-baseline justify-between gap-3">
             <label htmlFor={`${ids}-age`} className="text-sm font-semibold text-ink">
@@ -188,19 +205,6 @@ export function ChildStep({ initial, bookLanguages }: { initial: ChildInitial; b
           {age !== null && isAgeOutsideStories(age) && <Notice tone="warn">{t("child.age.outside")}</Notice>}
           {touched && age === null && <FieldError>{t("configurator.required")}</FieldError>}
         </div>
-
-        {bookLanguages.length > 1 && (
-          <fieldset className="flex flex-col gap-2.5">
-            <legend className="mb-2.5 text-sm font-semibold text-ink">{t("child.language.label")}</legend>
-            <div className="grid grid-cols-2 gap-2">
-              {bookLanguages.map((l) => (
-                <Chip key={l} shape="pill" selected={language === l} onClick={() => setLanguage(l)} className="text-center">
-                  {t(`configurator.language.${l}`)}
-                </Chip>
-              ))}
-            </div>
-          </fieldset>
-        )}
 
         {nameCtx && (
           <section aria-labelledby={`${ids}-check`} className="flex flex-col gap-3 rounded-3xl bg-white p-4 ring-1 ring-ink/10">
@@ -239,8 +243,6 @@ export function ChildStep({ initial, bookLanguages }: { initial: ChildInitial; b
             <Toggle checked={indeclinable} onChange={setIndeclinable} label={t("child.check.indeclinable")} />
           </section>
         )}
-
-        <Disclosure summary={t("common.more_options")}>
           <Field label={t("child.occasion.label")} htmlFor={`${ids}-occasion`}>
             <select
               id={`${ids}-occasion`}
@@ -256,8 +258,8 @@ export function ChildStep({ initial, bookLanguages }: { initial: ChildInitial; b
               ))}
             </select>
           </Field>
-        </Disclosure>
 
+        </div>
         {error && <Notice tone="error">{t(error)}</Notice>}
       </div>
 

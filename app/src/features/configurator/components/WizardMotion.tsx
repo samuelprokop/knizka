@@ -14,7 +14,7 @@
 
 import Link from "next/link";
 import { motion, useReducedMotion } from "motion/react";
-import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from "react";
 
 import { ChevronLeftIcon } from "@/components/icons";
 import { cx } from "./ui";
@@ -22,6 +22,45 @@ import { cx } from "./ui";
 export type ProgressItem = { key: string; label: string; href: string | null; ariaLabel: string };
 
 let lastIndex: number | null = null;
+
+/*
+  Podstránka kroku (napr. „Nová postava“, „Upraviť podobu“): krok namiesto
+  predĺženia stránky zobrazí podstránku a jej názov sa ukáže v hornej lište
+  pri aktuálnom kroku. Krok ju ohlási cez useSubStep(názov | null).
+*/
+let subLabel: string | null = null;
+let subBack: (() => void) | null = null;
+const subListeners = new Set<() => void>();
+const subscribeSub = (listener: () => void) => {
+  subListeners.add(listener);
+  return () => {
+    subListeners.delete(listener);
+  };
+};
+/** onBack: tlačidlo Späť v spodnej lište vráti z podstránky na hlavnú obrazovku kroku. */
+export function useSubStep(label: string | null, onBack?: () => void) {
+  const backRef = { current: onBack };
+  useEffect(() => {
+    subLabel = label;
+    subBack = label && backRef.current ? () => backRef.current?.() : null;
+    subListeners.forEach((l) => l());
+    return () => {
+      subLabel = null;
+      subBack = null;
+      subListeners.forEach((l) => l());
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- spätná funkcia sa mení pri každom vykreslení, rozhoduje názov
+  }, [label]);
+}
+/** Spätná akcia aktuálnej podstránky (null = žiadna podstránka). */
+export const useSubStepBack = () => useSyncExternalStore(subscribeSub, () => subBack, () => null);
+const useSubStepLabel = () => useSyncExternalStore(subscribeSub, () => subLabel, () => null);
+
+/** Pre text „Krok 4 z 8: Postavy“ na mobile – doplní „ › Nová postava“. */
+export function SubStepSuffix() {
+  const sub = useSubStepLabel();
+  return sub ? <> › {sub}</> : null;
+}
 
 /** Index kroku, z ktorého zákazník prišiel (null pri prvom načítaní). Číta sa raz pri vytvorení. */
 function usePreviousIndex() {
@@ -43,6 +82,7 @@ export function WizardProgress({
 }) {
   const reduceMotion = useReducedMotion();
   const previous = usePreviousIndex();
+  const sub = useSubStepLabel();
   const ratio = (i: number) => (items.length > 1 ? i / (items.length - 1) : 1);
 
   return (
@@ -109,6 +149,7 @@ export function WizardProgress({
                 )}
               >
                 {item.label}
+                {state === "current" && sub && <span className="mt-0.5 block truncate font-medium text-brand-orange-dark">› {sub}</span>}
               </span>
             </>
           );

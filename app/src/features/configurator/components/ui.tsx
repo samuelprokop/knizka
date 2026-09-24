@@ -209,8 +209,8 @@ export function Notice({ tone = "info", children }: { tone?: "info" | "warn" | "
 
 export function StepTitle({ title, subtitle }: { title: ReactNode; subtitle?: ReactNode }) {
   return (
-    <header className="flex flex-col gap-2.5">
-      <h1 className="font-heading text-[2rem] leading-[1.1] font-extrabold text-balance text-ink sm:text-4xl">{title}</h1>
+    <header className="flex flex-col gap-2">
+      <h1 className="font-heading text-[2rem] leading-[1.1] font-extrabold text-balance text-ink sm:text-[2.1rem]">{title}</h1>
       {subtitle && <p className="text-base text-pretty text-ink/65">{subtitle}</p>}
     </header>
   );

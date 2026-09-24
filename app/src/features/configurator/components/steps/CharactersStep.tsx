@@ -31,6 +31,7 @@ import { Button, Check, Chip, Field, Notice, StepTitle, inputClass, splitOptions
 import { useWizard } from "../WizardContext";
 import { CheckIcon, CloseIcon, PlusIcon } from "@/components/icons";
 import { ToastOnMount } from "@/components/Toaster";
+import { useSubStep } from "../WizardMotion";
 
 export type CompanionView = {
   id: string;
@@ -82,11 +83,13 @@ export function CharactersStep({
       router.refresh();
     });
 
+  useSubStep(adding ? t("chars.sub.new") : null);
+
   return (
     <>
       <AutoRefresh active={generating} />
       {justApproved && <ToastOnMount title={t("hero.approved.toast")} tone="ok" />}
-      <StepTitle title={t("chars.title")} />
+      <StepTitle title={adding ? t("chars.sub.new") : t("chars.title")} />
 
       {!decided && companions.length === 0 && !adding && (
         <div className="grid gap-3 sm:grid-cols-2">
@@ -99,8 +102,8 @@ export function CharactersStep({
         </div>
       )}
 
-      {companions.length > 0 && (
-        <ul className="flex flex-col gap-3">
+      {!adding && companions.length > 0 && (
+        <ul className="grid gap-3 lg:grid-cols-2">
           {companions.map((c) => (
             <li key={c.id} className="flex flex-col gap-3 rounded-3xl bg-white p-4 ring-1 ring-ink/10">
               <div className="flex items-center gap-3">
@@ -168,19 +171,19 @@ export function CharactersStep({
           </Button>
         )
       )}
-      {companions.length >= MAX_EXTRA_CHARACTERS && <Notice>{t("chars.limit")}</Notice>}
+      {!adding && companions.length >= MAX_EXTRA_CHARACTERS && <Notice>{t("chars.limit")}</Notice>}
 
-      {(decided || companions.length > 0 || adding) && <GuidePicker guide={guide} />}
+      {!adding && (decided || companions.length > 0) && <GuidePicker guide={guide} />}
 
       {error && <Notice tone="error">{t(error)}</Notice>}
-      {(decided || companions.length > 0) && (
+      {!adding && (decided || companions.length > 0) && (
         <StepFooter>
           <Button className="w-full sm:w-auto" pending={pending} disabled={generating} onClick={next}>
             {t("common.continue")}
           </Button>
         </StepFooter>
       )}
-      {!decided && companions.length === 0 && <StepFooter />}
+      {!adding && !decided && companions.length === 0 && <StepFooter />}
     </>
   );
 }
@@ -214,12 +217,14 @@ function CompanionForm({ extraPrice, onCancel, onAdded }: { extraPrice: string; 
   const ready = kind && !nameError && effectiveGender && (!withPhoto || consent);
 
   return (
-    <section className="flex flex-col gap-5 rounded-3xl bg-white p-4 ring-1 ring-ink/10">
+    <section className="grid gap-5 lg:grid-cols-2 lg:gap-8">
+      {/* Vľavo kto a ako sa volá, vpravo podoba a rola – všetko na jednej obrazovke. */}
+      <div className="flex flex-col gap-4">
       <fieldset className="flex flex-col gap-2">
         <legend className="text-sm font-semibold">{t("chars.type.label")}</legend>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="flex flex-wrap gap-2">
           {CHARACTER_KINDS.map((k, i) => (
-            <Chip key={k} selected={kind === k} onClick={() => setKind(k)}>
+            <Chip key={k} shape="pill" selected={kind === k} onClick={() => setKind(k)} className="min-h-11 py-1.5 text-sm lg:min-h-10">
               {kinds[i]}
             </Chip>
           ))}
@@ -255,12 +260,14 @@ function CompanionForm({ extraPrice, onCancel, onAdded }: { extraPrice: string; 
         </p>
       )}
 
+      </div>
+      <div className="flex flex-col gap-4">
       {kind !== "pet" && (
         <fieldset className="flex flex-col gap-2">
           <legend className="text-sm font-semibold">{t("configurator.chars.look")}</legend>
           <div className="grid grid-cols-2 gap-2">
             {splitOptions(t("chars.photo_or_describe")).map((label, i) => (
-              <Chip key={label} selected={withPhoto === (i === 0)} onClick={() => setWithPhoto(i === 0)} className="text-center">
+              <Chip key={label} shape="pill" selected={withPhoto === (i === 0)} onClick={() => setWithPhoto(i === 0)} className="min-h-11 py-1.5 text-center text-sm lg:min-h-10">
                 {label}
               </Chip>
             ))}
@@ -278,16 +285,17 @@ function CompanionForm({ extraPrice, onCancel, onAdded }: { extraPrice: string; 
 
       <fieldset className="flex flex-col gap-2">
         <legend className="text-sm font-semibold">{t("chars.role.label")}</legend>
-        {(["companion", "cameo"] as const).map((r) => (
-          <Chip key={r} selected={role === r} onClick={() => setRole(r)}>
-            {t(`chars.role.${r}`)}
-          </Chip>
-        ))}
+        <div className="grid gap-2 sm:grid-cols-2">
+          {(["companion", "cameo"] as const).map((r) => (
+            <Chip key={r} selected={role === r} onClick={() => setRole(r)} className="text-sm">
+              {t(`chars.role.${r}`)}
+            </Chip>
+          ))}
+        </div>
       </fieldset>
 
-      <p className="text-sm text-ink/70">{t("chars.price_hint", { price: extraPrice })}</p>
       {error && <Notice tone="error">{t(error)}</Notice>}
-      <div className="flex flex-col gap-2 sm:flex-row">
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
         <Button
           disabled={!ready}
           pending={pending}
@@ -314,6 +322,8 @@ function CompanionForm({ extraPrice, onCancel, onAdded }: { extraPrice: string; 
         <Button variant="ghost" onClick={onCancel}>
           {t("common.cancel")}
         </Button>
+        <p className="text-sm text-ink/70">{t("chars.price_hint", { price: extraPrice })}</p>
+      </div>
       </div>
     </section>
   );

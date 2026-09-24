@@ -13,6 +13,8 @@ import { stepHref } from "../../steps";
 import { StepFooter } from "../StepFooter";
 import { Button, buttonClass, Check, Field, Notice, StepTitle, Toggle, inputClass } from "../ui";
 import { useWizard } from "../WizardContext";
+import { useSubStep } from "../WizardMotion";
+import { ChevronLeftIcon } from "@/components/icons";
 
 export type ApproveSummary = {
   nameLine: string;
@@ -49,6 +51,8 @@ export function ApproveStep({
   const [pending, start] = useTransition();
 
   // Bez venovania = prázdne venovanie, od koho aj dátum; pôvodný text sa pamätá pre návrat.
+  const [moreTexts, setMoreTexts] = useState(false);
+  useSubStep(moreTexts ? t("approve.more_texts") : null, () => setMoreTexts(false));
   const [skipDedication, setSkipDedication] = useState(!texts.dedication && !texts.from && !texts.date);
   const stashed = useRef({ dedication: texts.dedication, from: texts.from, date: texts.date });
 
@@ -90,7 +94,29 @@ export function ApproveStep({
 
   return (
     <>
+      {moreTexts ? (
+        <>
+          <Button variant="ghost" className="self-start px-0 md:hidden" onClick={() => setMoreTexts(false)}>
+            <ChevronLeftIcon className="size-4" />
+            {t("common.back")}
+          </Button>
+          <StepTitle title={t("approve.more_texts")} />
+          <div className="grid gap-4 lg:grid-cols-2">
+        {letterEnabled && (
+          <Field label={t("dedication.letter")} htmlFor={`${ids}-letter`} help={t("editor.text.counter", { n: values.letter.length, max: LIMITS.parentLetterMaxChars })}>
+            <textarea id={`${ids}-letter`} lang={bookLanguage} className={`${inputClass} min-h-40 py-3`} maxLength={LIMITS.parentLetterMaxChars} value={values.letter} onChange={(e) => set("letter", e.target.value)} onBlur={persist} />
+          </Field>
+        )}
+        <Field label={t("dedication.back")} htmlFor={`${ids}-back`} help={t("editor.text.counter", { n: values.back.length, max: LIMITS.backCoverMaxChars })}>
+          <textarea id={`${ids}-back`} lang={bookLanguage} className={`${inputClass} min-h-24 py-3`} maxLength={LIMITS.backCoverMaxChars} value={values.back} onChange={(e) => set("back", e.target.value)} onBlur={persist} />
+        </Field>
+          </div>
+        </>
+      ) : (
+      <>
       <StepTitle title={t("dedication.title")} />
+      {/* Od lg dva stĺpce: venovanie vľavo, posledná kontrola vpravo. */}
+      <div className="grid gap-5 lg:grid-cols-2 lg:items-start lg:gap-8">
       <div className="flex flex-col gap-4">
         <Toggle checked={skipDedication} onChange={toggleDedication} label={t("dedication.skip")} hint={t("dedication.skip.hint")} />
         {!skipDedication && (
@@ -106,25 +132,20 @@ export function ApproveStep({
             <input id={`${ids}-date`} className={inputClass} maxLength={60} value={values.date} onChange={(e) => set("date", e.target.value)} onBlur={persist} />
           </Field>
         </div>
-        <figure className="rounded-3xl bg-paper-page p-6 text-center font-heading text-lg leading-relaxed ring-1 ring-ink/10" lang={bookLanguage} aria-label={t("configurator.approve.dedication_preview")}>
+        <figure className="rounded-3xl bg-paper-page p-4 text-center font-heading text-base leading-relaxed ring-1 ring-ink/10" lang={bookLanguage} aria-label={t("configurator.approve.dedication_preview")}>
           <p>{values.dedication}</p>
           {(values.from || values.date) && <p className="mt-3 text-base text-ink/70">{[values.from, values.date].filter(Boolean).join(" · ")}</p>}
         </figure>
           </>
         )}
-        {letterEnabled && (
-          <Field label={t("dedication.letter")} htmlFor={`${ids}-letter`} help={t("editor.text.counter", { n: values.letter.length, max: LIMITS.parentLetterMaxChars })}>
-            <textarea id={`${ids}-letter`} lang={bookLanguage} className={`${inputClass} min-h-40 py-3`} maxLength={LIMITS.parentLetterMaxChars} value={values.letter} onChange={(e) => set("letter", e.target.value)} onBlur={persist} />
-          </Field>
-        )}
-        <Field label={t("dedication.back")} htmlFor={`${ids}-back`} help={t("editor.text.counter", { n: values.back.length, max: LIMITS.backCoverMaxChars })}>
-          <textarea id={`${ids}-back`} lang={bookLanguage} className={`${inputClass} min-h-24 py-3`} maxLength={LIMITS.backCoverMaxChars} value={values.back} onChange={(e) => set("back", e.target.value)} onBlur={persist} />
-        </Field>
+        <Button variant="secondary" className="self-start" onClick={() => setMoreTexts(true)}>
+          {t("approve.more_texts")}
+        </Button>
       </div>
-
-      <section aria-labelledby={`${ids}-check`} className="flex flex-col gap-3 rounded-3xl bg-white p-5 ring-1 ring-ink/10">
-        <h2 id={`${ids}-check`} className="font-heading text-2xl font-extrabold">{t("approve.title")}</h2>
-        <ul className="flex flex-col gap-2 text-base">
+      <div className="flex flex-col gap-4">
+      <section aria-labelledby={`${ids}-check`} className="flex flex-col gap-3 rounded-3xl bg-white p-5 ring-1 ring-ink/10 lg:p-4">
+        <h2 id={`${ids}-check`} className="font-heading text-xl font-extrabold">{t("approve.title")}</h2>
+        <ul className="flex flex-col gap-1.5 text-sm">
           <SummaryRow step={1} text={summary.nameLine} extra={<span className="font-heading" lang={bookLanguage}>„{summary.sample}“</span>} />
           <SummaryRow step={4} text={summary.characters} />
           <SummaryRow step={5} text={summary.story} />
@@ -143,6 +164,11 @@ export function ApproveStep({
         ))}
         <p className="text-xs text-ink/55">{t("approve.check.note")}</p>
       </fieldset>
+
+      </div>
+      </div>
+      </>
+      )}
 
       {error && <Notice tone="error">{t(error)}</Notice>}
       <StepFooter>
@@ -174,7 +200,7 @@ function SummaryRow({ text, extra, step }: { text: string; extra?: React.ReactNo
   const { t } = useI18n();
   const { market, projectId } = useWizard();
   return (
-    <li className="flex items-start justify-between gap-3 border-b border-ink/10 pb-2 last:border-0">
+    <li className="flex items-start justify-between gap-3 border-b border-ink/10 pb-1.5 last:border-0">
       <div className="flex flex-col gap-1">
         <span>{text}</span>
         {extra}

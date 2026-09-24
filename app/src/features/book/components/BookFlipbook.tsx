@@ -36,6 +36,7 @@ export function BookFlipbook({
   watermark = true,
   onEditPage,
   initialSpread = 0,
+  reserveRem = 15,
 }: {
   book: Book;
   /** Vodoznak cez ilustrácie – vypína sa až po zaplatení. */
@@ -43,6 +44,8 @@ export function BookFlipbook({
   /** Tlačidlo „Upraviť“ pri strane vnútra (editor „Do detailu“, balík A). */
   onEditPage?: (pageNumber: number) => void;
   initialSpread?: number;
+  /** Koľko výšky okna (rem) zaberá okolie – kniha sa zmenší, aby sa všetko zmestilo bez posúvania. */
+  reserveRem?: number;
 }) {
   const { t } = useI18n();
   const reduceMotion = useReducedMotion();
@@ -164,7 +167,7 @@ export function BookFlipbook({
     <section className="flex w-full flex-col items-center gap-4">
       <div
         className="relative w-full select-none touch-pan-y"
-        style={{ maxWidth: `min(100%, calc((100dvh - 15rem) * ${spreadAspect}))`, perspective: "2400px" }}
+        style={{ maxWidth: `min(100%, calc((100dvh - ${reserveRem}rem) * ${spreadAspect}))`, perspective: "2400px" }}
         onPointerDown={onPointerDown}
         onPointerUp={onPointerUp}
       >
@@ -202,7 +205,7 @@ export function BookFlipbook({
       {/* Akcie strán pod knihou – pod ľavou a pravou stranou, rovnaká šírka ako kniha. */}
       <div
         className={`grid w-full grid-cols-2 gap-3 transition-opacity ${flip ? "pointer-events-none opacity-0" : "opacity-100"}`}
-        style={{ maxWidth: `min(100%, calc((100dvh - 15rem) * ${spreadAspect}))` }}
+        style={{ maxWidth: `min(100%, calc((100dvh - ${reserveRem}rem) * ${spreadAspect}))` }}
       >
         {pageActions(base.left, "left")}
         {pageActions(base.right, "right")}

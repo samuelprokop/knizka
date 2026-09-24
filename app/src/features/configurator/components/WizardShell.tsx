@@ -11,7 +11,7 @@ import { priceSelection, type PriceInputs } from "../pricing";
 import { PROGRESS_STEPS, progressIndex, stepHref, type StepNumber } from "../steps";
 import { SaveExitButton } from "./SaveExitButton";
 import { WizardProvider, type PriceView } from "./WizardContext";
-import { StepTransition, WizardProgress, type ProgressItem } from "./WizardMotion";
+import { StepTransition, SubStepSuffix, WizardProgress, type ProgressItem } from "./WizardMotion";
 
 export function priceView(market: Market, t: Translator, inputs: PriceInputs): PriceView {
   const price = computePrice(priceSelection(inputs), market);
@@ -70,34 +70,37 @@ export function WizardShell({
     <WizardProvider value={{ market: market.code, projectId, price, hero, bookLanguage, prevHref }}>
       <div className="flex min-h-dvh flex-col bg-paper">
         <header className="sticky top-0 z-40 border-b border-ink/10 bg-white/95 backdrop-blur">
-          <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-2 sm:px-6">
-            <Link href={`/${market.code}`} aria-label="TAKTIK" className="rounded-lg outline-none focus-visible:ring-4 focus-visible:ring-brand-orange/40">
-              <Image src="/brand/taktik-logo.svg" alt="TAKTIK" width={56} height={50} unoptimized />
+          {/* Mobil: logo + uložiť, pod tým pás krokov. Od tabletu jeden riadok: logo | kroky | uložiť. */}
+          <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-x-6 gap-y-1 px-4 py-2 md:flex-nowrap md:py-1.5 lg:max-w-5xl">
+            <Link href={`/${market.code}`} aria-label="TAKTIK" className="shrink-0 rounded-lg outline-none focus-visible:ring-4 focus-visible:ring-brand-orange/40">
+              <Image src="/brand/taktik-logo.svg" alt="TAKTIK" width={56} height={50} unoptimized className="md:h-11 md:w-auto" />
             </Link>
-            {projectId && <SaveExitButton projectId={projectId} />}
-          </div>
-          <div className="mx-auto max-w-3xl px-4 pb-1 md:px-4">
-            <WizardProgress
-              items={progress}
-              current={current - 1}
-              label={t("configurator.progress.label")}
-              back={prevHref ? { href: prevHref, label: t("common.back") } : null}
-            />
-            {/* Na mobile nie sú názvy pri bodkách – aktuálny krok slovom. */}
-            <p className="pb-2 text-center text-sm font-medium text-ink/70 md:hidden">{stepLabel(current, title.progressKey)}</p>
+            <div className="order-last w-full md:order-none md:min-w-0 md:flex-1">
+              <WizardProgress
+                items={progress}
+                current={current - 1}
+                label={t("configurator.progress.label")}
+                back={prevHref ? { href: prevHref, label: t("common.back") } : null}
+              />
+              {/* Na mobile nie sú názvy pri bodkách – aktuálny krok slovom. */}
+              <p className="pb-2 text-center text-sm font-medium text-ink/70 md:hidden">
+                {stepLabel(current, title.progressKey)}
+                <SubStepSuffix />
+              </p>
+            </div>
+            {projectId ? <SaveExitButton projectId={projectId} /> : <span className="hidden w-14 md:block" />}
           </div>
         </header>
 
         {/* Obsah kroku v karte (od tabletu); na mobile na celú šírku. */}
-        <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col overflow-x-clip px-4 pt-6 sm:px-6 sm:pb-8">
+        <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col overflow-x-clip px-4 pt-5 sm:px-6 sm:pb-6 md:pt-4 lg:max-w-5xl">
           <StepTransition
             index={current}
-            className="flex flex-1 flex-col gap-6 sm:overflow-clip sm:rounded-3xl sm:bg-white sm:px-6 sm:pt-6 sm:shadow-md sm:shadow-ink/[0.04] sm:ring-1 sm:ring-ink/[0.06]"
+            className="flex flex-1 flex-col gap-5 sm:overflow-clip sm:rounded-3xl sm:bg-white sm:px-6 sm:pt-5 lg:px-8 sm:shadow-md sm:shadow-ink/[0.04] sm:ring-1 sm:ring-ink/[0.06]"
           >
             {notice}
             {children}
           </StepTransition>
-          <p className="mt-4 hidden text-center text-sm text-ink/60 md:block">{stepLabel(current, title.progressKey)}</p>
         </main>
       </div>
     </WizardProvider>
