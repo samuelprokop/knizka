@@ -6,47 +6,30 @@ import {
   animate,
   motion,
   useMotionValue,
-  useMotionValueEvent,
   useReducedMotion,
   useTransform,
   type MotionValue,
 } from "motion/react";
 
 import type { LandingCopy } from "@/content/landing";
+import { HeroBook, type BookState } from "./HeroBook";
 
-const FRAME_COUNT = 361;
-const frameSrc = (i: number) => `/hero/book/${String(i).padStart(3, "0")}.webp`;
+type Segment = { kind: "hold"; weight: number; overlay: number } | { kind: "play"; weight: number };
 
-/*
-  Okraje videa sa rozplynú do bielej – video má v rohoch jemnú vinetu, ktorá
-  je viditeľná, keď plocha nesiaha po okraj okna (stĺpec obsahu vľavo).
-  Kniha sa k okrajom nedostane (najďalej ~9 % šírky), takže ju to nezasiahne.
-*/
-const EDGE_FADE =
-  "[mask-image:linear-gradient(to_right,transparent,black_6%,black_94%,transparent),linear-gradient(to_bottom,transparent,black_7%,black_93%,transparent)] [mask-composite:intersect]";
-
-type Segment =
-  | { kind: "hold"; frame: number; weight: number; overlay: number }
-  | { kind: "play"; from: number; to: number; weight: number };
-
-// Indexy sú snímky Kling videa (24 fps), rozsahy "play" sú orezané na úseky,
-// kde sa reálne niečo hýbe, aby scroll nemal "mŕtve" miesta.
-// Video má len 3 dvojstrany – štvrtá vzniká zopakovaním otočenia 128→200;
-// prázdne dvojstrany sú takmer pixelovo zhodné, takže skok z 262 na 128 nie je vidieť.
+// Časová os knihy (HeroBook): pauzy = zastávky (úvod, 4 dvojstrany, koniec),
+// „play“ = pohyb – otvorenie obálky, tri otočenia strany, zatvorenie knihy.
 const TIMELINE: Segment[] = [
-  // Snímka 0 – video sa začína hýbať hneď od začiatku, neskoršia snímka by
-  // už ukazovala nadvihnutú obálku.
-  { kind: "hold", frame: 0, weight: 0.6, overlay: 0 },
-  { kind: "play", from: 0, to: 80, weight: 1.2 },
-  { kind: "hold", frame: 80, weight: 1, overlay: 1 },
-  { kind: "play", from: 128, to: 200, weight: 1 },
-  { kind: "hold", frame: 200, weight: 1, overlay: 2 },
-  { kind: "play", from: 216, to: 262, weight: 0.8 },
-  { kind: "hold", frame: 262, weight: 1, overlay: 3 },
-  { kind: "play", from: 128, to: 200, weight: 1 },
-  { kind: "hold", frame: 200, weight: 1, overlay: 4 },
-  { kind: "play", from: 294, to: 360, weight: 1.2 },
-  { kind: "hold", frame: 360, weight: 0.8, overlay: 5 },
+  { kind: "hold", weight: 0.6, overlay: 0 },
+  { kind: "play", weight: 1.2 },
+  { kind: "hold", weight: 1, overlay: 1 },
+  { kind: "play", weight: 1 },
+  { kind: "hold", weight: 1, overlay: 2 },
+  { kind: "play", weight: 1 },
+  { kind: "hold", weight: 1, overlay: 3 },
+  { kind: "play", weight: 1 },
+  { kind: "hold", weight: 1, overlay: 4 },
+  { kind: "play", weight: 1.2 },
+  { kind: "hold", weight: 0.8, overlay: 5 },
 ];
 const TOTAL_WEIGHT = TIMELINE.reduce((sum, s) => sum + s.weight, 0);
 // Scroll dĺžka jednej váhovej jednotky v násobkoch výšky okna (len pre
@@ -148,27 +131,11 @@ function resolve(progress: number) {
 
 const smoothstep = (x: number) => x * x * (3 - 2 * x);
 
-type Sample = { a: number; b: number; mix: number };
-const BLEND = 0.2;
-
-// Hranice segmentov nie sú vždy tá istá snímka (napr. 80 -> 128), preto sa na
-// začiatku a konci každej pauzy obraz prelína so susedným segmentom – v čase,
-// keď text práve zjavuje / mizne. Žiadny viditeľný skok.
-function sampleAt(progress: number): Sample {
+/** Stav knihy pre HeroBook: koľko prechodov je hotových a ktorý práve beží. */
+function bookStateAt(progress: number): BookState {
   const { seg, index, t } = resolve(progress);
-  if (seg.kind === "play") {
-    const f = seg.from + (seg.to - seg.from) * t;
-    return { a: f, b: f, mix: 0 };
-  }
-  const prev = TIMELINE[index - 1];
-  const next = TIMELINE[index + 1];
-  if (prev?.kind === "play" && prev.to !== seg.frame && t < BLEND) {
-    return { a: prev.to, b: seg.frame, mix: smoothstep(t / BLEND) };
-  }
-  if (next?.kind === "play" && next.from !== seg.frame && t > 1 - BLEND) {
-    return { a: seg.frame, b: next.from, mix: smoothstep((t - (1 - BLEND)) / BLEND) };
-  }
-  return { a: seg.frame, b: seg.frame, mix: 0 };
+  const done = TIMELINE.slice(0, index).filter((s) => s.kind === "play").length;
+  return seg.kind === "play" ? { done, moving: done, t } : { done, moving: -1, t: 0 };
 }
 
 function overlayOpacityAt(progress: number, overlay: number) {
@@ -215,111 +182,9 @@ export function BookHero(props: HeroProps) {
 
 function AnimatedHero({ copy, ctaHref }: HeroProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const drawRef = useRef<(sample: Sample) => void>(() => {});
 
   // Progres knihy riadi čas, nie scroll: scroll len spúšťa kroky.
   const progress = useMotionValue(0);
-
-  useMotionValueEvent(progress, "change", (p) => drawRef.current(sampleAt(p)));
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d", { alpha: false });
-    if (!ctx) return;
-    ctx.imageSmoothingQuality = "high";
-
-    const images: HTMLImageElement[] = new Array(FRAME_COUNT);
-    const ready: boolean[] = new Array(FRAME_COUNT).fill(false);
-    let wanted = sampleAt(progress.get());
-    let drawnKey = "";
-    let cancelled = false;
-
-    const nearestReady = (i: number) => {
-      for (let d = 0; d < FRAME_COUNT; d++) {
-        if (i - d >= 0 && ready[i - d]) return i - d;
-        if (i + d < FRAME_COUNT && ready[i + d]) return i + d;
-      }
-      return -1;
-    };
-
-    // Canvas je skrytý, kým nenakreslí prvú snímku – dovtedy je vidieť
-    // statický obrázok zatvorenej knihy pod ním (nikdy prázdna / čierna plocha).
-    let shown = false;
-    const paint = (index: number, alpha: number) => {
-      const i = ready[index] ? index : nearestReady(index);
-      if (i < 0) return false;
-      ctx.globalAlpha = alpha;
-      ctx.drawImage(images[i], 0, 0, canvas.width, canvas.height);
-      if (!shown) {
-        shown = true;
-        canvas.style.opacity = "1";
-      }
-      return i === index;
-    };
-
-    // Medzi susednými snímkami sa prelína podľa desatinnej časti indexu, takže
-    // pohyb je plynulý aj pri pomalom scrolle; pri skoku medzi segmentmi sa
-    // prelínajú dve pauzové snímky (viď sampleAt). Max. 2 drawImage na snímku.
-    const draw = (sample: Sample, force = false) => {
-      wanted = sample;
-      const key = `${sample.a.toFixed(2)}|${sample.b.toFixed(2)}|${sample.mix.toFixed(3)}`;
-      if (!force && key === drawnKey) return;
-      let exact: boolean;
-      if (sample.mix > 0.001) {
-        exact = paint(Math.round(sample.a), 1);
-        exact = paint(Math.round(sample.b), sample.mix) && exact;
-      } else {
-        const a = Math.floor(sample.a);
-        const frac = sample.a - a;
-        exact = paint(a, 1);
-        if (exact && frac > 0.02 && a + 1 < FRAME_COUNT && ready[a + 1]) paint(a + 1, frac);
-      }
-      ctx.globalAlpha = 1;
-      drawnKey = exact ? key : "";
-    };
-    drawRef.current = draw;
-
-    const resize = () => {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      // Zdroj má 1280 px – väčší buffer už nepridá detail, len zaťaží GPU.
-      const width = Math.min(Math.round(canvas.clientWidth * dpr), 1920);
-      canvas.width = width;
-      canvas.height = Math.round((width * 9) / 16);
-      draw(wanted, true);
-    };
-    const observer = new ResizeObserver(resize);
-    observer.observe(canvas);
-    resize();
-
-    // Najprv snímky okolo aktuálnej polohy, potom zvyšok.
-    const start = Math.round(wanted.a);
-    const order = Array.from({ length: FRAME_COUNT }, (_, i) => i).sort(
-      (x, y) => Math.abs(x - start) - Math.abs(y - start)
-    );
-    for (const i of order) {
-      const img = new Image();
-      images[i] = img;
-      // Pripravená už po onload; decode() len predohrieva dekódovanie mimo
-      // hlavného vlákna. Nečakáme naň – v karte na pozadí ostáva visieť.
-      img.onload = () => {
-        if (cancelled) return;
-        ready[i] = true;
-        img.decode().catch(() => {});
-        const needed =
-          Math.abs(i - wanted.a) <= 1 || Math.abs(i - wanted.b) <= 1 || drawnKey === "";
-        if (needed) draw(wanted, true);
-      };
-      img.src = frameSrc(i);
-    }
-
-    return () => {
-      cancelled = true;
-      observer.disconnect();
-      drawRef.current = () => {};
-    };
-  }, [progress]);
 
   // Krokovanie: gesto (koliesko, touchpad, swipe, klávesa) spustí otočenie na
   // ďalšiu dvojstranu, ktoré prebehne konštantnou rýchlosťou. Počas otáčania
@@ -561,22 +426,18 @@ function AnimatedHero({ copy, ctaHref }: HeroProps) {
       {/* --hero-inset: miesto pre obsah stránky vľavo (LandingToc), inak 0. */}
       <section className="sticky top-0 flex h-[100dvh] w-full items-center justify-center overflow-hidden bg-white pl-[var(--hero-inset,0px)]">
         <div
-          className="relative [container-type:inline-size]"
-          style={{ width: "min(calc(100vw - var(--hero-inset, 0px)), calc(100dvh * 16 / 9))", aspectRatio: "16 / 9" }}
+          className="relative aspect-[4/3] [container-type:inline-size] md:aspect-video"
+          style={{ width: "min(calc(100vw - var(--hero-inset, 0px)), calc(100dvh * 16 / 9))" }}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={frameSrc(0)}
-            alt=""
-            fetchPriority="high"
-            className={`absolute inset-0 h-full w-full ${EDGE_FADE}`}
-          />
-          <canvas
-            ref={canvasRef}
-            className={`absolute inset-0 h-full w-full opacity-0 ${EDGE_FADE}`}
-            aria-label={copy.animationLabel}
-            role="img"
-          />
+          <HeroBook progress={progress} stateAt={bookStateAt} steps={copy.steps} coverTitle={copy.coverTitle} label={copy.animationLabel} />
+          {/* Texty krokov sú vytlačené na stranách knihy (aria-hidden) – pre čítačku tu. */}
+          <ol className="sr-only">
+            {copy.steps.map((step) => (
+              <li key={step.number}>
+                {step.number} {step.title}. {step.text}
+              </li>
+            ))}
+          </ol>
 
           <div className="absolute inset-0 hidden md:block">
             <Overlay
@@ -592,22 +453,6 @@ function AnimatedHero({ copy, ctaHref }: HeroProps) {
               </h1>
               <p className="mt-[1.4cqw] text-[1.2cqw] text-ink/60">{copy.scrollHint}</p>
             </Overlay>
-
-            {copy.steps.map((step, i) => (
-              <Overlay key={step.number} progress={progress} overlay={i + 1} className="absolute inset-0">
-                <div className="absolute left-[19%] top-[24%] w-[26%]">
-                  <span className="font-heading text-[4.5cqw] font-extrabold leading-none text-brand-orange">
-                    {step.number}
-                  </span>
-                  <h2 className="mt-[1cqw] font-heading text-[2.5cqw] font-extrabold leading-[1.1] text-ink">
-                    {step.title}
-                  </h2>
-                </div>
-                <p className="absolute left-[55%] top-[32%] w-[25%] text-[1.35cqw] leading-relaxed text-ink/70">
-                  {step.text}
-                </p>
-              </Overlay>
-            ))}
 
             <Overlay
               progress={progress}
@@ -668,6 +513,7 @@ function AnimatedHero({ copy, ctaHref }: HeroProps) {
 }
 
 function StaticHero({ copy, ctaHref }: HeroProps) {
+  const progress = useMotionValue(STOPS[1]);
   return (
     <section className="bg-white px-6 py-24">
       <div className="mx-auto max-w-2xl">
@@ -677,8 +523,9 @@ function StaticHero({ copy, ctaHref }: HeroProps) {
         <h1 className="mt-2 font-heading text-4xl font-extrabold text-ink">
           {copy.title}
         </h1>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={frameSrc(80)} alt={copy.staticImageAlt} className="mt-10 w-full" />
+<div className="relative mt-10 aspect-video w-full [container-type:inline-size]">
+          <HeroBook progress={progress} stateAt={bookStateAt} steps={copy.steps} coverTitle={copy.coverTitle} label={copy.staticImageAlt} />
+        </div>
         <ol className="mt-10 space-y-8">
           {copy.steps.map((step) => (
             <li key={step.number}>

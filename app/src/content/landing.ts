@@ -16,6 +16,8 @@ export type LandingCopy = {
   cta: string;
   animationLabel: string;
   staticImageAlt: string;
+  /** Názov na obálke knihy v hero. */
+  coverTitle: string;
   /** Obsah stránky (bočné menu): názov navigácie a kľúčové slová položiek mimo 4 krokov. */
   toc: { label: string; intro: string; outro: string; reviews: string; footer: string };
   /** Sekcia recenzií pod knihou (samotné recenzie sú v content/reviews.ts). */
@@ -37,7 +39,8 @@ export const LANDING_COPY: Record<BookLanguage, LandingCopy> = {
     outroText: "Náhľad zadarmo, tlač do 5 pracovných dní.",
     cta: "Vytvoriť knihu",
     animationLabel: "Animácia knihy, ktorá sa pri posúvaní stránky otvára a listuje",
-    staticImageAlt: "Otvorená prázdna kniha",
+    staticImageAlt: "Otvorená kniha s krokmi, ako vzniká personalizovaná kniha",
+    coverTitle: "Moja kniha",
     toc: { label: "Obsah stránky", intro: "Úvod", outro: "Objednávka", reviews: "Recenzie", footer: "Kontakt" },
     reviews: {
       eyebrow: "Recenzie",
@@ -62,7 +65,8 @@ export const LANDING_COPY: Record<BookLanguage, LandingCopy> = {
     outroText: "Náhled zdarma, tisk do 5 pracovních dnů.",
     cta: "Vytvořit knihu",
     animationLabel: "Animace knihy, která se při posouvání stránky otevírá a listuje",
-    staticImageAlt: "Otevřená prázdná kniha",
+    staticImageAlt: "Otevřená kniha s kroky, jak vzniká personalizovaná kniha",
+    coverTitle: "Moje kniha",
     toc: { label: "Obsah stránky", intro: "Úvod", outro: "Objednávka", reviews: "Recenze", footer: "Kontakt" },
     reviews: {
       eyebrow: "Recenze",
