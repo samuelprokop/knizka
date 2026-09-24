@@ -17,7 +17,6 @@ import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react
 import type { LandingCopy } from "@/content/landing";
 import { heroNavigation } from "./BookHero";
 import { FooterRevealFadeOut } from "./FooterReveal";
-import { skipReviewsStop } from "./ReviewsSection";
 
 type Item = { key: string; label: string; marker: ReactNode; target: number | "reviews" | "footer" };
 
@@ -52,7 +51,6 @@ export function LandingToc({ copy, reviews = false }: { copy: LandingCopy; revie
     if (target === "reviews") {
       document.getElementById(REVIEWS_ID)?.scrollIntoView({ behavior: "instant" });
     } else if (target === "footer") {
-      skipReviewsStop();
       window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "instant" });
     } else {
       heroNavigation.jumpTo(target);

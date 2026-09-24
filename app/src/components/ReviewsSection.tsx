@@ -5,15 +5,15 @@
   tri stĺpce kariet, ktoré sa nekonečne posúvajú nahor rôznou rýchlosťou,
   s vyblednutím hore a dole. Na mobile jeden stĺpec, na tablete dva.
 
-  Sekcia sa zmestí na jednu obrazovku a stránka sa na nej pri posúvaní nadol
-  zastaví. Stredný stĺpec ide opačne. Karty stoja, kým sa posúva stránka
+  Sekcia sa zmestí na jednu obrazovku a správa sa ako ďalší krok knihy
+  (jedno gesto = presun na recenzie, ďalšie = pätička). Stredný stĺpec ide opačne. Karty stoja, kým sa posúva stránka
   (čítanie nerušia dva pohyby naraz), a pri prejdení myšou.
   Prístupnosť (WCAG 2.2.2): posúvanie sa dá zastaviť aj tlačidlom. Pri obmedzení animácií sa
   nehýbe nič a recenzie sú v obyčajnej mriežke. Kópia zoznamu pre plynulú
   slučku je pred čítačkou skrytá.
 */
 
-import { motion, useReducedMotion } from "motion/react";
+import { animate, motion, useReducedMotion } from "motion/react";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 
 import type { LandingCopy } from "@/content/landing";
@@ -38,7 +38,7 @@ export function ReviewsSection({
   const [paused, setPaused] = useState(false);
   const scrolling = useScrolling();
   const sectionRef = useRef<HTMLElement>(null);
-  useStopAtSection(sectionRef, !!reduceMotion);
+  useSectionStep(sectionRef, !!reduceMotion);
   const columns = [0, 1, 2].map((c) => reviews.filter((_, i) => i % 3 === c));
 
   return (
@@ -123,95 +123,131 @@ export function ReviewsSection({
  * zotrvačnosť touchpadu ju neprešvihne). Ak posúvanie skončí s odkrytou sekciou
  * (aspoň do polovice), dotiahne sa. Nahor sa nezastavuje.
  */
-/** Skok z menu (napr. na pätičku) nemá na recenziách zastaviť. */
-let skipStopUntil = 0;
-export function skipReviewsStop() {
-  skipStopUntil = performance.now() + 800;
-}
-
-function useStopAtSection(ref: React.RefObject<HTMLElement | null>, reduceMotion: boolean) {
+/*
+  Recenzie ako ďalší krok knihy: z poslednej zastávky hero (recenzie sú tesne
+  pod obrazovkou) jedno gesto nadol = plynulý posun presne na recenzie; zvyšok
+  gesta (aj zotrvačnosť touchpadu) sa zahodí, k pätičke vedie až nové gesto.
+  Nahor: z recenzií späť na koniec knihy, z pätičky zastaví na recenziách.
+  Vstup sa zachytáva vo fáze capture, takže ho hero zároveň nespracuje.
+*/
+function useSectionStep(ref: React.RefObject<HTMLElement | null>, reduceMotion: boolean) {
   useEffect(() => {
-    // Zastavenie drží, kým beží gesto, ktoré sem dopravilo (aj dobiehajúca zotrvačnosť);
-    // uvoľní sa po pauze bez vstupu, najskôr po MIN_LOCK_MS.
     const GESTURE_GAP_MS = 200;
-    const MIN_LOCK_MS = 400;
-    let lastY = window.scrollY;
-    let lastTop = ref.current?.getBoundingClientRect().top ?? 0;
-    let stopped = false;
-    let stoppedAt = 0;
-    let release = 0;
-    let settle = 0;
+    const COOLDOWN_MS = 450;
+    const SWIPE_PX = 30;
+    let running: { stop: () => void } | null = null;
+    let lockedUntil = 0;
+    let consumed = false;
+    let lastWheel = 0;
 
-    const armRelease = () => {
-      window.clearTimeout(release);
-      const wait = Math.max(GESTURE_GAP_MS, MIN_LOCK_MS - (performance.now() - stoppedAt));
-      release = window.setTimeout(() => (stopped = false), wait);
+    const vh = () => window.innerHeight;
+    const top = () => ref.current?.getBoundingClientRect().top ?? Infinity;
+    const absTop = () => top() + window.scrollY;
+    const busy = () => running !== null || performance.now() < lockedUntil;
+    // Oblasť, kde krok riadi táto sekcia: od konca knihy po pätičku.
+    const inZone = () => top() <= vh() + 2 && top() > -vh();
+
+    const scrollToY = (y: number) => {
+      running?.stop();
+      if (reduceMotion) {
+        window.scrollTo(0, y);
+        lockedUntil = performance.now() + COOLDOWN_MS;
+        return;
+      }
+      running = animate(window.scrollY, y, {
+        duration: 0.75,
+        ease: [0.65, 0, 0.35, 1],
+        onUpdate: (v) => window.scrollTo(0, v),
+        onComplete: () => {
+          running = null;
+          lockedUntil = performance.now() + COOLDOWN_MS;
+        },
+      });
     };
-    const stop = () => {
-      stopped = true;
-      stoppedAt = performance.now();
-      armRelease();
+
+    /** Kam ísť pri kroku daným smerom (null = nechať prehliadač / hero). */
+    const targetFor = (dir: 1 | -1, delta: number): number | null => {
+      const t = top();
+      if (dir === 1 && t > 2 && t <= vh() + 2) return absTop(); // koniec knihy → recenzie
+      if (dir === -1 && t >= -2 && t < vh() - 2) return absTop() - vh(); // recenzie → koniec knihy
+      if (dir === -1 && t < -2 && t - delta >= -2) return absTop(); // z pätičky → zastaviť na recenziách
+      return null;
     };
-    const block = (e: Event) => {
-      if (!stopped) return;
+
+    const consume = (e: Event) => {
       e.preventDefault();
-      armRelease();
+      e.stopPropagation();
     };
-    // Koliesko / touchpad: krok, ktorý by prešiel cez vrch sekcie, sa zachytí
-    // ešte pred posunom – stránka zastane presne na sekcii (aj pri veľkom kroku).
+
     const onWheel = (e: WheelEvent) => {
-      if (stopped) return block(e);
-      if (e.ctrlKey || performance.now() < skipStopUntil) return;
-      const d = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaMode === 2 ? e.deltaY * window.innerHeight : e.deltaY;
-      const top = ref.current?.getBoundingClientRect().top ?? 0;
-      if (d > 0 && top > 1 && top - d <= 1) {
-        e.preventDefault();
-        stop();
-        align(false);
+      if (e.ctrlKey) return;
+      const now = performance.now();
+      if (now - lastWheel > GESTURE_GAP_MS) consumed = false;
+      lastWheel = now;
+      const d = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaMode === 2 ? e.deltaY * vh() : e.deltaY;
+      if (d === 0) return;
+      if (busy() || consumed) {
+        if (inZone()) consume(e);
+        return;
       }
-    };
-    const align = (smooth: boolean) => {
-      const top = ref.current?.getBoundingClientRect().top ?? 0;
-      window.scrollBy({ top, behavior: smooth && !reduceMotion ? "smooth" : "instant" });
+      const target = targetFor(d > 0 ? 1 : -1, d);
+      if (target === null) return;
+      consume(e);
+      consumed = true;
+      scrollToY(target);
     };
 
-    const onScroll = () => {
-      const el = ref.current;
-      if (!el) return;
-      const top = el.getBoundingClientRect().top;
-      const down = window.scrollY > lastY;
-      lastY = window.scrollY;
-      // Záloha pre dotyk, klávesnicu a posuvník: prekročenie vrchu nadol → späť na sekciu
-      // (skok z menu na pätičku zastavenie preskočí – skipReviewsStop).
-      if (down && lastTop > 1 && top <= 1 && !stopped && performance.now() >= skipStopUntil) {
-        stop();
-        align(false);
-      }
-      lastTop = top;
-      window.clearTimeout(settle);
-      settle = window.setTimeout(() => {
-        const t = el.getBoundingClientRect().top;
-        if (down && !stopped && t > 1 && t < window.innerHeight * 0.5 && performance.now() >= skipStopUntil) {
-          stop();
-          align(true);
-        }
-      }, 140);
+    let touchY = 0;
+    let touchFired = false;
+    const onTouchStart = (e: TouchEvent) => {
+      touchY = e.touches[0].clientY;
+      touchFired = false;
     };
-    const onTouchEnd = () => {
-      if (stopped) armRelease();
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length !== 1) return;
+      const dy = touchY - e.touches[0].clientY;
+      if (touchFired || busy()) {
+        if (inZone()) consume(e);
+        return;
+      }
+      if (dy === 0) return;
+      const target = targetFor(dy > 0 ? 1 : -1, dy);
+      if (target === null) return;
+      consume(e);
+      if (Math.abs(dy) > SWIPE_PX) {
+        touchFired = true;
+        scrollToY(target);
+      }
     };
 
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("wheel", onWheel, { passive: false });
-    window.addEventListener("touchmove", block, { passive: false });
-    window.addEventListener("touchend", onTouchEnd, { passive: true });
+    const onKey = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement | null;
+      if (el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName))) return;
+      if (e.key === " " && el?.closest("button, a")) return;
+      const next = ["ArrowDown", "PageDown"].includes(e.key) || (e.key === " " && !e.shiftKey);
+      const prev = ["ArrowUp", "PageUp"].includes(e.key) || (e.key === " " && e.shiftKey);
+      if (!next && !prev) return;
+      if (busy()) {
+        if (inZone()) consume(e);
+        return;
+      }
+      const target = targetFor(next ? 1 : -1, next ? vh() : -vh());
+      if (target === null) return;
+      consume(e);
+      scrollToY(target);
+    };
+
+    const capture = { capture: true, passive: false } as const;
+    window.addEventListener("wheel", onWheel, capture);
+    window.addEventListener("touchstart", onTouchStart, { capture: true, passive: true });
+    window.addEventListener("touchmove", onTouchMove, capture);
+    window.addEventListener("keydown", onKey, { capture: true });
     return () => {
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("wheel", onWheel);
-      window.removeEventListener("touchmove", block);
-      window.removeEventListener("touchend", onTouchEnd);
-      window.clearTimeout(settle);
-      window.clearTimeout(release);
+      running?.stop();
+      window.removeEventListener("wheel", onWheel, capture);
+      window.removeEventListener("touchstart", onTouchStart, { capture: true });
+      window.removeEventListener("touchmove", onTouchMove, capture);
+      window.removeEventListener("keydown", onKey, { capture: true });
     };
   }, [ref, reduceMotion]);
 }
