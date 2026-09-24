@@ -28,6 +28,7 @@ type P = { className?: string };
 
 export const ChevronDownIcon = (p: P) => <Icon {...p}><path d="m6 9 6 6 6-6" /></Icon>;
 export const ChevronLeftIcon = (p: P) => <Icon {...p}><path d="m15 18-6-6 6-6" /></Icon>;
+export const ChevronRightIcon = (p: P) => <Icon {...p}><path d="m9 6 6 6-6 6" /></Icon>;
 export const CheckIcon = (p: P) => <Icon {...p}><path d="M5 12.5 9.5 17 19 7.5" /></Icon>;
 export const CloseIcon = (p: P) => <Icon {...p}><path d="M6 6l12 12M18 6 6 18" /></Icon>;
 export const MinusIcon = (p: P) => <Icon {...p}><path d="M5 12h14" /></Icon>;

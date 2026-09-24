@@ -116,19 +116,17 @@ export function DeliveryFields({ carriers, defaultCarrierId }: { carriers: Carri
           )}
         </div>
       ) : (
-        <>
+        <div className="grid gap-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,1.4fr)_minmax(0,1fr)]">
           <Field label={t("checkout.address.street")} htmlFor="addressStreet">
             <input id="addressStreet" name="addressStreet" required autoComplete="street-address" className={inputClass} />
           </Field>
-          <div className="grid grid-cols-[2fr_1fr] gap-3">
-            <Field label={t("checkout.address.city")} htmlFor="addressCity">
-              <input id="addressCity" name="addressCity" required autoComplete="address-level2" className={inputClass} />
-            </Field>
-            <Field label={t("checkout.address.zip")} htmlFor="addressZip">
-              <input id="addressZip" name="addressZip" required inputMode="numeric" autoComplete="postal-code" className={inputClass} />
-            </Field>
-          </div>
-        </>
+          <Field label={t("checkout.address.city")} htmlFor="addressCity">
+            <input id="addressCity" name="addressCity" required autoComplete="address-level2" className={inputClass} />
+          </Field>
+          <Field label={t("checkout.address.zip")} htmlFor="addressZip">
+            <input id="addressZip" name="addressZip" required inputMode="numeric" autoComplete="postal-code" className={inputClass} />
+          </Field>
+        </div>
       )}
 
       <dialog

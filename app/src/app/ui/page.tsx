@@ -126,7 +126,7 @@ export default async function UiCatalogPage() {
     {
       title: "Nákup a po nákupe",
       items: [
-        { label: "Košík", href: approved ? `/sk/kosik?projekt=${approved.id}` : null },
+        { label: "Košík", note: "kódy: VITAJTE10, NARODENINY15, BABKA20, ZLAVA5-SK, DARCEK-SK · SLEVA100-CZ = chyba trhu · iný = neplatný", href: approved ? `/sk/kosik?projekt=${approved.id}` : null },
         { label: "Pokladňa", href: approved ? `/sk/objednavka?projekt=${approved.id}&variant=print_ebook&extraCopies=0&giftWrap=0&voucher=` : null },
         { label: "Pokladňa – platba kartou", note: "rozbalený formulár karty", href: approved ? `/sk/objednavka?projekt=${approved.id}&variant=print_ebook&extraCopies=0&giftWrap=0&voucher=&karta=1` : null },
         { label: "Ďakujeme", href: demo.orderId ? `/sk/objednavka/${demo.orderId}/dakujeme` : null },

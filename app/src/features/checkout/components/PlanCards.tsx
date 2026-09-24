@@ -27,12 +27,12 @@ const cx = (...classes: (string | false | undefined)[]) => classes.filter(Boolea
 
 export function PlanCards({ plans, t }: { plans: Plan[]; t: Translator }) {
   return (
-    <section aria-labelledby="plans-title" className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1 text-center">
-        <h2 id="plans-title" className="font-heading text-2xl font-extrabold text-ink sm:text-3xl">
+    <section aria-labelledby="plans-title" className="flex flex-col gap-4">
+      <div className="flex flex-col gap-1 text-center lg:text-left">
+        <h2 id="plans-title" className="font-heading text-2xl font-extrabold text-ink">
           {t("cart.plans.title")}
         </h2>
-        <p className="text-base text-ink/65">{t("cart.plans.subtitle")}</p>
+        <p className="text-sm text-ink/65">{t("cart.plans.subtitle")}</p>
       </div>
 
       <div className="grid gap-5 pt-3 sm:grid-cols-2 sm:gap-4">
@@ -41,7 +41,7 @@ export function PlanCards({ plans, t }: { plans: Plan[]; t: Translator }) {
             key={plan.id}
             aria-labelledby={`plan-${plan.id}`}
             className={cx(
-              "relative flex flex-col rounded-3xl bg-white p-6 transition-shadow",
+              "relative flex flex-col rounded-3xl bg-white p-5 transition-shadow",
               plan.selected ? "shadow-lg shadow-brand-orange/10 ring-2 ring-brand-orange" : "ring-1 ring-ink/10",
               plan.recommended ? "order-first sm:order-last" : ""
             )}
@@ -57,15 +57,15 @@ export function PlanCards({ plans, t }: { plans: Plan[]; t: Translator }) {
             </h3>
             <p className="mt-1 text-sm text-ink/65">{plan.description}</p>
 
-            <div className="my-5 border-y border-ink/10 py-5">
+            <div className="my-4 border-y border-ink/10 py-3">
               <p className="flex flex-wrap items-baseline gap-x-2">
-                <span className="font-heading text-4xl font-extrabold text-ink">{plan.price}</span>
+                <span className="font-heading text-3xl font-extrabold text-ink">{plan.price}</span>
                 <span className="text-sm text-ink/60">{plan.unit}</span>
               </p>
               {plan.priceNote && <p className="mt-1 text-sm text-ink/60">{plan.priceNote}</p>}
             </div>
 
-            <ul className="mb-6 flex flex-col gap-2.5">
+            <ul className="mb-5 flex flex-col gap-1.5">
               {plan.features.map((feature) => (
                 <li key={feature} className="flex items-start gap-2.5 text-sm text-ink">
                   <CheckIcon />

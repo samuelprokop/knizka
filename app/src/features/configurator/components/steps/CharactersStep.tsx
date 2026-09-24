@@ -278,7 +278,7 @@ function CompanionForm({ extraPrice, onCancel, onAdded }: { extraPrice: string; 
               {t("chars.consent.other_person")}
             </Check>
           ) : (
-            <AppearancePicker value={look} onChange={setLook} choices={["hairColor", "hairLength", "skin"]} flags={["glasses"]} />
+            <AppearancePicker value={look} onChange={setLook} choices={["hairColor", "hairLength", "skin"]} flags={["glasses"]} columns={1} />
           )}
         </fieldset>
       )}

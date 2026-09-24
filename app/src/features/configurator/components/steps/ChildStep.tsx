@@ -17,6 +17,7 @@ import { StepFooter } from "../StepFooter";
 import { Button, Check, Chip, Field, FieldError, Notice, StepTitle, Toggle, inputClass, splitOptions } from "../ui";
 import { useWizard } from "../WizardContext";
 import { pluralForm } from "@/i18n/plural";
+import { useSubStep } from "../WizardMotion";
 
 export type ChildInitial = {
   name: string;
@@ -30,7 +31,7 @@ export type ChildInitial = {
 
 const SAMPLES = ["child.check.sample1", "child.check.sample2", "child.check.sample3"] as const satisfies readonly MessageKey[];
 
-export function ChildStep({ initial, bookLanguages }: { initial: ChildInitial; bookLanguages: BookLanguage[] }) {
+export function ChildStep({ initial }: { initial: ChildInitial }) {
   const { t } = useI18n();
   const { market, projectId } = useWizard();
   const router = useRouter();
@@ -41,13 +42,15 @@ export function ChildStep({ initial, bookLanguages }: { initial: ChildInitial; b
   const [gender, setGender] = useState<Gender | null>(initial.gender);
   const [genderTouched, setGenderTouched] = useState(initial.gender !== null);
   const [age, setAge] = useState<number | null>(initial.age);
-  const [language, setLanguage] = useState<BookLanguage>(initial.bookLanguage);
+  const [language] = useState<BookLanguage>(initial.bookLanguage);
   const [occasion, setOccasion] = useState<string | null>(initial.occasion);
   const [lookup, setLookup] = useState<NameLookup | null>(null);
   const [editForms, setEditForms] = useState(false);
   const [forms, setForms] = useState<NameForms | null>(initial.forms);
   const [formsEdited, setFormsEdited] = useState(false);
   const [indeclinable, setIndeclinable] = useState(initial.indeclinable);
+  // Kým zákazník prepínač sám nezmení, riadi ho meno (prechodné „Ja“ pri písaní ho nesmie zamknúť).
+  const [indeclinableTouched, setIndeclinableTouched] = useState(initial.indeclinable);
   const [error, setError] = useState<MessageKey | null>(null);
   const [pending, start] = useTransition();
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -63,11 +66,11 @@ export function ChildStep({ initial, bookLanguages }: { initial: ChildInitial; b
       if (result && !genderTouched) setGender(result.gender);
       if (result && !formsEdited) {
         setForms(result.forms);
-        if (!result.declinable) setIndeclinable(true);
+        if (!indeclinableTouched) setIndeclinable(!result.declinable);
       }
     }, 300);
     return () => clearTimeout(handle);
-  }, [name, language, gender, genderTouched, nameError, formsEdited]);
+  }, [name, language, gender, genderTouched, nameError, formsEdited, indeclinableTouched]);
 
   // Vzorové vety sú v jazyku knihy, nie rozhrania (CZ zákazník môže robiť SK knihu).
   const bookT = useMemo(() => createTranslator(language), [language]);
@@ -75,6 +78,8 @@ export function ChildStep({ initial, bookLanguages }: { initial: ChildInitial; b
 
   const occasionLabels = splitOptions(t("child.occasion.options"));
   const ready = !nameError && !!gender && age !== null && !!forms;
+
+  useSubStep(editForms ? t("child.check.edit") : null, () => setEditForms(false));
 
   function childPayload() {
     return {
@@ -104,6 +109,45 @@ export function ChildStep({ initial, bookLanguages }: { initial: ChildInitial; b
 
   return (
     <>
+      {editForms && forms && nameCtx ? (
+        <>
+          <StepTitle title={t("child.check.edit")} subtitle={t("child.forms.help")} />
+          <div className="grid gap-6 lg:grid-cols-2 lg:gap-10">
+            <div className="flex flex-col gap-2.5">
+              {CASE_KEYS.map((key, i) => (
+                <div key={key} className="grid grid-cols-[minmax(0,11rem)_minmax(0,1fr)] items-center gap-3">
+                  <label htmlFor={`${ids}-case-${key}`} className="flex flex-col">
+                    <span className="text-sm font-semibold text-ink">{t("child.forms.case", { n: i + 1 })}</span>
+                    <span className="text-xs text-ink/60">{t(`configurator.case.${key}`)}</span>
+                  </label>
+                  <input
+                    id={`${ids}-case-${key}`}
+                    className={inputClass}
+                    value={forms[key]}
+                    maxLength={24}
+                    onChange={(e) => {
+                      setForms({ ...forms, [key]: e.target.value });
+                      setFormsEdited(true);
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+            <section aria-live="polite" className="flex flex-col gap-3 self-start rounded-3xl bg-white p-5 ring-1 ring-ink/10">
+              <h2 className="font-semibold text-ink">{t("child.check.title")}</h2>
+              <ul className="flex flex-col gap-2 font-heading text-lg text-ink" lang={language}>
+                {SAMPLES.map((key) => (
+                  <li key={key}>„{bookT(key, undefined, nameCtx)}“</li>
+                ))}
+              </ul>
+              <Button variant="ghost" className="self-start px-0" onClick={() => setEditForms(false)}>
+                {t("common.done")}
+              </Button>
+            </section>
+          </div>
+        </>
+      ) : (
+      <>
       <StepTitle title={t("child.title")} />
 
       {/* Od lg dva stĺpce: vľavo kto je dieťa, vpravo vek a kontrola mena – bez posúvania. */}
@@ -167,18 +211,7 @@ export function ChildStep({ initial, bookLanguages }: { initial: ChildInitial; b
           {touched && !gender && <FieldError>{t("configurator.required")}</FieldError>}
         </fieldset>
 
-        {bookLanguages.length > 1 && (
-          <fieldset className="flex flex-col gap-2.5">
-            <legend className="mb-2.5 text-sm font-semibold text-ink">{t("child.language.label")}</legend>
-            <div className="grid grid-cols-2 gap-2">
-              {bookLanguages.map((l) => (
-                <Chip key={l} shape="pill" selected={language === l} onClick={() => setLanguage(l)} className="text-center">
-                  {t(`configurator.language.${l}`)}
-                </Chip>
-              ))}
-            </div>
-          </fieldset>
-        )}
+        {/* Jazyk knihy = jazyk trhu (/sk slovensky, /cz česky) – na výber nie je. */}
 
         </div>
         <div className="flex flex-col gap-6 lg:gap-5">
@@ -217,30 +250,17 @@ export function ChildStep({ initial, bookLanguages }: { initial: ChildInitial; b
               ))}
             </ul>
             {lookup && !lookup.known && <Notice tone="warn">{t("child.check.unknown")}</Notice>}
-            {!editForms && (
-              <Button variant="ghost" className="self-start px-0" onClick={() => setEditForms(true)}>
-                {t("child.check.edit")}
-              </Button>
-            )}
-            {editForms && forms && (
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                {CASE_KEYS.map((key) => (
-                  <Field key={key} label={t(`configurator.case.${key}`)} htmlFor={`${ids}-case-${key}`}>
-                    <input
-                      id={`${ids}-case-${key}`}
-                      className={inputClass}
-                      value={forms[key]}
-                      maxLength={24}
-                      onChange={(e) => {
-                        setForms({ ...forms, [key]: e.target.value });
-                        setFormsEdited(true);
-                      }}
-                    />
-                  </Field>
-                ))}
-              </div>
-            )}
-            <Toggle checked={indeclinable} onChange={setIndeclinable} label={t("child.check.indeclinable")} />
+            <Button variant="secondary" className="self-start" onClick={() => setEditForms(true)}>
+              {t("child.check.edit")}
+            </Button>
+            <Toggle
+              checked={indeclinable}
+              onChange={(v) => {
+                setIndeclinable(v);
+                setIndeclinableTouched(true);
+              }}
+              label={t("child.check.indeclinable")}
+            />
           </section>
         )}
           <Field label={t("child.occasion.label")} htmlFor={`${ids}-occasion`}>
@@ -262,6 +282,9 @@ export function ChildStep({ initial, bookLanguages }: { initial: ChildInitial; b
         </div>
         {error && <Notice tone="error">{t(error)}</Notice>}
       </div>
+
+      </>
+      )}
 
       <StepFooter>
         <Button onClick={onContinue} pending={pending} className="w-full sm:w-auto">

@@ -14,7 +14,7 @@ import { StepFooter } from "../StepFooter";
 import { Button, Chip, cx, Notice, StepTitle, Toggle, splitOptions } from "../ui";
 import { useWizard } from "../WizardContext";
 import { useSubStep } from "../WizardMotion";
-import { ChevronLeftIcon } from "@/components/icons";
+import { ChevronLeftIcon, ChevronRightIcon } from "@/components/icons";
 
 const LAYOUT_KEYS: Record<LayoutId, { name: MessageKey; help: MessageKey }> = {
   classic: { name: "layout.classic", help: "layout.classic.help" },
@@ -132,9 +132,22 @@ export function LookStep(props: LookStepProps) {
                 </div>
               </fieldset>
 
-              <div className="grid grid-cols-2 gap-2">
-                <Button variant="secondary" onClick={() => setMore("cover")}>{t("look.more.cover")}</Button>
-                <Button variant="secondary" onClick={() => setMore("activities")}>{t("look.more.activities")}</Button>
+              {/* Ďalšie voľby ako riadky navigácie – vedú na podstránku. */}
+              <div className="flex flex-col divide-y divide-ink/10 overflow-hidden rounded-2xl bg-white ring-1 ring-ink/12">
+                {(["cover", "activities"] as const).map((key) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setMore(key)}
+                    className="flex min-h-14 items-center justify-between gap-3 px-4 py-2.5 text-left transition-colors outline-none hover:bg-ink/[0.03] focus-visible:bg-brand-orange/5 focus-visible:ring-4 focus-visible:ring-brand-orange/40 focus-visible:ring-inset"
+                  >
+                    <span className="flex min-w-0 flex-col">
+                      <span className="font-semibold text-ink">{t(`look.more.${key}`)}</span>
+                      <span className="text-sm text-ink/60">{t(`look.more.${key}.hint`)}</span>
+                    </span>
+                    <ChevronRightIcon className="size-5 shrink-0 text-ink/50" />
+                  </button>
+                ))}
               </div>
             </>
           )}

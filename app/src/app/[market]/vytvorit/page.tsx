@@ -18,7 +18,6 @@ export default async function CreateBookPage() {
       price={priceView(market, t, { storyPath: "A", companionCount: 0, pageCount: 32, format: "A5", coloringBook: false })}
     >
       <ChildStep
-        bookLanguages={market.bookLanguages}
         initial={{
           name: "",
           gender: null,

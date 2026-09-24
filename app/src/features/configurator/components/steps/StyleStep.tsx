@@ -270,16 +270,15 @@ function HeroCard({
 
 /** Obrázok Karty – kým sa kreslí, kosť v rovnakom tvare; potom sa odhalí zotretím. */
 function CardImage({ src, alt, className, loading }: { src: string | null; alt: string; className?: string; loading: boolean }) {
+  // Rámec má pevný pomer strán (className); obrázok aj kosť ho vyplnia – vlastný pomer obrázka ho nenatiahne.
   return (
-    <SkeletonReveal
-      className={className}
-      loading={loading || !src}
-      skeleton={<Skeleton className="h-full w-full rounded-3xl" animate={loading} />}
-    >
-      {src && (
-        // eslint-disable-next-line @next/next/no-img-element -- súkromný súbor projektu
-        <img src={src} alt={alt} className="h-full w-full rounded-3xl bg-white object-cover ring-1 ring-ink/10" />
-      )}
-    </SkeletonReveal>
+    <div className={cx("relative overflow-hidden rounded-3xl", className)}>
+      <SkeletonReveal className="absolute inset-0 [&>*]:h-full" loading={loading || !src} skeleton={<Skeleton className="h-full w-full rounded-3xl" animate={loading} />}>
+        {src && (
+          // eslint-disable-next-line @next/next/no-img-element -- súkromný súbor projektu
+          <img src={src} alt={alt} className="absolute inset-0 h-full w-full rounded-3xl bg-white object-cover ring-1 ring-ink/10" />
+        )}
+      </SkeletonReveal>
+    </div>
   );
 }

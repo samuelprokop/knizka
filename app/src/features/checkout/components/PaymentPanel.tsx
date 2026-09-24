@@ -24,26 +24,30 @@ export function PaymentPanel({
   total,
   t,
   cardOpen = false,
+  compact = false,
 }: {
   methods: PaymentMethod[];
   total: string;
   t: Translator;
   /** Formulár karty rozbalený hneď (odkaz z katalógu UI). */
   cardOpen?: boolean;
+  /** V stĺpci vedľa súhrnu: bez sumy v hlavičke (je v súhrne), menšie medzery. */
+  compact?: boolean;
 }) {
   const has = (m: PaymentMethod) => methods.includes(m);
   const wallets = has("apple_pay") || has("google_pay");
   const others = methods.filter((m) => m === "bank_button" || m === "cod");
 
   return (
-    <section aria-labelledby="payment-title" className="flex flex-col gap-4 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-ink/10">
-      <div className="flex items-baseline justify-between gap-4">
-        <h2 id="payment-title" className="font-heading text-xl font-extrabold text-ink">
+    <section aria-labelledby="payment-title" className={`flex flex-col rounded-3xl bg-white shadow-sm ring-1 ring-ink/10 ${compact ? "gap-3 p-5" : "gap-4 p-6"}`}>
+      <div className={compact ? "sr-only" : "flex items-baseline justify-between gap-4"}>
+        <h2 id="payment-title" className={compact ? "sr-only" : "font-heading text-xl font-extrabold text-ink"}>
           {t("checkout.payment")}
         </h2>
-        <span className="text-lg font-semibold text-ink tabular-nums">{total}</span>
+        {!compact && <span className="text-lg font-semibold text-ink tabular-nums">{total}</span>}
       </div>
 
+      <div className={compact ? "grid grid-cols-2 gap-2" : "contents"}>
       {has("apple_pay") && (
         <button
           type="submit"
@@ -69,6 +73,8 @@ export function PaymentPanel({
         </button>
       )}
 
+      </div>
+
       {wallets && has("card") && (
         <div className="flex items-center gap-3 text-sm text-ink/60" role="separator">
           <span aria-hidden className="h-px flex-1 bg-ink/10" />
@@ -77,7 +83,7 @@ export function PaymentPanel({
         </div>
       )}
 
-      {has("card") && <CardPaymentForm total={total} defaultOpen={cardOpen} />}
+      {has("card") && <CardPaymentForm total={total} defaultOpen={cardOpen} asDialog={compact} />}
 
       {others.length > 0 && (
         <div className="flex flex-col gap-2 pt-1">
@@ -91,7 +97,7 @@ export function PaymentPanel({
                 value={method}
                 className={`flex min-h-11 items-center justify-center rounded-2xl px-3 py-2 text-sm font-semibold text-ink ring-1 ring-ink/15 hover:bg-ink/[0.03] ${pressable} ${focusRing}`}
               >
-                {t(method === "cod" ? "checkout.pay.cod" : "checkout.pay.bank")}
+                {t(method === "cod" ? (compact ? "checkout.payment.cod" : "checkout.pay.cod") : "checkout.pay.bank")}
               </button>
             ))}
           </div>

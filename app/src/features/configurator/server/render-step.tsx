@@ -91,11 +91,10 @@ export async function renderStep(step: StepNumber, ctx: Ctx) {
   }
 }
 
-function childStep({ bundle, market }: Ctx) {
+function childStep({ bundle }: Ctx) {
   const hero = bundle.hero!;
   return (
     <ChildStep
-      bookLanguages={market.bookLanguages}
       initial={{
         name: hero.name,
         gender: hero.gender,

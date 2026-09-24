@@ -69,8 +69,8 @@ function usePreviousIndex() {
 }
 
 export function WizardProgress({
-  items,
-  current,
+  items: stepItems,
+  current: stepCurrent,
   label,
   back,
 }: {
@@ -83,6 +83,11 @@ export function WizardProgress({
   const reduceMotion = useReducedMotion();
   const previous = usePreviousIndex();
   const sub = useSubStepLabel();
+  // Podstránka je v lište ďalší krok hneď za aktuálnym (aktuálny sa zobrazí ako hotový).
+  const items: ProgressItem[] = sub
+    ? [...stepItems.slice(0, stepCurrent + 1), { key: "sub", label: sub, href: null, ariaLabel: sub }, ...stepItems.slice(stepCurrent + 1)]
+    : stepItems;
+  const current = sub ? stepCurrent + 1 : stepCurrent;
   const ratio = (i: number) => (items.length > 1 ? i / (items.length - 1) : 1);
 
   return (
@@ -149,7 +154,6 @@ export function WizardProgress({
                 )}
               >
                 {item.label}
-                {state === "current" && sub && <span className="mt-0.5 block truncate font-medium text-brand-orange-dark">› {sub}</span>}
               </span>
             </>
           );

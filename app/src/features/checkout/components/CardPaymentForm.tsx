@@ -13,8 +13,9 @@
 */
 
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 
+import { CloseIcon } from "@/components/icons";
 import { useI18n } from "@/i18n/client";
 import { cx, Field, inputClass } from "@/features/configurator/components/ui";
 
@@ -61,11 +62,16 @@ function luhn(digits: string) {
   return sum % 10 === 0;
 }
 
-export function CardPaymentForm({ total, defaultOpen = false }: { total: string; defaultOpen?: boolean }) {
+export function CardPaymentForm({ total, defaultOpen = false, asDialog = false }: { total: string; defaultOpen?: boolean; /** Formulár v okne namiesto rozbalenia. */ asDialog?: boolean }) {
   const { t } = useI18n();
   const reduceMotion = useReducedMotion();
   const uid = useId();
   const submitRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  // Odkaz z katalógu UI (?karta=1) otvorí okno karty hneď.
+  useEffect(() => {
+    if (asDialog && defaultOpen) dialogRef.current?.showModal();
+  }, [asDialog, defaultOpen]);
 
   const [open, setOpen] = useState(defaultOpen);
   const [digits, setDigits] = useState("");
@@ -107,6 +113,179 @@ export function CardPaymentForm({ total, defaultOpen = false }: { total: string;
   const panelId = `${uid}-card`;
   const ids = { number: `${uid}-number`, holder: `${uid}-holder`, month: `${uid}-month`, year: `${uid}-year`, cvv: `${uid}-cvv` };
 
+  const content = (
+    <div className="flex flex-col gap-5 pt-1">
+      <CardPreview
+        digits={digits}
+        brand={brand}
+        holder={holder}
+        month={month}
+        year={year}
+        cvv={cvv}
+        focused={focused}
+        labels={{ holder: t("checkout.card.preview.holder"), expires: t("checkout.card.preview.expires") }}
+      />
+
+      <Field label={t("checkout.card.number")} htmlFor={ids.number} error={showError("number") && t("checkout.card.error.number")}>
+        <input
+          id={ids.number}
+          inputMode="numeric"
+          autoComplete="cc-number"
+          autoFocus={asDialog}
+          placeholder="1234 5678 9012 3456"
+          value={formatNumber(digits, brand)}
+          onChange={(e) => {
+            const next = e.target.value.replace(/\D/g, "");
+            setDigits(next.slice(0, detectBrand(next) === "amex" ? 15 : 19));
+          }}
+          maxLength={maxDigits + 4}
+          onFocus={() => setFocused("number")}
+          onBlur={() => blur("number")}
+          onKeyDown={onEnter}
+          aria-invalid={showError("number") || undefined}
+          className={cx(inputClass, "font-mono tracking-wider")}
+        />
+      </Field>
+
+      <Field label={t("checkout.card.holder")} htmlFor={ids.holder} error={showError("holder") && t("checkout.card.error.holder")}>
+        <input
+          id={ids.holder}
+          autoComplete="cc-name"
+          autoCapitalize="characters"
+          spellCheck={false}
+          placeholder={t("checkout.card.holder_placeholder")}
+          value={holder}
+          onChange={(e) => setHolder(e.target.value.slice(0, 26))}
+          onFocus={() => setFocused("holder")}
+          onBlur={() => blur("holder")}
+          onKeyDown={onEnter}
+          aria-invalid={showError("holder") || undefined}
+          className={cx(inputClass, "uppercase placeholder:normal-case")}
+        />
+      </Field>
+
+      <div className="grid grid-cols-[1fr_1fr_1fr] gap-3">
+        <fieldset className="col-span-2 flex flex-col gap-2">
+          <legend className="mb-2 text-sm font-semibold text-ink">{t("checkout.card.expiry")}</legend>
+          <div className="grid grid-cols-2 gap-3">
+            <select
+              id={ids.month}
+              aria-label={t("checkout.card.month")}
+              autoComplete="cc-exp-month"
+              value={month}
+              onChange={(e) => setMonth(e.target.value)}
+              onFocus={() => setFocused("expiry")}
+              onBlur={() => blur("expiry")}
+              onKeyDown={onEnter}
+              aria-invalid={showError("expiry") || undefined}
+              className={cx(inputClass, "px-3")}
+            >
+              <option value="">{t("checkout.card.month_short")}</option>
+              {MONTHS.map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
+            </select>
+            <select
+              id={ids.year}
+              aria-label={t("checkout.card.year")}
+              autoComplete="cc-exp-year"
+              value={year}
+              onChange={(e) => setYear(e.target.value)}
+              onFocus={() => setFocused("expiry")}
+              onBlur={() => blur("expiry")}
+              onKeyDown={onEnter}
+              aria-invalid={showError("expiry") || undefined}
+              className={cx(inputClass, "px-3")}
+            >
+              <option value="">{t("checkout.card.year_short")}</option>
+              {years.map((y) => (
+                <option key={y} value={y}>
+                  {y}
+                </option>
+              ))}
+            </select>
+          </div>
+        </fieldset>
+        <Field label={t("checkout.card.cvv")} htmlFor={ids.cvv}>
+          <input
+            id={ids.cvv}
+            inputMode="numeric"
+            autoComplete="cc-csc"
+            placeholder={"•".repeat(cvvLength)}
+            value={cvv}
+            onChange={(e) => setCvv(e.target.value.replace(/\D/g, "").slice(0, cvvLength))}
+            onFocus={() => setFocused("cvv")}
+            onBlur={() => blur("cvv")}
+            onKeyDown={onEnter}
+            aria-invalid={showError("cvv") || undefined}
+            aria-describedby={`${ids.cvv}-help`}
+            className={cx(inputClass, "px-3 font-mono tracking-widest")}
+          />
+        </Field>
+      </div>
+      {(showError("expiry") || showError("cvv")) && (
+        <p role="alert" className="-mt-2 text-sm font-medium text-[#b3261e]">
+          {showError("expiry") ? t("checkout.card.error.expiry") : t("checkout.card.error.cvv")}
+        </p>
+      )}
+      <p id={`${ids.cvv}-help`} className="-mt-2 text-sm text-ink/65">
+        {t("checkout.card.cvv_help")}
+      </p>
+
+      <button
+        ref={submitRef}
+        type="submit"
+        name="paymentMethod"
+        value="card"
+        disabled={!valid}
+        className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-brand-orange-dark px-6 text-base font-semibold text-white transition outline-none hover:bg-[#9a3500] focus-visible:ring-4 focus-visible:ring-brand-orange/40 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-ink/10 disabled:text-ink/60 disabled:active:scale-100 motion-reduce:transition-none"
+      >
+        {valid && <LockIcon />}
+        {valid ? t("checkout.card.submit", { price: total }) : t("checkout.card.incomplete")}
+      </button>
+    </div>
+  );
+
+  // V pokladni vedľa súhrnu: formulár karty v okne – stránka sa nepredĺži.
+  if (asDialog) {
+    return (
+      <>
+        <button
+          type="button"
+          onClick={() => dialogRef.current?.showModal()}
+          className="flex h-12 items-center justify-center gap-2.5 rounded-2xl bg-ink/[0.04] text-base font-semibold text-ink ring-1 ring-ink/10 transition outline-none hover:bg-ink/[0.07] focus-visible:ring-4 focus-visible:ring-brand-orange/40 active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100"
+        >
+          <CardIcon />
+          {t("checkout.pay.card")}
+        </button>
+        <dialog
+          ref={dialogRef}
+          aria-labelledby={`${uid}-dialog-title`}
+          className="m-auto max-h-[calc(100dvh-2rem)] w-[min(100vw-2rem,30rem)] overflow-y-auto rounded-3xl bg-white p-0 text-ink shadow-2xl backdrop:bg-ink/50"
+        >
+          <div className="flex flex-col gap-4 p-5">
+            <div className="flex items-start justify-between gap-3">
+              <h2 id={`${uid}-dialog-title`} className="font-heading text-xl font-extrabold">
+                {t("checkout.pay.card")}
+              </h2>
+              <button
+                type="button"
+                onClick={() => dialogRef.current?.close()}
+                aria-label={t("common.close")}
+                className="-mt-1 -mr-2 flex size-11 shrink-0 items-center justify-center rounded-full text-ink/60 outline-none hover:bg-ink/5 focus-visible:ring-4 focus-visible:ring-brand-orange/40"
+              >
+                <CloseIcon className="size-5" />
+              </button>
+            </div>
+            {content}
+          </div>
+        </dialog>
+      </>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <button
@@ -146,137 +325,7 @@ export function CardPaymentForm({ total, defaultOpen = false }: { total: string;
             transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
             className="overflow-hidden"
           >
-            <div className="flex flex-col gap-5 pt-1">
-              <CardPreview
-                digits={digits}
-                brand={brand}
-                holder={holder}
-                month={month}
-                year={year}
-                cvv={cvv}
-                focused={focused}
-                labels={{ holder: t("checkout.card.preview.holder"), expires: t("checkout.card.preview.expires") }}
-              />
-
-              <Field label={t("checkout.card.number")} htmlFor={ids.number} error={showError("number") && t("checkout.card.error.number")}>
-                <input
-                  id={ids.number}
-                  inputMode="numeric"
-                  autoComplete="cc-number"
-                  placeholder="1234 5678 9012 3456"
-                  value={formatNumber(digits, brand)}
-                  onChange={(e) => {
-                    const next = e.target.value.replace(/\D/g, "");
-                    setDigits(next.slice(0, detectBrand(next) === "amex" ? 15 : 19));
-                  }}
-                  maxLength={maxDigits + 4}
-                  onFocus={() => setFocused("number")}
-                  onBlur={() => blur("number")}
-                  onKeyDown={onEnter}
-                  aria-invalid={showError("number") || undefined}
-                  className={cx(inputClass, "font-mono tracking-wider")}
-                />
-              </Field>
-
-              <Field label={t("checkout.card.holder")} htmlFor={ids.holder} error={showError("holder") && t("checkout.card.error.holder")}>
-                <input
-                  id={ids.holder}
-                  autoComplete="cc-name"
-                  autoCapitalize="characters"
-                  spellCheck={false}
-                  placeholder={t("checkout.card.holder_placeholder")}
-                  value={holder}
-                  onChange={(e) => setHolder(e.target.value.slice(0, 26))}
-                  onFocus={() => setFocused("holder")}
-                  onBlur={() => blur("holder")}
-                  onKeyDown={onEnter}
-                  aria-invalid={showError("holder") || undefined}
-                  className={cx(inputClass, "uppercase placeholder:normal-case")}
-                />
-              </Field>
-
-              <div className="grid grid-cols-[1fr_1fr_1fr] gap-3">
-                <fieldset className="col-span-2 flex flex-col gap-2">
-                  <legend className="mb-2 text-sm font-semibold text-ink">{t("checkout.card.expiry")}</legend>
-                  <div className="grid grid-cols-2 gap-3">
-                    <select
-                      id={ids.month}
-                      aria-label={t("checkout.card.month")}
-                      autoComplete="cc-exp-month"
-                      value={month}
-                      onChange={(e) => setMonth(e.target.value)}
-                      onFocus={() => setFocused("expiry")}
-                      onBlur={() => blur("expiry")}
-                      onKeyDown={onEnter}
-                      aria-invalid={showError("expiry") || undefined}
-                      className={cx(inputClass, "px-3")}
-                    >
-                      <option value="">{t("checkout.card.month_short")}</option>
-                      {MONTHS.map((m) => (
-                        <option key={m} value={m}>
-                          {m}
-                        </option>
-                      ))}
-                    </select>
-                    <select
-                      id={ids.year}
-                      aria-label={t("checkout.card.year")}
-                      autoComplete="cc-exp-year"
-                      value={year}
-                      onChange={(e) => setYear(e.target.value)}
-                      onFocus={() => setFocused("expiry")}
-                      onBlur={() => blur("expiry")}
-                      onKeyDown={onEnter}
-                      aria-invalid={showError("expiry") || undefined}
-                      className={cx(inputClass, "px-3")}
-                    >
-                      <option value="">{t("checkout.card.year_short")}</option>
-                      {years.map((y) => (
-                        <option key={y} value={y}>
-                          {y}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </fieldset>
-                <Field label={t("checkout.card.cvv")} htmlFor={ids.cvv}>
-                  <input
-                    id={ids.cvv}
-                    inputMode="numeric"
-                    autoComplete="cc-csc"
-                    placeholder={"•".repeat(cvvLength)}
-                    value={cvv}
-                    onChange={(e) => setCvv(e.target.value.replace(/\D/g, "").slice(0, cvvLength))}
-                    onFocus={() => setFocused("cvv")}
-                    onBlur={() => blur("cvv")}
-                    onKeyDown={onEnter}
-                    aria-invalid={showError("cvv") || undefined}
-                    aria-describedby={`${ids.cvv}-help`}
-                    className={cx(inputClass, "px-3 font-mono tracking-widest")}
-                  />
-                </Field>
-              </div>
-              {(showError("expiry") || showError("cvv")) && (
-                <p role="alert" className="-mt-2 text-sm font-medium text-[#b3261e]">
-                  {showError("expiry") ? t("checkout.card.error.expiry") : t("checkout.card.error.cvv")}
-                </p>
-              )}
-              <p id={`${ids.cvv}-help`} className="-mt-2 text-sm text-ink/65">
-                {t("checkout.card.cvv_help")}
-              </p>
-
-              <button
-                ref={submitRef}
-                type="submit"
-                name="paymentMethod"
-                value="card"
-                disabled={!valid}
-                className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-brand-orange-dark px-6 text-base font-semibold text-white transition outline-none hover:bg-[#9a3500] focus-visible:ring-4 focus-visible:ring-brand-orange/40 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-ink/10 disabled:text-ink/60 disabled:active:scale-100 motion-reduce:transition-none"
-              >
-                {valid && <LockIcon />}
-                {valid ? t("checkout.card.submit", { price: total }) : t("checkout.card.incomplete")}
-              </button>
-            </div>
+            {content}
           </motion.div>
         )}
       </AnimatePresence>

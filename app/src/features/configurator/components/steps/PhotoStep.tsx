@@ -14,6 +14,7 @@ import { StepFooter } from "../StepFooter";
 import { Button, Check, Disclosure, Notice, StepTitle } from "../ui";
 import { useWizard } from "../WizardContext";
 import { BanIcon, SmileIcon } from "@/components/icons";
+import { useSubStep } from "../WizardMotion";
 
 const CONSENTS = ["photo.consent.guardian", "photo.consent.ai", "photo.consent.retention"] as const satisfies readonly MessageKey[];
 
@@ -57,12 +58,14 @@ export function PhotoStep({
     });
   }
 
+  useSubStep(mode === "description" ? t("photo.sub.describe") : null, () => setMode("photo"));
+
   if (mode === "description") {
     return (
       <>
         <StepTitle title={t("describe.title", undefined, heroCtx)} />
         <AppearancePicker value={look} onChange={setLook} choices={["hairColor", "hairLength", "hairstyle", "eyes", "skin"]} flags={["glasses", "freckles"]} />
-        <Button variant="ghost" className="self-start px-0" onClick={() => setMode("photo")}>
+        <Button variant="ghost" className="self-start px-0 md:hidden" onClick={() => setMode("photo")}>
           {t("configurator.photo.back_to_photo")}
         </Button>
         {error && <Notice tone="error">{t(error)}</Notice>}

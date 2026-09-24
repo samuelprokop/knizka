@@ -101,12 +101,17 @@ function StoryLibrary({ tiles, heroAge, heroPortrait, themeColor, companions, gu
   const [multi, setMulti] = useState(false);
   const heroCtx = hero ?? undefined;
 
-  const visible = tiles.filter(
-    (tile) =>
-      (age === null || (age >= tile.ageMin && age <= tile.ageMax)) &&
-      (!category || tile.category === category) &&
-      (!multi || tile.companionSlots > 0)
-  );
+  const matches = (ignoreAge: boolean) =>
+    tiles.filter(
+      (tile) =>
+        (ignoreAge || age === null || (age >= tile.ageMin && age <= tile.ageMax)) &&
+        (!category || tile.category === category) &&
+        (!multi || tile.companionSlots > 0)
+    );
+  // Pre vek nič nie je → ukázať všetky (prázdna knižnica s jedinou kartou „na mieru“ mätie).
+  const byAge = matches(false);
+  const noAgeMatch = age !== null && byAge.length === 0 && matches(true).length > 0;
+  const visible = noAgeMatch ? matches(true) : byAge;
 
   return (
     <>
@@ -145,7 +150,8 @@ function StoryLibrary({ tiles, heroAge, heroPortrait, themeColor, companions, gu
         <Chip selected={multi} onClick={() => setMulti(!multi)}>{t("story.filter.multi")}</Chip>
       </Disclosure>
 
-      <ul className="grid gap-4 sm:grid-cols-2">
+      {noAgeMatch && <Notice>{t("story.no_age_match", { age: t(`configurator.age.years.${pluralForm(age!)}`, { n: age! }) })}</Notice>}
+      <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {visible.map((tile) => (
           <li key={tile.id}>
             <Link

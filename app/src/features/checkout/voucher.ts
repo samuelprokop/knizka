@@ -17,6 +17,10 @@ type VoucherDefinition =
 /** Ukážkové kódy pre vývoj a demo – nahradí obchod značky. */
 const MOCK_VOUCHERS: Record<string, VoucherDefinition> = {
   VITAJTE10: { kind: "percent", percent: 10 },
+  NARODENINY15: { kind: "percent", percent: 15 },
+  BABKA20: { kind: "percent", percent: 20 },
+  "ZLAVA5-SK": { kind: "amount", amountMinor: 500, market: "sk" },
+  "SLEVA100-CZ": { kind: "amount", amountMinor: 10000, market: "cz" },
   "DARCEK-SK": { kind: "amount", amountMinor: 3290, market: "sk" },
   "DARCEK-CZ": { kind: "amount", amountMinor: 79900, market: "cz" },
 };
