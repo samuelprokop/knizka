@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 
+import { AnimatedNumber } from "@/components/AnimatedNumber";
 import { useI18n } from "@/i18n/client";
 import { cx } from "./ui";
 import { useWizard } from "./WizardContext";
@@ -28,7 +29,9 @@ export function StepFooter({ children, hidePrice }: { children?: ReactNode; hide
           >
             <span aria-live="polite">
               {t("common.price_bar", { price: "" })}
-              <strong className="text-base text-ink">{price.total}</strong>
+              <strong className="text-base text-ink">
+                <AnimatedNumber value={price.total} />
+              </strong>
             </span>
             <span className="underline underline-offset-4">{t("configurator.price.details")}</span>
           </button>

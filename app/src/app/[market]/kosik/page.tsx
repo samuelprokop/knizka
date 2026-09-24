@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 
+import { AnimatedNumber } from "@/components/AnimatedNumber";
 import { formatMoney } from "@/config/markets";
 import { computePrice, type PriceSelection } from "@/domain/pricing";
 import { PlanCards, type Plan } from "@/features/checkout/components/PlanCards";
@@ -22,6 +23,13 @@ import { getMarketContext } from "@/i18n/server";
 
 function readParam(value: string | string[] | undefined) {
   return typeof value === "string" ? value : undefined;
+}
+
+/** Značka miesta pre sumu v preloženom texte („Celkom: {price}“ → text pred a za sumou). */
+const SLOT = "\u0000";
+function splitAround(text: string) {
+  const [prefix = "", suffix = ""] = text.split(SLOT);
+  return { prefix, suffix };
 }
 
 export default async function CartPage({ params, searchParams }: PageProps<"/[market]/kosik">) {
@@ -125,17 +133,18 @@ export default async function CartPage({ params, searchParams }: PageProps<"/[ma
           <div className="flex items-center justify-between gap-4 rounded-2xl border-2 border-ink/10 bg-white px-4 py-3">
             <span className="text-base text-ink">{t("cart.addon.copy")}</span>
             <div className="flex items-center gap-3">
-              <Link href={qs({ extraCopies: String(Math.max(0, extraCopies - 1)) })} className={buttonClass("secondary", "min-h-9 min-w-9 px-0")} aria-label="−">
+              <Link href={qs({ extraCopies: String(Math.max(0, extraCopies - 1)) })} scroll={false} className={buttonClass("secondary", "min-h-9 min-w-9 px-0")} aria-label="−">
                 −
               </Link>
-              <span className="w-4 text-center font-semibold text-ink">{extraCopies}</span>
-              <Link href={qs({ extraCopies: String(Math.min(20, extraCopies + 1)) })} className={buttonClass("secondary", "min-h-9 min-w-9 px-0")} aria-label="+">
+              <AnimatedNumber value={String(extraCopies)} className="w-4 justify-center font-semibold text-ink" />
+              <Link href={qs({ extraCopies: String(Math.min(20, extraCopies + 1)) })} scroll={false} className={buttonClass("secondary", "min-h-9 min-w-9 px-0")} aria-label="+">
                 +
               </Link>
             </div>
           </div>
           <Link
             href={qs({ giftWrap: giftWrap ? "0" : "1" })}
+            scroll={false}
             aria-pressed={giftWrap}
             className={buttonClass(giftWrap ? "primary" : "secondary", "justify-between")}
           >
@@ -187,7 +196,7 @@ export default async function CartPage({ params, searchParams }: PageProps<"/[ma
           </div>
         )}
         <div className="mt-2 border-t border-ink/10 pt-2 text-right font-heading text-lg font-bold text-ink">
-          {t("checkout.total", { price: formatMoney(price.totalMinor, market) })}
+          <AnimatedNumber value={formatMoney(price.totalMinor, market)} {...splitAround(t("checkout.total", { price: SLOT }))} />
         </div>
       </section>
 
