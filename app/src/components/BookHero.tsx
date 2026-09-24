@@ -354,14 +354,17 @@ function AnimatedHero({ copy, ctaHref }: HeroProps) {
 
     const setScroll = (p: number) => window.scrollTo(0, scrollFor(p));
 
-    const goTo = (index: number) => {
+    // speed > 1 = rýchlejšie otočenie (skok z menu prehrá len posledné, zrýchlené).
+    const goTo = (index: number, speed = 1) => {
       const target = Math.max(0, Math.min(LAST, index));
       const from = progress.get();
       const to = STOPS[target];
       current = target;
       publishCurrent(target);
       if (Math.abs(to - from) < 1e-4) return;
-      const { values, times, duration } = stepKeyframes(from, to);
+      const keyframes = stepKeyframes(from, to);
+      const { values, times } = keyframes;
+      const duration = keyframes.duration / speed;
       const finish = () => {
         window.clearTimeout(safetyTimer);
         controls = null;
@@ -386,16 +389,30 @@ function AnimatedHero({ copy, ctaHref }: HeroProps) {
       }, duration * 1000 + 400);
     };
 
+    // Skok z menu: kniha sa hneď presunie na susednú zastávku pred cieľom (zo
+    // strany, odkiaľ ide) a prehrá už len jedno, zrýchlené otočenie – zmena je
+    // vidieť, ale nečaká sa na všetky dvojstrany medzi.
+    const JUMP_SPEED = 2;
     const jumpTo = (index: number) => {
       const target = Math.max(0, Math.min(LAST, index));
       controls?.stop();
       controls = null;
       window.clearTimeout(safetyTimer);
-      current = target;
-      publishCurrent(target);
-      progress.jump(STOPS[target]);
-      setScroll(STOPS[target]);
-      lockedUntil = performance.now() + COOLDOWN_MS;
+      const here = progress.get();
+      if (Math.abs(here - STOPS[target]) < 1e-4) {
+        current = target;
+        publishCurrent(target);
+        setScroll(STOPS[target]);
+        return;
+      }
+      const direction = STOPS[target] > here ? 1 : -1;
+      const before = Math.max(0, Math.min(LAST, target - direction));
+      // Susedná zastávka je bližšie ako aktuálna poloha → preskočiť na ňu.
+      if (Math.abs(STOPS[before] - STOPS[target]) < Math.abs(here - STOPS[target])) {
+        progress.jump(STOPS[before]);
+        setScroll(STOPS[before]);
+      }
+      goTo(target, JUMP_SPEED);
     };
 
     // Vráti true, ak krok patrí heru (a vstup treba zablokovať), false ak má
