@@ -33,3 +33,11 @@ body {
   background: #ffffff;
   color: var(--color-ink);
 }
+
+/* Recenzie na úvodnej stránke: stĺpec má zoznam dvakrát pod sebou (medzera 1.5rem);
+   posun o jednu kópiu + medzeru = plynulá nekonečná slučka. */
+@keyframes reviews-up {
+  to {
+    transform: translateY(calc(-50% - 0.75rem));
+  }
+}

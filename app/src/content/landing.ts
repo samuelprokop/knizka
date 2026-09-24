@@ -17,7 +17,9 @@ export type LandingCopy = {
   animationLabel: string;
   staticImageAlt: string;
   /** Obsah stránky (bočné menu): názov navigácie a kľúčové slová položiek mimo 4 krokov. */
-  toc: { label: string; intro: string; outro: string; footer: string };
+  toc: { label: string; intro: string; outro: string; reviews: string; footer: string };
+  /** Sekcia recenzií pod knihou (samotné recenzie sú v content/reviews.ts). */
+  reviews: { eyebrow: string; title: string; subtitle: string; placeholderNote: string; pause: string; play: string };
 };
 
 export const LANDING_COPY: Record<BookLanguage, LandingCopy> = {
@@ -36,7 +38,15 @@ export const LANDING_COPY: Record<BookLanguage, LandingCopy> = {
     cta: "Vytvoriť knihu",
     animationLabel: "Animácia knihy, ktorá sa pri posúvaní stránky otvára a listuje",
     staticImageAlt: "Otvorená prázdna kniha",
-    toc: { label: "Obsah stránky", intro: "Úvod", outro: "Objednávka", footer: "Kontakt" },
+    toc: { label: "Obsah stránky", intro: "Úvod", outro: "Objednávka", reviews: "Recenzie", footer: "Kontakt" },
+    reviews: {
+      eyebrow: "Recenzie",
+      title: "Čo hovoria rodičia",
+      subtitle: "Skúsenosti rodín, ktoré už svoju knihu majú doma.",
+      placeholderNote: "Ukážkové recenzie – pred spustením ich nahradia skutočné hodnotenia zákazníkov.",
+      pause: "Zastaviť posúvanie recenzií",
+      play: "Spustiť posúvanie recenzií",
+    },
   },
   cs: {
     eyebrow: "Personalizovaná dětská kniha",
@@ -53,6 +63,14 @@ export const LANDING_COPY: Record<BookLanguage, LandingCopy> = {
     cta: "Vytvořit knihu",
     animationLabel: "Animace knihy, která se při posouvání stránky otevírá a listuje",
     staticImageAlt: "Otevřená prázdná kniha",
-    toc: { label: "Obsah stránky", intro: "Úvod", outro: "Objednávka", footer: "Kontakt" },
+    toc: { label: "Obsah stránky", intro: "Úvod", outro: "Objednávka", reviews: "Recenze", footer: "Kontakt" },
+    reviews: {
+      eyebrow: "Recenze",
+      title: "Co říkají rodiče",
+      subtitle: "Zkušenosti rodin, které už svou knihu mají doma.",
+      placeholderNote: "Ukázkové recenze – před spuštěním je nahradí skutečná hodnocení zákazníků.",
+      pause: "Zastavit posouvání recenzí",
+      play: "Spustit posouvání recenzí",
+    },
   },
 };

@@ -6,12 +6,15 @@ import { FooterReveal, FooterRevealContent, FooterRevealFadeOut, FooterRevealFoo
 import { LandingToc, TOC_INSET_CLASS } from "@/components/LandingToc";
 import { SiteFooter } from "@/components/SiteFooter";
 import { LANDING_COPY } from "@/content/landing";
+import { REVIEWS, REVIEWS_ARE_PLACEHOLDERS, showReviews } from "@/content/reviews";
+import { ReviewsSection } from "@/components/ReviewsSection";
 import { getMarketContext } from "@/i18n/server";
 
 export default async function Home() {
   const { market, t } = await getMarketContext();
   const copy = LANDING_COPY[market.uiLanguage];
   const ctaHref = `/${market.code}/vytvorit`;
+  const reviews = showReviews();
 
   return (
     <FooterReveal>
@@ -32,8 +35,9 @@ export default async function Home() {
             </FooterRevealFadeOut>
           </header>
 
-          <LandingToc copy={copy} />
+          <LandingToc copy={copy} reviews={reviews} />
           <BookHero copy={copy} ctaHref={ctaHref} />
+          {reviews && <ReviewsSection copy={copy.reviews} reviews={REVIEWS[market.uiLanguage]} placeholder={REVIEWS_ARE_PLACEHOLDERS} />}
         </main>
       </FooterRevealContent>
       <FooterRevealFooter>

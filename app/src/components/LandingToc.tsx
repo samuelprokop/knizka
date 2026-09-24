@@ -12,22 +12,26 @@
 */
 
 import { motion, useReducedMotion } from "motion/react";
-import { useSyncExternalStore, type ReactNode } from "react";
+import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 
 import type { LandingCopy } from "@/content/landing";
 import { heroNavigation } from "./BookHero";
 import { FooterRevealFadeOut } from "./FooterReveal";
 
-type Item = { key: string; label: string; marker: ReactNode; target: number | "footer" };
+type Item = { key: string; label: string; marker: ReactNode; target: number | "reviews" | "footer" };
+
+/** id sekcie recenzií na stránke (ReviewsSection). */
+const REVIEWS_ID = "recenzie";
 
 const cx = (...classes: (string | false | undefined)[]) => classes.filter(Boolean).join(" ");
 
 /** Priestor, ktorý si hero rezervuje vľavo (okraj + stĺpec) – nastavuje sa na stránke. */
 export const TOC_INSET_CLASS = "lg:[--hero-inset:10.5rem] xl:[--hero-inset:11.5rem]";
 
-export function LandingToc({ copy }: { copy: LandingCopy }) {
+export function LandingToc({ copy, reviews = false }: { copy: LandingCopy; reviews?: boolean }) {
   const reduceMotion = useReducedMotion();
   const current = useSyncExternalStore(heroNavigation.subscribe, heroNavigation.getCurrent, () => 0);
+  const inReviews = useSectionInView(reviews ? REVIEWS_ID : null);
 
   const items: Item[] = [
     { key: "intro", label: copy.toc.intro, marker: <BookIcon />, target: 0 },
@@ -38,11 +42,14 @@ export function LandingToc({ copy }: { copy: LandingCopy }) {
       target: i + 1,
     })),
     { key: "outro", label: copy.toc.outro, marker: <PenIcon />, target: heroNavigation.stops - 1 },
+    ...(reviews ? [{ key: "reviews", label: copy.toc.reviews, marker: <QuoteIcon />, target: "reviews" as const }] : []),
     { key: "footer", label: copy.toc.footer, marker: <InfoIcon />, target: "footer" },
   ];
 
   const go = (target: Item["target"]) => {
-    if (target === "footer") {
+    if (target === "reviews") {
+      document.getElementById(REVIEWS_ID)?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth" });
+    } else if (target === "footer") {
       window.scrollTo({ top: document.documentElement.scrollHeight, behavior: reduceMotion ? "auto" : "smooth" });
     } else {
       heroNavigation.goTo(target);
@@ -57,7 +64,7 @@ export function LandingToc({ copy }: { copy: LandingCopy }) {
       <FooterRevealFadeOut>
         <ol className="flex flex-col">
           {items.map((item, index) => {
-            const active = item.target === current;
+            const active = item.target === "reviews" ? inReviews : !inReviews && item.target === current;
             const last = index === items.length - 1;
             return (
               <li key={item.key} className="relative">
@@ -101,6 +108,19 @@ export function LandingToc({ copy }: { copy: LandingCopy }) {
   );
 }
 
+/** Je sekcia s daným id v strede obrazovky? (null = sekcia na stránke nie je) */
+function useSectionInView(id: string | null) {
+  const [inView, setInView] = useState(false);
+  useEffect(() => {
+    const el = id ? document.getElementById(id) : null;
+    if (!el) return;
+    const observer = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting), { rootMargin: "-45% 0px -45% 0px" });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [id]);
+  return inView;
+}
+
 // ---------------------------------------------------------------- ikony (SVG, nie emoji)
 
 const iconProps = {
@@ -134,6 +154,14 @@ function InfoIcon() {
     <svg {...iconProps}>
       <circle cx="8" cy="8" r="5.8" />
       <path d="M8 7.3v3.6M8 5.1h.01" />
+    </svg>
+  );
+}
+
+function QuoteIcon() {
+  return (
+    <svg {...iconProps}>
+      <path d="M6.5 4C4.6 4.9 3.5 6.5 3.5 8.6V12h3.5V8.5H5.3c.1-1.3.8-2.3 2-2.9L6.5 4zm6 0c-1.9.9-3 2.5-3 4.6V12H13V8.5h-1.7c.1-1.3.8-2.3 2-2.9L12.5 4z" />
     </svg>
   );
 }
