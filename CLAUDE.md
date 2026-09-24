@@ -52,6 +52,8 @@ vrátia `common.ui_preview`, administrácia je otvorená ako správca. Nová obr
 doplniť ukážku do `scripts/ui-preview/seed.ts` a odkaz do `src/app/ui/page.tsx`.
 
 Kontroly pred odovzdaním: `npm run typecheck && npm run lint && npm test` (a pri zmene sadzby `npm run test:render`).
+Testy bežia nad vlastnou DB `knizka_test` (vytvorí a pripraví ju `scripts/test-db.mjs`) a súbory po jednom –
+zdieľaná fronta úloh by inak medzi súbežnými testami alebo s workerom `npm run dev` kolidovala.
 
 ## Štruktúra (`app/src`)
 
