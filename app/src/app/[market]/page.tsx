@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { BookHero } from "@/components/BookHero";
 import { FooterReveal, FooterRevealContent, FooterRevealFadeOut, FooterRevealFooter } from "@/components/FooterReveal";
+import { LandingToc } from "@/components/LandingToc";
 import { SiteFooter } from "@/components/SiteFooter";
 import { LANDING_COPY } from "@/content/landing";
 import { getMarketContext } from "@/i18n/server";
@@ -31,6 +32,7 @@ export default async function Home() {
             </FooterRevealFadeOut>
           </header>
 
+          <LandingToc copy={copy} />
           <BookHero copy={copy} ctaHref={ctaHref} />
         </main>
       </FooterRevealContent>

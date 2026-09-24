@@ -15,6 +15,8 @@ export type LandingCopy = {
   cta: string;
   animationLabel: string;
   staticImageAlt: string;
+  /** Obsah stránky (bočné menu): názov navigácie a položky mimo 4 krokov. */
+  toc: { label: string; intro: string; outro: string; footer: string };
 };
 
 export const LANDING_COPY: Record<BookLanguage, LandingCopy> = {
@@ -33,6 +35,7 @@ export const LANDING_COPY: Record<BookLanguage, LandingCopy> = {
     cta: "Vytvoriť knihu",
     animationLabel: "Animácia knihy, ktorá sa pri posúvaní stránky otvára a listuje",
     staticImageAlt: "Otvorená prázdna kniha",
+    toc: { label: "Obsah stránky", intro: "Úvod", outro: "Vytvorte knihu", footer: "Kontakt a informácie" },
   },
   cs: {
     eyebrow: "Personalizovaná dětská kniha",
@@ -49,5 +52,6 @@ export const LANDING_COPY: Record<BookLanguage, LandingCopy> = {
     cta: "Vytvořit knihu",
     animationLabel: "Animace knihy, která se při posouvání stránky otevírá a listuje",
     staticImageAlt: "Otevřená prázdná kniha",
+    toc: { label: "Obsah stránky", intro: "Úvod", outro: "Vytvořte knihu", footer: "Kontakt a informace" },
   },
 };

@@ -60,6 +60,36 @@ const STOPS = (() => {
   return stops;
 })();
 
+// ---------------------------------------------------------------- navigácia (obsah stránky)
+
+/*
+  Obsah stránky (LandingToc) potrebuje vedieť, na ktorej zastávke kniha je,
+  a vedieť na ňu prelistovať. Hero stav publikuje sem; bez hero je goTo prázdne.
+*/
+const navListeners = new Set<() => void>();
+let navCurrent = 0;
+let navGoTo: ((index: number) => void) | null = null;
+
+function publishCurrent(index: number) {
+  if (navCurrent === index) return;
+  navCurrent = index;
+  navListeners.forEach((listener) => listener());
+}
+
+export const heroNavigation = {
+  /** Počet zastávok knihy (úvod, 4 dvojstrany, koniec). */
+  stops: STOPS.length,
+  subscribe(listener: () => void) {
+    navListeners.add(listener);
+    return () => {
+      navListeners.delete(listener);
+    };
+  },
+  getCurrent: () => navCurrent,
+  /** Prelistuje knihu na zastávku konštantnou rýchlosťou (aj spoza hero). */
+  goTo: (index: number) => navGoTo?.(index),
+};
+
 // Konštantná rýchlosť prehrávania (sekundy na váhovú jednotku). Otočenie strany
 // (váha 1) trvá PLAY sekúnd; úseky pauzy len dofadnú / nafadnú text.
 const PLAY_SECONDS_PER_WEIGHT = 1.1;
@@ -303,6 +333,7 @@ function AnimatedHero({ copy, ctaHref }: HeroProps) {
     const inHero = () => window.scrollY <= scrollFor(1) + 2;
 
     let current = 0;
+    publishCurrent(0);
     let controls: ReturnType<typeof animate> | null = null;
     let lockedUntil = 0;
     let safetyTimer = 0;
@@ -317,6 +348,7 @@ function AnimatedHero({ copy, ctaHref }: HeroProps) {
       const from = progress.get();
       const to = STOPS[target];
       current = target;
+      publishCurrent(target);
       if (Math.abs(to - from) < 1e-4) return;
       const { values, times, duration } = stepKeyframes(from, to);
       const finish = () => {
@@ -415,6 +447,8 @@ function AnimatedHero({ copy, ctaHref }: HeroProps) {
     const onKey = (e: KeyboardEvent) => {
       const el = e.target as HTMLElement | null;
       if (el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName))) return;
+      // Medzerník na tlačidle či odkaze ho stlačí – knihu nelistuje.
+      if (e.key === " " && el?.closest("button, a")) return;
       const next = ["ArrowDown", "PageDown"].includes(e.key) || (e.key === " " && !e.shiftKey);
       const prev = ["ArrowUp", "PageUp"].includes(e.key) || (e.key === " " && e.shiftKey);
       if (!(next || prev) || !claims(next ? 1 : -1)) return;
@@ -431,6 +465,7 @@ function AnimatedHero({ copy, ctaHref }: HeroProps) {
       if (!inHero()) {
         if (progress.get() !== 1) progress.set(1);
         current = LAST;
+        publishCurrent(LAST);
         return;
       }
       // Vlastný scroll (dorovnanie posuvníka) – nič nerobiť.
@@ -452,6 +487,7 @@ function AnimatedHero({ copy, ctaHref }: HeroProps) {
       if (!controls) setScroll(progress.get());
     };
 
+    navGoTo = goTo;
     window.addEventListener("wheel", onWheel, { passive: false });
     window.addEventListener("touchstart", onTouchStart, { passive: true });
     window.addEventListener("touchmove", onTouchMove, { passive: false });
@@ -460,6 +496,7 @@ function AnimatedHero({ copy, ctaHref }: HeroProps) {
     window.addEventListener("resize", onResize);
 
     return () => {
+      navGoTo = null;
       controls?.stop();
       window.clearTimeout(safetyTimer);
       window.clearTimeout(settleTimer);
