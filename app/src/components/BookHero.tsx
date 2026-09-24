@@ -425,7 +425,14 @@ function AnimatedHero({ copy, ctaHref }: HeroProps) {
     // Scroll mimo krokovača (ťahanie posuvníka, Home/End, hľadanie na stránke):
     // kniha ho sleduje a po zastavení dobehne na najbližšiu dvojstranu.
     const onScroll = () => {
-      if (controls || !inHero()) return;
+      if (controls) return;
+      // Pod herom (pätička, ďalší obsah) je kniha vždy zatvorená na konci – aj keď
+      // sa sem niekto dostal skokom (End, posuvník), nie krokovaním.
+      if (!inHero()) {
+        if (progress.get() !== 1) progress.set(1);
+        current = LAST;
+        return;
+      }
       // Vlastný scroll (dorovnanie posuvníka) – nič nerobiť.
       if (Math.abs(window.scrollY - scrollFor(progress.get())) < 2) return;
       progress.set(progressForScroll());
