@@ -191,6 +191,11 @@ async function main() {
   await book.runGeneration(generating);
   for (let i = 0; i < 5; i++) await runOnce("ui-preview");
 
+  // Portréty vo štýloch sa ešte kreslia (kosti v kroku 3) – úlohy vo fronte ostanú nespracované.
+  const drawing = await withPhotos(await create("krok-3-kreslenie"));
+  await hero.finishAppearance(drawing, "photo");
+  await hero.generateStylePortraits(drawing);
+
   // ---------------------------------------------------------------- administrácia
   // Používatelia len na zobrazenie zoznamu – heslá sú náhodné a nikde sa nevypíšu.
   const hash = () => {

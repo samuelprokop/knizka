@@ -134,6 +134,16 @@ export default async function UiCatalogPage() {
       ],
     },
     {
+      title: "Načítavanie (skeleton)",
+      items: [
+        { label: "Ukážka komponentu", note: "kosti, zotretie karty, prelínanie zoznamu", href: "/ui/nacitavanie" },
+        { label: "Kostra kroku konfigurátora", note: "pri prechode medzi krokmi", href: "/ui/nacitavanie?kostra=konfigurator" },
+        { label: "Kostra košíka a objednávky", href: "/ui/nacitavanie?kostra=kosik" },
+        { label: "Kreslenie portrétov (krok 3)", note: "kosti v mriežke štýlov", href: step("krok-3-kreslenie", "podoba") },
+        { label: "Generovanie dvojstrán (krok 7)", note: "kosti pri nehotových dvojstranách", href: step("krok-7", "generovanie") },
+      ],
+    },
+    {
       title: "Kniha (renderer)",
       items: [{ label: "Vývojová ukážka knihy", note: "všetky voľby v URL, PDF na stiahnutie", href: "/sk/nahlad?meno=Janko&rod=boy" }],
     },

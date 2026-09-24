@@ -2,11 +2,12 @@
 
 import { useState, useTransition } from "react";
 
+import { Skeleton, SkeletonReveal } from "@/components/Skeleton";
 import { useI18n } from "@/i18n/client";
 import { notifyWhenReadyAction } from "../../actions/book";
 import { AutoRefresh } from "../AutoRefresh";
 import { StepFooter } from "../StepFooter";
-import { Button, cx, Notice, StepTitle } from "../ui";
+import { Button, Notice, StepTitle } from "../ui";
 import { useWizard } from "../WizardContext";
 
 export type PageThumb = { id: string; position: number; status: string; url: string | null; text: string | null };
@@ -53,15 +54,18 @@ export function GeneratingStep({ pages, maskedEmail }: { pages: PageThumb[]; mas
               disabled={p.status !== "ready"}
               onClick={() => setOpen(p.id)}
               aria-label={p.position === 0 ? t("configurator.preview.cover") : t("text.spread", { n: p.position })}
-              className={cx(
-                "block h-16 w-28 overflow-hidden rounded-xl ring-1 ring-ink/10 outline-none focus-visible:ring-4 focus-visible:ring-brand-orange/40",
-                p.status !== "ready" && "animate-pulse bg-brand-orange/10"
-              )}
+              className="block h-16 w-28 overflow-hidden rounded-xl ring-1 ring-ink/10 outline-none focus-visible:ring-4 focus-visible:ring-brand-orange/40"
             >
-              {p.url && (
-                // eslint-disable-next-line @next/next/no-img-element -- súkromný súbor projektu
-                <img src={p.url} alt="" className="h-full w-full object-cover" />
-              )}
+              <SkeletonReveal
+                className="h-full w-full"
+                loading={p.status !== "ready" || !p.url}
+                skeleton={<Skeleton className="h-16 w-28 rounded-none" />}
+              >
+                {p.url && (
+                  // eslint-disable-next-line @next/next/no-img-element -- súkromný súbor projektu
+                  <img src={p.url} alt="" className="h-16 w-28 object-cover" />
+                )}
+              </SkeletonReveal>
             </button>
           </li>
         ))}

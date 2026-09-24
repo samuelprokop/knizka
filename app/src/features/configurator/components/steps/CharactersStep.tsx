@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useId, useMemo, useState, useTransition } from "react";
 
 import { CHARACTER_KINDS, GUIDE_ANIMALS, MAX_EXTRA_CHARACTERS, type CharacterKind, type GuideKind } from "@/config/catalog";
+import { Skeleton, SkeletonReveal } from "@/components/Skeleton";
 import { useI18n } from "@/i18n/client";
 import { createTranslator } from "@/i18n/format";
 import type { BookLanguage } from "@/i18n/locales";
@@ -101,12 +102,16 @@ export function CharactersStep({
           {companions.map((c) => (
             <li key={c.id} className="flex flex-col gap-3 rounded-3xl bg-white p-4 ring-1 ring-ink/10">
               <div className="flex items-center gap-3">
-                {c.card?.url ? (
-                  // eslint-disable-next-line @next/next/no-img-element -- súkromný súbor projektu
-                  <img src={c.card.url} alt="" className="size-16 rounded-2xl object-cover" />
-                ) : (
-                  <span aria-hidden className="size-16 animate-pulse rounded-2xl bg-brand-orange/10" />
-                )}
+                <SkeletonReveal
+                  className="size-16 shrink-0"
+                  loading={!c.card?.url}
+                  skeleton={<Skeleton className="size-16 rounded-2xl" animate={c.card?.status === "generating"} />}
+                >
+                  {c.card?.url && (
+                    // eslint-disable-next-line @next/next/no-img-element -- súkromný súbor projektu
+                    <img src={c.card.url} alt="" className="size-16 rounded-2xl object-cover" />
+                  )}
+                </SkeletonReveal>
                 <div className="flex flex-1 flex-col">
                   <span className="font-semibold">{c.name}</span>
                   <span className="text-sm text-ink/65">

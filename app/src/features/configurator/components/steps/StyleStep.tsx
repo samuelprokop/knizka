@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import type { StyleId } from "@/config/catalog";
+import { Skeleton, SkeletonReveal } from "@/components/Skeleton";
 import { useI18n } from "@/i18n/client";
 import type { MessageKey } from "@/i18n/messages";
 import {
@@ -76,12 +77,15 @@ function StyleGrid({ portraits, recommended, chosenStyle, bookExists }: Paramete
               selected === p.style ? "border-brand-orange" : "border-transparent ring-1 ring-ink/10"
             )}
           >
-            {p.url ? (
-              // eslint-disable-next-line @next/next/no-img-element -- súkromný súbor projektu
-              <img src={p.url} alt="" className="aspect-square w-full object-cover" />
-            ) : (
-              <span aria-hidden className={cx("aspect-square w-full bg-brand-orange/10", p.status === "generating" && "animate-pulse")} />
-            )}
+            <SkeletonReveal
+              loading={!p.url}
+              skeleton={<Skeleton className="aspect-square w-full rounded-none" animate={p.status === "generating"} />}
+            >
+              {p.url && (
+                // eslint-disable-next-line @next/next/no-img-element -- súkromný súbor projektu
+                <img src={p.url} alt="" className="aspect-square w-full object-cover" />
+              )}
+            </SkeletonReveal>
             <span className="flex min-h-12 items-center px-3 py-2 text-sm font-semibold text-ink">{t(`style.${p.style}`)}</span>
             {p.style === recommended && (
               <span className="absolute top-2 left-2 rounded-full bg-brand-teal px-2 py-0.5 text-xs font-semibold text-white">{t("style.recommended")}</span>
@@ -146,18 +150,17 @@ function HeroCard({
     <>
       <StepTitle title={t("hero.title", undefined, heroCtx)} subtitle={t("hero.subtitle")} />
 
-      <section aria-busy={busy} aria-live="polite" className="grid grid-cols-2 gap-3">
-        {busy ? (
-          <p className="col-span-2 rounded-3xl bg-white p-8 text-center text-ink/70 ring-1 ring-ink/10">{t("hero.updating")}</p>
-        ) : (
-          <>
-            <CardImage src={card.portrait} alt={t("configurator.card.portrait")} className="col-span-2 aspect-square sm:col-span-1" />
-            <CardImage src={card.fullBody} alt={t("configurator.card.full_body")} className="aspect-[2/3] sm:row-span-2" />
-            <CardImage src={card.smile} alt={t("configurator.card.smile")} className="aspect-square" />
-            <CardImage src={card.surprise} alt={t("configurator.card.surprise")} className="aspect-square" />
-          </>
-        )}
+      <section aria-busy={busy} className="grid grid-cols-2 gap-3">
+        <CardImage loading={busy} src={card.portrait} alt={t("configurator.card.portrait")} className="col-span-2 aspect-square sm:col-span-1" />
+        <CardImage loading={busy} src={card.fullBody} alt={t("configurator.card.full_body")} className="aspect-[2/3] sm:row-span-2" />
+        <CardImage loading={busy} src={card.smile} alt={t("configurator.card.smile")} className="aspect-square" />
+        <CardImage loading={busy} src={card.surprise} alt={t("configurator.card.surprise")} className="aspect-square" />
       </section>
+      {busy && (
+        <p className="text-sm text-ink/70" aria-live="polite">
+          {t("hero.updating")}
+        </p>
+      )}
 
       {manualRequested && <Notice>{t("configurator.hero.manual_requested")}</Notice>}
 
@@ -247,8 +250,18 @@ function HeroCard({
   );
 }
 
-function CardImage({ src, alt, className }: { src: string | null; alt: string; className?: string }) {
-  if (!src) return <span aria-hidden className={cx("rounded-3xl bg-brand-orange/10", className)} />;
-  // eslint-disable-next-line @next/next/no-img-element -- súkromný súbor projektu
-  return <img src={src} alt={alt} className={cx("w-full rounded-3xl bg-white object-cover ring-1 ring-ink/10", className)} />;
+/** Obrázok Karty – kým sa kreslí, kosť v rovnakom tvare; potom sa odhalí zotretím. */
+function CardImage({ src, alt, className, loading }: { src: string | null; alt: string; className?: string; loading: boolean }) {
+  return (
+    <SkeletonReveal
+      className={className}
+      loading={loading || !src}
+      skeleton={<Skeleton className="h-full w-full rounded-3xl" animate={loading} />}
+    >
+      {src && (
+        // eslint-disable-next-line @next/next/no-img-element -- súkromný súbor projektu
+        <img src={src} alt={alt} className="h-full w-full rounded-3xl bg-white object-cover ring-1 ring-ink/10" />
+      )}
+    </SkeletonReveal>
+  );
 }
