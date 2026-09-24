@@ -22,7 +22,7 @@ import type { Review } from "@/content/reviews";
 const cx = (...classes: (string | false | undefined)[]) => classes.filter(Boolean).join(" ");
 
 /** Trvanie jedného obehu stĺpca – rôzne, aby sa stĺpce nehýbali naraz. */
-const DURATIONS = ["14s", "17s", "15s"];
+const DURATIONS = ["10s", "12s", "11s"];
 const AVATAR_COLORS = ["bg-brand-orange text-ink", "bg-brand-teal text-ink", "bg-brand-purple text-white"];
 
 export function ReviewsSection({
