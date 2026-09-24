@@ -14,6 +14,10 @@ export type LandingCopy = {
   outroTitle: string;
   outroText: string;
   cta: string;
+  /** Pod hlavným tlačidlom – zníženie rizika (náhľad zadarmo, platba až potom). */
+  ctaNote: string;
+  /** Cenová kotva pri výzve: {ebook}, {print}. */
+  priceLine: string;
   animationLabel: string;
   staticImageAlt: string;
   /** Názov na obálke knihy v hero. */
@@ -38,6 +42,8 @@ export const LANDING_COPY: Record<BookLanguage, LandingCopy> = {
     outroTitle: "Vytvorte knihu ešte dnes",
     outroText: "Náhľad zadarmo, tlač do 5 pracovných dní.",
     cta: "Vytvoriť knihu",
+    ctaNote: "Náhľad celej knihy zadarmo. Platíte, až keď sa vám páči.",
+    priceLine: "E-kniha {ebook} · tlačená kniha {print} vrátane e-knihy",
     animationLabel: "Animácia knihy, ktorá sa pri posúvaní stránky otvára a listuje",
     staticImageAlt: "Otvorená kniha s krokmi, ako vzniká personalizovaná kniha",
     coverTitle: "Moja kniha",
@@ -64,6 +70,8 @@ export const LANDING_COPY: Record<BookLanguage, LandingCopy> = {
     outroTitle: "Vytvořte knihu ještě dnes",
     outroText: "Náhled zdarma, tisk do 5 pracovních dnů.",
     cta: "Vytvořit knihu",
+    ctaNote: "Náhled celé knihy zdarma. Platíte, až když se vám líbí.",
+    priceLine: "E-kniha {ebook} · tištěná kniha {print} včetně e-knihy",
     animationLabel: "Animace knihy, která se při posouvání stránky otevírá a listuje",
     staticImageAlt: "Otevřená kniha s kroky, jak vzniká personalizovaná kniha",
     coverTitle: "Moje kniha",
