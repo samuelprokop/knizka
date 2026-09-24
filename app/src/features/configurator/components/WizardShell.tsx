@@ -10,8 +10,8 @@ import type { NameContext } from "@/lib/language";
 import { priceSelection, type PriceInputs } from "../pricing";
 import { PROGRESS_STEPS, progressIndex, stepHref, type StepNumber } from "../steps";
 import { SaveExitButton } from "./SaveExitButton";
-import { cx } from "./ui";
 import { WizardProvider, type PriceView } from "./WizardContext";
+import { StepTransition, WizardProgress, type ProgressItem } from "./WizardMotion";
 
 export function priceView(market: Market, t: Translator, inputs: PriceInputs): PriceView {
   const price = computePrice(priceSelection(inputs), market);
@@ -51,9 +51,23 @@ export function WizardShell({
 }) {
   const current = progressIndex(step);
   const title = PROGRESS_STEPS[current - 1] ?? PROGRESS_STEPS[PROGRESS_STEPS.length - 1];
+  const stepLabel = (index: number, key: MessageKey) => t("common.progress.step", { n: index, total: PROGRESS_STEPS.length, title: t(key) });
+
+  const progress: ProgressItem[] = PROGRESS_STEPS.map((s, i) => {
+    const reachable = !!projectId && s.n <= maxStep && i + 1 !== current;
+    return {
+      key: s.slug,
+      label: t(s.progressKey),
+      href: reachable ? stepHref(market.code, projectId!, s.n) : null,
+      ariaLabel: stepLabel(i + 1, s.progressKey),
+    };
+  });
+  // Späť = predchádzajúci krok lišty, na ktorý sa dá ísť (generovanie sa preskakuje).
+  const previous = projectId ? [...PROGRESS_STEPS].reverse().find((s) => s.n < step && s.n <= maxStep) : undefined;
+  const prevHref = previous ? stepHref(market.code, projectId!, previous.n) : null;
 
   return (
-    <WizardProvider value={{ market: market.code, projectId, price, hero, bookLanguage }}>
+    <WizardProvider value={{ market: market.code, projectId, price, hero, bookLanguage, prevHref }}>
       <div className="flex min-h-dvh flex-col bg-paper">
         <header className="sticky top-0 z-40 border-b border-ink/10 bg-white/95 backdrop-blur">
           <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-2 sm:px-6">
@@ -62,44 +76,23 @@ export function WizardShell({
             </Link>
             {projectId && <SaveExitButton projectId={projectId} />}
           </div>
-          <nav aria-label={t("configurator.progress.label")} className="mx-auto max-w-3xl px-4 pb-3 sm:px-6">
-            <p className="text-sm font-medium text-ink/70">
-              {t("common.progress.step", { n: current, total: PROGRESS_STEPS.length, title: t(title.progressKey) })}
-            </p>
-            <ol className="mt-2 grid grid-cols-8 gap-1">
-              {PROGRESS_STEPS.map((s, i) => {
-                const index = i + 1;
-                const reachable = !!projectId && s.n <= maxStep && index !== current;
-                const bar = cx(
-                  "block h-2 rounded-full",
-                  index < current ? "bg-brand-orange-dark" : index === current ? "bg-brand-orange" : "bg-ink/12"
-                );
-                return (
-                  <li key={s.slug}>
-                    {reachable ? (
-                      <Link
-                        href={stepHref(market.code, projectId!, s.n)}
-                        className="block py-2 outline-none focus-visible:ring-4 focus-visible:ring-brand-orange/40"
-                        aria-label={t("common.progress.step", { n: index, total: PROGRESS_STEPS.length, title: t(s.progressKey) })}
-                      >
-                        <span className={bar} />
-                      </Link>
-                    ) : (
-                      <span className="block py-2" aria-current={index === current ? "step" : undefined}>
-                        <span className={bar} />
-                        <span className="sr-only">{t(s.progressKey)}</span>
-                      </span>
-                    )}
-                  </li>
-                );
-              })}
-            </ol>
-          </nav>
+          <div className="mx-auto max-w-3xl px-2 pb-1 sm:px-4">
+            <WizardProgress items={progress} current={current - 1} label={t("configurator.progress.label")} />
+            {/* Na mobile nie sú názvy pri bodkách – aktuálny krok slovom. */}
+            <p className="pb-2 text-center text-sm font-medium text-ink/70 md:hidden">{stepLabel(current, title.progressKey)}</p>
+          </div>
         </header>
 
-        <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 pt-6 sm:px-6">
-          {notice}
-          {children}
+        {/* Obsah kroku v karte (od tabletu); na mobile na celú šírku. */}
+        <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col overflow-x-clip px-4 pt-6 sm:px-6 sm:pb-8">
+          <StepTransition
+            index={current}
+            className="flex flex-1 flex-col gap-6 sm:overflow-clip sm:rounded-3xl sm:bg-white sm:px-6 sm:pt-6 sm:shadow-md sm:shadow-ink/[0.04] sm:ring-1 sm:ring-ink/[0.06]"
+          >
+            {notice}
+            {children}
+          </StepTransition>
+          <p className="mt-4 hidden text-center text-sm text-ink/60 md:block">{stepLabel(current, title.progressKey)}</p>
         </main>
       </div>
     </WizardProvider>

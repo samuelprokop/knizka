@@ -1,0 +1,119 @@
+"use client";
+
+/*
+  Pohyb konfigurátora podľa „Multistep Form“ (Spectrum UI, 21st.dev):
+  lišta priebehu s bodkami a názvami krokov nad vypĺňajúcim sa pásom
+  a obsah kroku, ktorý pri prechode vojde zboku (smer podľa toho, či
+  zákazník ide dopredu alebo späť).
+
+  Každý krok je vlastná stránka, takže sa komponenty pri prechode vytvoria
+  nanovo. Predchádzajúci krok si preto pamätáme v module (prežije klientskú
+  navigáciu): pás dobehne z minulej pozície a obsah vojde zo správnej strany.
+  Pri prvom načítaní sa nič neanimuje.
+*/
+
+import Link from "next/link";
+import { motion, useReducedMotion } from "motion/react";
+import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
+
+import { cx } from "./ui";
+
+export type ProgressItem = { key: string; label: string; href: string | null; ariaLabel: string };
+
+let lastIndex: number | null = null;
+
+/** Index kroku, z ktorého zákazník prišiel (null pri prvom načítaní). Číta sa raz pri vytvorení. */
+function usePreviousIndex() {
+  const [previous] = useState(() => lastIndex);
+  return previous;
+}
+
+export function WizardProgress({ items, current, label }: { items: ProgressItem[]; current: number; label: string }) {
+  const reduceMotion = useReducedMotion();
+  const previous = usePreviousIndex();
+  const ratio = (i: number) => (items.length > 1 ? i / (items.length - 1) : 1);
+
+  return (
+    <nav aria-label={label} className="relative">
+      {/* Pás priebehu – ide stredom bodiek. */}
+      <div aria-hidden className="absolute inset-x-[calc(100%/var(--n)/2)] top-5 h-1 rounded-full bg-ink/10" style={{ "--n": items.length } as CSSProperties}>
+        <motion.div
+          className="h-full rounded-full bg-brand-orange"
+          initial={{ width: `${ratio(previous ?? current) * 100}%` }}
+          animate={{ width: `${ratio(current) * 100}%` }}
+          transition={reduceMotion ? { duration: 0 } : { duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        />
+      </div>
+      <ol className="relative grid" style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}>
+        {items.map((item, i) => {
+          const state = i < current ? "done" : i === current ? "current" : "todo";
+          const content = (
+            <>
+              <span className="flex size-11 items-center justify-center">
+                <span
+                  className={cx(
+                    "block rounded-full transition-all duration-300 motion-reduce:transition-none",
+                    state === "done" && "size-3.5 bg-brand-orange",
+                    state === "current" && "size-4 bg-brand-orange ring-4 ring-brand-orange/25",
+                    state === "todo" && "size-3.5 bg-white ring-2 ring-ink/15",
+                    item.href && "group-hover:scale-125"
+                  )}
+                />
+              </span>
+              <span
+                className={cx(
+                  "-mt-1.5 hidden px-0.5 text-center text-xs leading-tight md:block",
+                  state === "current" ? "font-semibold text-ink" : "text-ink/60",
+                  item.href && "group-hover:text-ink"
+                )}
+              >
+                {item.label}
+              </span>
+            </>
+          );
+          return (
+            <li key={item.key} className="flex justify-center">
+              {item.href ? (
+                <Link
+                  href={item.href}
+                  aria-label={item.ariaLabel}
+                  className="group flex flex-col items-center rounded-2xl pb-1 outline-none focus-visible:ring-4 focus-visible:ring-brand-orange/40"
+                >
+                  {content}
+                </Link>
+              ) : (
+                <span aria-current={state === "current" ? "step" : undefined} className="flex flex-col items-center pb-1">
+                  {content}
+                  <span className="sr-only">{item.ariaLabel}</span>
+                </span>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+    </nav>
+  );
+}
+
+/** Obsah kroku – pri prechode z iného kroku vojde zboku podľa smeru. */
+export function StepTransition({ index, children, className }: { index: number; children: ReactNode; className?: string }) {
+  const reduceMotion = useReducedMotion();
+  const previous = usePreviousIndex();
+  const direction = previous === null || previous === index ? 0 : index > previous ? 1 : -1;
+
+  // Zapamätať až po vykreslení – lišta aj obsah čítajú rovnakú minulú hodnotu.
+  useEffect(() => {
+    lastIndex = index;
+  }, [index]);
+
+  return (
+    <motion.div
+      className={className}
+      initial={direction === 0 || reduceMotion ? false : { opacity: 0, x: direction * 48 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+    >
+      {children}
+    </motion.div>
+  );
+}

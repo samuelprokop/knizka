@@ -138,7 +138,7 @@ function Questions(props: StoryStepProps) {
 
       {pending && <Notice>{t("wizard.ideas.generating")}</Notice>}
       {error && <Notice tone="error">{t(error)}</Notice>}
-      <StepFooter>
+      <StepFooter back={false}>
         <Button className="w-full sm:w-auto" pending={pending} disabled={(q === "occasion" && !answers.occasion) || (q === "world" && !answers.worlds?.length) || (q === "tone" && !answers.tone)} onClick={next}>
           {t("common.continue")}
         </Button>

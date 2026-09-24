@@ -16,6 +16,8 @@ export type WizardValue = {
   /** Tvary mena hrdinu na dosadenie do textov ({meno:A} …). */
   hero: NameContext | null;
   bookLanguage: string;
+  /** Predchádzajúci krok pre tlačidlo Späť v spodnej lište (null = žiadny). */
+  prevHref: string | null;
 };
 
 const Ctx = createContext<WizardValue | null>(null);
