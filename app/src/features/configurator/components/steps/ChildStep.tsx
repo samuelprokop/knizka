@@ -211,7 +211,7 @@ export function ChildStep({ initial, bookLanguages }: { initial: ChildInitial; b
             <h2 id={`${ids}-check`} className="font-semibold text-ink">
               {t("child.check.title")}
             </h2>
-            <ul className="flex flex-col gap-2 font-heading text-lg text-ink" lang={language}>
+            <ul className="flex flex-col gap-1.5 font-heading text-base text-ink lg:text-[1.0625rem]" lang={language}>
               {SAMPLES.map((key) => (
                 <li key={key}>„{bookT(key, undefined, nameCtx)}“</li>
               ))}
