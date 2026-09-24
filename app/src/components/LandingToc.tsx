@@ -1,14 +1,14 @@
 "use client";
 
 /*
-  Obsah úvodnej stránky – zvislé kroky vľavo (predloha „Vertical Titles“ z 21st.dev,
-  Ark UI Steps), upravené na menu: položky sú zastávky knihy v hero + pätička.
-  Aktuálna je zvýraznená, prejdené sa NEodškrtávajú.
+  Obsah úvodnej stránky – zvislé kroky vľavo podľa „Vertical Titles“ (21st.dev,
+  Ark UI Steps), upravené na menu: položky sú zastávky knihy v hero + pätička,
+  každá s nadpisom a kľúčovým popisom. Aktuálna je zvýraznená, prejdené sa
+  NEodškrtávajú.
 
-  Aby nezavadzal textu hero, je zbalený na úzky pás koliesok; názvy sa ukážu po
-  prejdení myšou alebo pri prechode klávesnicou (čítačka ich číta vždy). Len od
-  šírky lg – na mobile sa hero ovláda potiahnutím a pás by zakrýval obsah.
-  Pri odkrytí pätičky sa vytratí (nad oranžovou pätičkou by prekážal).
+  Na desktope (od lg) je to trvalý stĺpec a hero si preň rezervuje miesto
+  (--hero-inset na stránke, šírka stĺpca = TOC_WIDTH). Na mobile nie je – hero
+  sa ovláda potiahnutím a stĺpec by zabral knihu. Pri pätičke sa vytratí.
 */
 
 import { motion, useReducedMotion } from "motion/react";
@@ -18,19 +18,28 @@ import type { LandingCopy } from "@/content/landing";
 import { heroNavigation } from "./BookHero";
 import { FooterRevealFadeOut } from "./FooterReveal";
 
-type Item = { key: string; label: string; marker: ReactNode; target: number | "footer" };
+type Item = { key: string; label: string; description: string; marker: ReactNode; target: number | "footer" };
 
 const cx = (...classes: (string | false | undefined)[]) => classes.filter(Boolean).join(" ");
+
+/** Priestor, ktorý si hero rezervuje vľavo (okraj + stĺpec) – nastavuje sa na stránke. */
+export const TOC_INSET_CLASS = "lg:[--hero-inset:17.5rem] xl:[--hero-inset:20rem]";
 
 export function LandingToc({ copy }: { copy: LandingCopy }) {
   const reduceMotion = useReducedMotion();
   const current = useSyncExternalStore(heroNavigation.subscribe, heroNavigation.getCurrent, () => 0);
 
   const items: Item[] = [
-    { key: "intro", label: copy.toc.intro, marker: <BookIcon />, target: 0 },
-    ...copy.steps.map((step, i) => ({ key: step.number, label: step.title, marker: String(i + 1), target: i + 1 })),
-    { key: "outro", label: copy.toc.outro, marker: <PenIcon />, target: heroNavigation.stops - 1 },
-    { key: "footer", label: copy.toc.footer, marker: <InfoIcon />, target: "footer" },
+    { key: "intro", label: copy.toc.intro, description: copy.toc.introShort, marker: <BookIcon />, target: 0 },
+    ...copy.steps.map((step, i) => ({
+      key: step.number,
+      label: step.title,
+      description: step.short,
+      marker: String(i + 1),
+      target: i + 1,
+    })),
+    { key: "outro", label: copy.toc.outro, description: copy.toc.outroShort, marker: <PenIcon />, target: heroNavigation.stops - 1 },
+    { key: "footer", label: copy.toc.footer, description: copy.toc.footerShort, marker: <InfoIcon />, target: "footer" },
   ];
 
   const go = (target: Item["target"]) => {
@@ -42,54 +51,49 @@ export function LandingToc({ copy }: { copy: LandingCopy }) {
   };
 
   return (
-    <nav aria-label={copy.toc.label} className="pointer-events-none fixed top-1/2 left-3 z-40 hidden -translate-y-1/2 lg:block xl:left-6">
+    <nav
+      aria-label={copy.toc.label}
+      className="fixed top-1/2 left-4 z-40 hidden w-60 -translate-y-1/2 lg:block xl:left-6 xl:w-72"
+    >
       <FooterRevealFadeOut>
-        <ol className="group/toc pointer-events-auto relative flex w-11 flex-col">
-          {/* Panel s názvami – objaví sa pri prejdení myšou / zaostrení. */}
-          <span
-            aria-hidden
-            className="pointer-events-none absolute -inset-y-3 -left-2 w-72 rounded-3xl bg-white/90 opacity-0 shadow-xl shadow-ink/10 ring-1 ring-ink/10 backdrop-blur-md transition-opacity duration-200 group-has-[:focus-visible]/toc:pointer-events-auto group-has-[:focus-visible]/toc:opacity-100 group-hover/toc:pointer-events-auto group-hover/toc:opacity-100"
-          />
-          {/* Spojovacia čiara medzi kolieskami – bez „dokončeného“ stavu. */}
-          <span aria-hidden className="absolute top-[22px] bottom-[22px] left-[21px] w-0.5 rounded-full bg-ink/10" />
-
-          {items.map((item) => {
+        <ol className="flex flex-col">
+          {items.map((item, index) => {
             const active = item.target === current;
+            const last = index === items.length - 1;
             return (
               <li key={item.key} className="relative">
+                {/* Spojovacia čiara ku ďalšiemu kroku – bez „dokončeného“ stavu. */}
+                {!last && <span aria-hidden className="absolute top-11 -bottom-1 left-[23px] w-0.5 rounded-full bg-ink/10" />}
                 <button
                   type="button"
                   onClick={() => go(item.target)}
                   aria-current={active ? "step" : undefined}
-                  className="group/item relative flex size-11 items-center justify-center rounded-full outline-none focus-visible:ring-4 focus-visible:ring-brand-orange/40"
+                  className="group relative flex w-full items-start gap-3 rounded-2xl p-2 text-left transition-colors outline-none hover:bg-ink/[0.03] focus-visible:ring-4 focus-visible:ring-brand-orange/40"
                 >
-                  {active && (
-                    <motion.span
-                      layoutId="landing-toc-current"
+                  <span className="relative flex size-8 shrink-0 items-center justify-center">
+                    {active && (
+                      <motion.span
+                        layoutId="landing-toc-current"
+                        aria-hidden
+                        className="absolute inset-0 rounded-full bg-brand-orange shadow-md shadow-brand-orange/30"
+                        transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 420, damping: 34 }}
+                      />
+                    )}
+                    <span
                       aria-hidden
-                      className="absolute size-8 rounded-full bg-brand-orange shadow-md shadow-brand-orange/30"
-                      transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 420, damping: 34 }}
-                    />
-                  )}
-                  <span
-                    aria-hidden
-                    className={cx(
-                      "relative flex size-8 items-center justify-center rounded-full text-xs font-bold transition-colors duration-150",
-                      active
-                        ? "text-ink"
-                        : "bg-white text-ink/70 ring-1 ring-ink/15 group-hover/item:text-ink group-hover/item:ring-ink/35"
-                    )}
-                  >
-                    {item.marker}
+                      className={cx(
+                        "relative flex size-8 items-center justify-center rounded-full text-xs font-bold transition-colors duration-150",
+                        active ? "text-ink" : "bg-white text-ink/70 ring-1 ring-ink/15 group-hover:text-ink group-hover:ring-ink/35"
+                      )}
+                    >
+                      {item.marker}
+                    </span>
                   </span>
-                  {/* Názov – mimo toku, aby zbalený pás nezaberal miesto nad textom hero. */}
-                  <span
-                    className={cx(
-                      "pointer-events-none absolute left-12 whitespace-nowrap text-sm opacity-0 transition duration-200 group-has-[:focus-visible]/toc:pointer-events-auto group-has-[:focus-visible]/toc:opacity-100 group-hover/toc:pointer-events-auto group-hover/toc:opacity-100 motion-safe:-translate-x-1 motion-safe:group-hover/toc:translate-x-0 motion-safe:group-has-[:focus-visible]/toc:translate-x-0",
-                      active ? "font-semibold text-ink" : "font-medium text-ink/75 group-hover/item:text-ink"
-                    )}
-                  >
-                    {item.label}
+                  <span className="flex min-w-0 flex-col pt-0.5">
+                    <span className={cx("text-sm leading-snug", active ? "font-semibold text-ink" : "font-medium text-ink/80 group-hover:text-ink")}>
+                      {item.label}
+                    </span>
+                    <span className={cx("text-[13px] leading-snug", active ? "text-ink/70" : "text-ink/60")}>{item.description}</span>
                   </span>
                 </button>
               </li>

@@ -17,6 +17,14 @@ import type { LandingCopy } from "@/content/landing";
 const FRAME_COUNT = 361;
 const frameSrc = (i: number) => `/hero/book/${String(i).padStart(3, "0")}.webp`;
 
+/*
+  Okraje videa sa rozplynú do bielej – video má v rohoch jemnú vinetu, ktorá
+  je viditeľná, keď plocha nesiaha po okraj okna (stĺpec obsahu vľavo).
+  Kniha sa k okrajom nedostane (najďalej ~9 % šírky), takže ju to nezasiahne.
+*/
+const EDGE_FADE =
+  "[mask-image:linear-gradient(to_right,transparent,black_6%,black_94%,transparent),linear-gradient(to_bottom,transparent,black_7%,black_93%,transparent)] [mask-composite:intersect]";
+
 type Segment =
   | { kind: "hold"; frame: number; weight: number; overlay: number }
   | { kind: "play"; from: number; to: number; weight: number };
@@ -516,21 +524,22 @@ function AnimatedHero({ copy, ctaHref }: HeroProps) {
       className="relative"
       style={{ height: `${(TOTAL_WEIGHT * VIEWPORTS_PER_WEIGHT + 1) * 100}svh` }}
     >
-      <section className="sticky top-0 flex h-[100dvh] w-full items-center justify-center overflow-hidden bg-white">
+      {/* --hero-inset: miesto pre obsah stránky vľavo (LandingToc), inak 0. */}
+      <section className="sticky top-0 flex h-[100dvh] w-full items-center justify-center overflow-hidden bg-white pl-[var(--hero-inset,0px)]">
         <div
           className="relative [container-type:inline-size]"
-          style={{ width: "min(100vw, calc(100dvh * 16 / 9))", aspectRatio: "16 / 9" }}
+          style={{ width: "min(calc(100vw - var(--hero-inset, 0px)), calc(100dvh * 16 / 9))", aspectRatio: "16 / 9" }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={frameSrc(0)}
             alt=""
             fetchPriority="high"
-            className="absolute inset-0 h-full w-full"
+            className={`absolute inset-0 h-full w-full ${EDGE_FADE}`}
           />
           <canvas
             ref={canvasRef}
-            className="absolute inset-0 h-full w-full opacity-0"
+            className={`absolute inset-0 h-full w-full opacity-0 ${EDGE_FADE}`}
             aria-label={copy.animationLabel}
             role="img"
           />

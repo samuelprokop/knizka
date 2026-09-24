@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import { BookHero } from "@/components/BookHero";
 import { FooterReveal, FooterRevealContent, FooterRevealFadeOut, FooterRevealFooter } from "@/components/FooterReveal";
-import { LandingToc } from "@/components/LandingToc";
+import { LandingToc, TOC_INSET_CLASS } from "@/components/LandingToc";
 import { SiteFooter } from "@/components/SiteFooter";
 import { LANDING_COPY } from "@/content/landing";
 import { getMarketContext } from "@/i18n/server";
@@ -16,7 +16,7 @@ export default async function Home() {
   return (
     <FooterReveal>
       <FooterRevealContent>
-        <main>
+        <main className={TOC_INSET_CLASS}>
           <header className="fixed inset-x-0 top-0 z-50">
             <FooterRevealFadeOut className="flex items-center justify-between px-6 py-3 sm:px-10">
               {/* Identita dočasne TAKTIK; pri vlastnej značke sa vymení logo a tokeny v globals.css. */}
