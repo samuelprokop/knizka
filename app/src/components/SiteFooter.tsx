@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { CookieSettingsLink } from "@/components/CookieConsent";
 import type { Market } from "@/config/markets";
 import type { Translator } from "@/i18n/format";
 import type { MessageKey } from "@/i18n/messages";
@@ -68,6 +69,11 @@ export function SiteFooter({ market, t }: { market: Market; t: Translator }) {
                     </a>
                   </li>
                 ))}
+                {column.title === "footer.col.info" && (
+                  <li>
+                    <CookieSettingsLink className="text-left font-medium underline-offset-4 hover:underline" />
+                  </li>
+                )}
               </ul>
             </nav>
           ))}

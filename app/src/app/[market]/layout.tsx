@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Bitter, Inter } from "next/font/google";
 import { notFound } from "next/navigation";
 
+import { CookieConsent } from "@/components/CookieConsent";
 import { getMarket, isMarketCode, MARKET_CODES } from "@/config/markets";
 import { UiPreviewBadge } from "@/features/ui-preview/UiPreviewBadge";
 import { I18nProvider } from "@/i18n/client";
@@ -44,6 +45,7 @@ export default async function MarketLayout({ children, params }: LayoutProps<"/[
       <body className="min-h-full flex flex-col font-body bg-white text-ink">
         <I18nProvider market={market.code} language={market.uiLanguage}>
           {children}
+          <CookieConsent />
         </I18nProvider>
         <UiPreviewBadge />
       </body>

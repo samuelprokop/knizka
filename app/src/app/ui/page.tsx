@@ -50,6 +50,8 @@ export default async function UiCatalogPage() {
       items: [
         { label: "Hero s knihou – slovensky", href: "/sk" },
         { label: "Hero s knihou – česky", href: "/cz" },
+        { label: "Cookie box", note: "zobrazí sa aj po voľbe", href: "/sk?cookies=1" },
+        { label: "Cookie box – česky", href: "/cz?cookies=1" },
       ],
     },
     {
