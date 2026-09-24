@@ -123,6 +123,12 @@ export function ReviewsSection({
  * zotrvačnosť touchpadu ju neprešvihne). Ak posúvanie skončí s odkrytou sekciou
  * (aspoň do polovice), dotiahne sa. Nahor sa nezastavuje.
  */
+/** Skok z menu (napr. na pätičku) nemá na recenziách zastaviť. */
+let skipStopUntil = 0;
+export function skipReviewsStop() {
+  skipStopUntil = performance.now() + 800;
+}
+
 function useStopAtSection(ref: React.RefObject<HTMLElement | null>, reduceMotion: boolean) {
   useEffect(() => {
     // Zastavenie drží, kým beží gesto, ktoré sem dopravilo (aj dobiehajúca zotrvačnosť);
@@ -151,6 +157,19 @@ function useStopAtSection(ref: React.RefObject<HTMLElement | null>, reduceMotion
       e.preventDefault();
       armRelease();
     };
+    // Koliesko / touchpad: krok, ktorý by prešiel cez vrch sekcie, sa zachytí
+    // ešte pred posunom – stránka zastane presne na sekcii (aj pri veľkom kroku).
+    const onWheel = (e: WheelEvent) => {
+      if (stopped) return block(e);
+      if (e.ctrlKey || performance.now() < skipStopUntil) return;
+      const d = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaMode === 2 ? e.deltaY * window.innerHeight : e.deltaY;
+      const top = ref.current?.getBoundingClientRect().top ?? 0;
+      if (d > 0 && top > 1 && top - d <= 1) {
+        e.preventDefault();
+        stop();
+        align(false);
+      }
+    };
     const align = (smooth: boolean) => {
       const top = ref.current?.getBoundingClientRect().top ?? 0;
       window.scrollBy({ top, behavior: smooth && !reduceMotion ? "smooth" : "instant" });
@@ -162,9 +181,9 @@ function useStopAtSection(ref: React.RefObject<HTMLElement | null>, reduceMotion
       const top = el.getBoundingClientRect().top;
       const down = window.scrollY > lastY;
       lastY = window.scrollY;
-      // Prekročenie vrchu smerom nadol → zastaviť presne na sekcii
-      // (len pri bežnom posúvaní – skok z menu na pätičku sekciu preletí celú).
-      if (down && lastTop > 1 && top <= 1 && top > -window.innerHeight * 0.5 && !stopped) {
+      // Záloha pre dotyk, klávesnicu a posuvník: prekročenie vrchu nadol → späť na sekciu
+      // (skok z menu na pätičku zastavenie preskočí – skipReviewsStop).
+      if (down && lastTop > 1 && top <= 1 && !stopped && performance.now() >= skipStopUntil) {
         stop();
         align(false);
       }
@@ -172,7 +191,7 @@ function useStopAtSection(ref: React.RefObject<HTMLElement | null>, reduceMotion
       window.clearTimeout(settle);
       settle = window.setTimeout(() => {
         const t = el.getBoundingClientRect().top;
-        if (down && !stopped && t > 1 && t < window.innerHeight * 0.5) {
+        if (down && !stopped && t > 1 && t < window.innerHeight * 0.5 && performance.now() >= skipStopUntil) {
           stop();
           align(true);
         }
@@ -183,12 +202,12 @@ function useStopAtSection(ref: React.RefObject<HTMLElement | null>, reduceMotion
     };
 
     window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("wheel", block, { passive: false });
+    window.addEventListener("wheel", onWheel, { passive: false });
     window.addEventListener("touchmove", block, { passive: false });
     window.addEventListener("touchend", onTouchEnd, { passive: true });
     return () => {
       window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("wheel", block);
+      window.removeEventListener("wheel", onWheel);
       window.removeEventListener("touchmove", block);
       window.removeEventListener("touchend", onTouchEnd);
       window.clearTimeout(settle);
