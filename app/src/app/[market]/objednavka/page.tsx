@@ -1,17 +1,19 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
 
 import { formatMoney } from "@/config/markets";
 import type { PriceSelection } from "@/domain/pricing";
 import { submitCheckoutAction } from "@/features/checkout/actions";
+import { CouponReveal } from "@/features/checkout/components/CouponReveal";
 import { PaymentPanel } from "@/features/checkout/components/PaymentPanel";
 import { loadCart } from "@/features/checkout/server/cart";
 import { computeOrderPrice } from "@/features/checkout/pricing";
+import { validateVoucherCode } from "@/features/checkout/voucher";
 import { SessionExpired } from "@/features/configurator/components/SessionExpired";
-import { buttonClass, Field, inputClass, Notice } from "@/features/configurator/components/ui";
+import { Field, inputClass, Notice } from "@/features/configurator/components/ui";
 import { hasProjectSession } from "@/features/configurator/server/session";
 import type { MessageKey } from "@/i18n/messages";
 import { getMarketContext } from "@/i18n/server";
+import { GoBackButton } from "@/components/buttons";
 import { ShopHeader } from "@/components/ShopHeader";
 import { DeliveryFields } from "@/features/checkout/components/DeliveryFields";
 import { InvoiceFields } from "@/features/checkout/components/InvoiceFields";
@@ -50,13 +52,17 @@ export default async function CheckoutPage({ searchParams }: PageProps<"/[market
   };
   const price = computeOrderPrice(selection, market, { carrierId: isPrint ? carrierId : null, voucherCode });
 
+  // Úvodná zľava novej značky – len keď na objednávke ešte nie je iný kód (jeden kód na objednávku).
+  const launch = market.launchVoucherCode && !voucherCode ? validateVoucherCode(market.launchVoucherCode, market.code) : null;
+  const launchOffer = launch?.ok && launch.kind === "percent" ? { code: launch.code, percent: launch.percent } : null;
+
   const paymentMethods = market.paymentMethods.filter((m) => m !== "cod" || market.codAllowedForPersonalizedBook);
   const cartHref = `/${market.code}/kosik?${new URLSearchParams({ projekt: projectId, variant, extraCopies: String(extraCopies), giftWrap: giftWrap ? "1" : "0", voucher: voucherCode })}`;
 
   return (
     <>
       <ShopHeader wide />
-      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-5 px-4 pt-6 pb-10">
+      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-5 px-4 pt-5 pb-10 lg:pb-6">
       <h1 className="font-heading text-[1.75rem] font-extrabold text-ink sm:text-[2.1rem]">{t("checkout.title")}</h1>
 
       {errorKey && <Notice tone="error">{t(errorKey)}</Notice>}
@@ -71,7 +77,7 @@ export default async function CheckoutPage({ searchParams }: PageProps<"/[market
         <input type="hidden" name="voucherCode" value={voucherCode} />
 
         {/* Vľavo údaje, vpravo súhrn a platba (lepí sa) – bez posúvania. */}
-        <div className="flex min-w-0 flex-col gap-6">
+        <div className="flex min-w-0 flex-col gap-4">
         <section className="flex flex-col gap-4">
           <Field label={t("checkout.email")} htmlFor="email">
             <input id="email" name="email" type="email" required autoComplete="email" defaultValue={cart.email ?? ""} className={inputClass} />
@@ -93,12 +99,13 @@ export default async function CheckoutPage({ searchParams }: PageProps<"/[market
         )}
 
         <InvoiceFields />
-          <Link href={cartHref} className={buttonClass("ghost", "self-start px-0")}>
+        {launchOffer && <CouponReveal code={launchOffer.code} percent={launchOffer.percent} />}
+          <GoBackButton href={cartHref} className="self-start">
             {t("checkout.back_to_cart")}
-          </Link>
+          </GoBackButton>
         </div>
 
-        <div className="flex flex-col gap-4 lg:sticky lg:top-4">
+        <div className="flex flex-col gap-3 lg:sticky lg:top-4">
 
         <section className="flex flex-col gap-1.5 rounded-2xl bg-white p-4 ring-1 ring-ink/10">
           <p className="mb-1 text-sm font-semibold text-ink">{t("cart.item", { title: cart.bookTitle }, cart.hero)}</p>

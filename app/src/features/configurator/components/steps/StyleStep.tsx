@@ -98,6 +98,7 @@ function StyleGrid({ portraits, recommended, chosenStyle, bookExists }: Paramete
       {error && <Notice tone="error">{t(error)}</Notice>}
       <StepFooter>
         <Button
+          variant="next"
           className="w-full sm:w-auto"
           disabled={!selected}
           pending={pending}
@@ -246,6 +247,7 @@ function HeroCard({
       {panel === "none" && (
       <StepFooter>
         <Button
+          variant="next"
           className="w-full sm:w-auto"
           disabled={busy || card.status === "failed"}
           pending={pending}

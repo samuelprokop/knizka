@@ -7,10 +7,10 @@
   a pri recenziách je hlavička jediná výzva (v pätičke hlavička mizne sama).
 */
 
-import Link from "next/link";
 import { useEffect, useState, useSyncExternalStore } from "react";
 
 import { heroNavigation } from "./BookHero";
+import { MotionCta } from "./buttons";
 
 export function LandingHeaderCta({ href, label }: { href: string; label: string }) {
   const current = useSyncExternalStore(heroNavigation.subscribe, heroNavigation.getCurrent, () => 0);
@@ -18,17 +18,17 @@ export function LandingHeaderCta({ href, label }: { href: string; label: string 
   const heroHasCta = !pastHero && (current === 0 || current === heroNavigation.stops - 1);
 
   return (
-    <Link
+    <MotionCta
       href={href}
       aria-hidden={heroHasCta || undefined}
       tabIndex={heroHasCta ? -1 : undefined}
       className={
-        "rounded-full bg-brand-orange-dark px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-[opacity,transform] duration-300 hover:bg-[#9a3500] focus-visible:ring-4 focus-visible:ring-brand-orange/40 focus-visible:outline-none motion-reduce:transition-none " +
+        "text-[0.9375rem] transition-[opacity,translate,scale] duration-300 motion-reduce:transition-none " +
         (heroHasCta ? "pointer-events-none -translate-y-1 opacity-0" : "opacity-100")
       }
     >
       {label}
-    </Link>
+    </MotionCta>
   );
 }
 

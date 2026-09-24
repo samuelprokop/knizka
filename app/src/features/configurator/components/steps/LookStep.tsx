@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
+import { GoBackButton } from "@/components/buttons";
+
 import { ACTIVITIES, ACTIVITY_PICK_COUNT, BOOK_FORMATS, COVER_DESIGNS, LAYOUTS, type ActivityId, type LayoutId } from "@/config/catalog";
 import { SampleSpread, type SampleSpreadData } from "@/features/book/components/SampleSpread";
 import { useI18n } from "@/i18n/client";
@@ -14,7 +16,7 @@ import { StepFooter } from "../StepFooter";
 import { Button, Chip, cx, Notice, StepTitle, Toggle, splitOptions } from "../ui";
 import { useWizard } from "../WizardContext";
 import { useSubStep } from "../WizardMotion";
-import { ChevronLeftIcon, ChevronRightIcon } from "@/components/icons";
+import { ChevronRightIcon } from "@/components/icons";
 
 const LAYOUT_KEYS: Record<LayoutId, { name: MessageKey; help: MessageKey }> = {
   classic: { name: "layout.classic", help: "layout.classic.help" },
@@ -153,10 +155,9 @@ export function LookStep(props: LookStepProps) {
           )}
           {/* Na mobile späť v obsahu (spodná lišta má Späť až od tabletu). */}
           {more !== null && (
-            <Button variant="ghost" className="self-start px-0 md:hidden" onClick={() => setMore(null)}>
-              <ChevronLeftIcon className="size-4" />
+            <GoBackButton className="self-start md:hidden" onClick={() => setMore(null)}>
               {t("common.back")}
-            </Button>
+            </GoBackButton>
           )}
           {more === "cover" && (
             <div className="grid gap-x-6 gap-y-4 lg:grid-cols-2">
@@ -233,6 +234,7 @@ export function LookStep(props: LookStepProps) {
       <StepFooter>
         {props.canGenerate ? (
           <Button
+            variant="next"
             className="w-full sm:w-auto"
             pending={generating}
             disabled={saving}
@@ -248,7 +250,7 @@ export function LookStep(props: LookStepProps) {
           </Button>
         ) : (
           props.bookExists && (
-            <Button className="w-full sm:w-auto" onClick={() => router.push(stepHref(market, projectId!, 8))}>
+            <Button variant="next" className="w-full sm:w-auto" onClick={() => router.push(stepHref(market, projectId!, 8))}>
               {t("common.continue")}
             </Button>
           )

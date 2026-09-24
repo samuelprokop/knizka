@@ -83,7 +83,7 @@ export function PreviewStep(props: Props) {
           )}
           <BookFlipbook book={props.book} onEditPage={editPage} reserveRem={36} />
           <StepFooter>
-            <Button className="w-full sm:w-auto" disabled={busy} onClick={() => router.push(stepHref(market, projectId!, 9))}>
+            <Button variant="next" className="w-full sm:w-auto" disabled={busy} onClick={() => router.push(stepHref(market, projectId!, 9))}>
               {t("preview.like")}
             </Button>
           </StepFooter>

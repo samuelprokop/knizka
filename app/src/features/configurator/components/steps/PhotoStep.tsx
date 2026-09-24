@@ -70,7 +70,7 @@ export function PhotoStep({
         </Button>
         {error && <Notice tone="error">{t(error)}</Notice>}
         <StepFooter>
-          <Button className="w-full sm:w-auto" pending={pending} disabled={!look.hairColor || !look.skin} onClick={() => continueWith("description")}>
+          <Button variant="next" className="w-full sm:w-auto" pending={pending} disabled={!look.hairColor || !look.skin} onClick={() => continueWith("description")}>
             {t("common.continue")}
           </Button>
         </StepFooter>
@@ -131,7 +131,7 @@ export function PhotoStep({
 
       {error && <Notice tone="error">{t(error)}</Notice>}
       <StepFooter>
-        <Button className="w-full sm:w-auto" pending={pending} disabled={!usable} onClick={() => continueWith("photo")}>
+        <Button variant="next" className="w-full sm:w-auto" pending={pending} disabled={!usable} onClick={() => continueWith("photo")}>
           {t("common.continue")}
         </Button>
       </StepFooter>

@@ -12,6 +12,7 @@ import {
 } from "motion/react";
 
 import type { LandingCopy } from "@/content/landing";
+import { MotionCta } from "./buttons";
 import { HeroBook, type BookState } from "./HeroBook";
 
 type Segment = { kind: "hold"; weight: number; overlay: number } | { kind: "play"; weight: number };
@@ -496,12 +497,9 @@ function AnimatedHero({ copy, ctaHref, prices }: HeroProps) {
               <p className="mt-2 text-sm text-ink/60">{item.text}</p>
               {i === all.length - 1 && <p className="mt-2 text-sm font-semibold text-ink">{priceLine(copy, prices)}</p>}
               {(i === 0 || i === all.length - 1) && (
-                <Link
-                  href={ctaHref}
-                  className="mt-4 inline-flex min-h-12 items-center rounded-full bg-brand-orange-dark px-6 text-base font-semibold text-white"
-                >
+                <MotionCta href={ctaHref} className="mt-4 text-base">
                   {copy.cta}
-                </Link>
+                </MotionCta>
               )}
               {(i === 0 || i === all.length - 1) && <p className="mt-2 text-xs text-ink/60">{copy.ctaNote}</p>}
             </Overlay>
@@ -555,15 +553,9 @@ const priceLine = (copy: LandingCopy, prices: HeroProps["prices"]) =>
 function PrimaryCta({ href, label, note, className = "" }: { href: string; label: string; note: string; className?: string }) {
   return (
     <div className={className}>
-      <Link
-        href={href}
-        className="inline-flex items-center gap-[0.6cqw] rounded-full bg-brand-orange-dark px-[2.2cqw] py-[1cqw] text-[1.25cqw] font-semibold text-white shadow-lg shadow-brand-orange/25 transition duration-300 hover:bg-[#9a3500] focus-visible:ring-4 focus-visible:ring-brand-orange/40 focus-visible:outline-none"
-      >
+      <MotionCta href={href} className="text-[1.25cqw]">
         {label}
-        <svg aria-hidden viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="size-[1.2cqw]">
-          <path d="M3 8h10M9 4l4 4-4 4" />
-        </svg>
-      </Link>
+      </MotionCta>
       <p className="mt-[0.8cqw] text-[0.95cqw] text-ink/60">{note}</p>
     </div>
   );

@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useId, useState, useTransition } from "react";
 
+import { GoBackButton } from "@/components/buttons";
+
 import { LIMITS } from "@/config/catalog";
 import { useI18n } from "@/i18n/client";
 import type { MessageKey } from "@/i18n/messages";
@@ -14,7 +16,6 @@ import { StepFooter } from "../StepFooter";
 import { Button, buttonClass, Chip, Field, Notice, StepTitle, inputClass, splitOptions } from "../ui";
 import { useWizard } from "../WizardContext";
 import { StoryOptions, useStoryNav, type StoryStepProps } from "./StoryStep";
-import { ChevronLeftIcon } from "@/components/icons";
 
 export function StoryCustom(props: StoryStepProps) {
   switch (props.view) {
@@ -34,10 +35,9 @@ function Chooser(props: StoryStepProps) {
   const nav = useStoryNav();
   return (
     <>
-      <Link href={nav()} className={buttonClass("ghost", "self-start px-0")}>
-        <ChevronLeftIcon className="size-4" />
+      <GoBackButton href={nav()} className="self-start">
         {t("common.back")}
-      </Link>
+      </GoBackButton>
       <StepTitle title={t("story.not_found.title")} subtitle={t("story.custom.surcharge", { price: props.prices.customStory })} />
       {props.customLimitReached ? (
         <Notice tone="warn">{t("story.limit.custom")}</Notice>
@@ -141,13 +141,13 @@ function Questions(props: StoryStepProps) {
       {pending && <Notice>{t("wizard.ideas.generating")}</Notice>}
       {error && <Notice tone="error">{t(error)}</Notice>}
       <StepFooter back={false}>
-        <Button className="w-full sm:w-auto" pending={pending} disabled={(q === "occasion" && !answers.occasion) || (q === "world" && !answers.worlds?.length) || (q === "tone" && !answers.tone)} onClick={next}>
+        <Button variant="next" className="w-full sm:w-auto" pending={pending} disabled={(q === "occasion" && !answers.occasion) || (q === "world" && !answers.worlds?.length) || (q === "tone" && !answers.tone)} onClick={next}>
           {t("common.continue")}
         </Button>
         {index > 0 ? (
-          <Button variant="ghost" onClick={() => setIndex(index - 1)}>{t("common.back")}</Button>
+          <GoBackButton onClick={() => setIndex(index - 1)}>{t("common.back")}</GoBackButton>
         ) : (
-          <Link href={nav({ v: "vlastny" })} className={buttonClass("ghost")}>{t("common.back")}</Link>
+          <GoBackButton href={nav({ v: "vlastny" })}>{t("common.back")}</GoBackButton>
         )}
       </StepFooter>
     </>
@@ -247,10 +247,9 @@ function OwnStory(props: StoryStepProps) {
 
   return (
     <>
-      <Link href={nav({ v: "vlastny" })} className={buttonClass("ghost", "self-start px-0")}>
-        <ChevronLeftIcon className="size-4" />
+      <GoBackButton href={nav({ v: "vlastny" })} className="self-start">
         {t("common.back")}
-      </Link>
+      </GoBackButton>
       <StepTitle title={t("own.title", undefined, hero ?? undefined)} />
       <Field label={t("configurator.own.label")} htmlFor={`${ids}-own`} help={t("own.counter", { n: text.length })}>
         <textarea
@@ -270,6 +269,7 @@ function OwnStory(props: StoryStepProps) {
       {error && <Notice tone="error">{t(error)}</Notice>}
       <StepFooter back={false}>
         <Button
+          variant="next"
           className="w-full sm:w-auto"
           pending={pending}
           disabled={text.trim().length < 20}

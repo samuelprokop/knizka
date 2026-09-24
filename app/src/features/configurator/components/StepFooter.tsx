@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useState, type ReactNode } from "react";
 
 import { AnimatedNumber } from "@/components/AnimatedNumber";
+import { GoBackButton } from "@/components/buttons";
 import { useI18n } from "@/i18n/client";
 import { cx } from "./ui";
 import { useWizard } from "./WizardContext";
@@ -52,31 +52,15 @@ export function StepFooter({ children, hidePrice, back = true }: { children?: Re
       )}
       {(children || backHref || subBack) && (
         <div className={cx("flex items-start gap-2 md:flex-1 md:items-center md:justify-end", !hidePrice && "mt-2 md:mt-0")}>
-          {subBack && (
-            <button
-              type="button"
-              onClick={subBack}
-              className="hidden min-h-12 min-w-12 shrink-0 items-center justify-center gap-1 rounded-full border-2 border-ink/15 bg-white px-3 pr-5 text-base font-semibold text-ink transition outline-none hover:border-ink/35 focus-visible:ring-4 focus-visible:ring-brand-orange/40 active:scale-[0.98] motion-reduce:active:scale-100 md:flex"
-            >
-              <svg aria-hidden viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="size-4">
-                <path d="M10 3.5 5.5 8l4.5 4.5" />
-              </svg>
-              {t("common.back")}
-            </button>
-          )}
-          {backHref && (
-            <Link
-              href={backHref}
-              aria-label={t("common.back")}
-              className="hidden min-h-12 min-w-12 shrink-0 items-center justify-center gap-1 md:flex rounded-full border-2 border-ink/15 bg-white px-3 text-base font-semibold text-ink transition outline-none hover:border-ink/35 focus-visible:ring-4 focus-visible:ring-brand-orange/40 active:scale-[0.98] motion-reduce:active:scale-100 pr-5"
-            >
-              <svg aria-hidden viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="size-4">
-                <path d="M10 3.5 5.5 8l4.5 4.5" />
-              </svg>
-              <span aria-hidden>
-                {t("common.back")}
-              </span>
-            </Link>
+          {/* Späť je tiché (nekonkuruje hlavnej akcii); na mobile je hore pri páse priebehu. */}
+          {(subBack || backHref) && (
+            <div className="hidden shrink-0 md:block">
+              {subBack ? (
+                <GoBackButton onClick={subBack} className="text-base">{t("common.back")}</GoBackButton>
+              ) : (
+                <GoBackButton href={backHref!} className="text-base">{t("common.back")}</GoBackButton>
+              )}
+            </div>
           )}
           {children && <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row-reverse sm:items-center">{children}</div>}
         </div>

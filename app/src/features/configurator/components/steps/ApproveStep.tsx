@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useId, useRef, useState, useTransition } from "react";
 
+import { GoBackButton, NextArrow } from "@/components/buttons";
+
 import { LIMITS } from "@/config/catalog";
 import { useI18n } from "@/i18n/client";
 import type { MessageKey } from "@/i18n/messages";
@@ -14,7 +16,6 @@ import { StepFooter } from "../StepFooter";
 import { Button, buttonClass, Check, Field, Notice, StepTitle, Toggle, inputClass } from "../ui";
 import { useWizard } from "../WizardContext";
 import { useSubStep } from "../WizardMotion";
-import { ChevronLeftIcon } from "@/components/icons";
 
 export type ApproveSummary = {
   nameLine: string;
@@ -71,8 +72,9 @@ export function ApproveStep({
     return (
       <>
         <StepTitle title={t("configurator.approved.title")} subtitle={t("configurator.approved.body")} />
-        <Link href={cartHref} className={buttonClass("primary", "self-start")}>
+        <Link href={cartHref} className={buttonClass("next", "self-start")}>
           {t("configurator.approved.cart")}
+          <NextArrow />
         </Link>
         <Button
           variant="secondary"
@@ -96,10 +98,9 @@ export function ApproveStep({
     <>
       {moreTexts ? (
         <>
-          <Button variant="ghost" className="self-start px-0 md:hidden" onClick={() => setMoreTexts(false)}>
-            <ChevronLeftIcon className="size-4" />
+          <GoBackButton className="self-start md:hidden" onClick={() => setMoreTexts(false)}>
             {t("common.back")}
-          </Button>
+          </GoBackButton>
           <StepTitle title={t("approve.more_texts")} />
           <div className="grid gap-4 lg:grid-cols-2">
         {letterEnabled && (
@@ -173,6 +174,7 @@ export function ApproveStep({
       {error && <Notice tone="error">{t(error)}</Notice>}
       <StepFooter>
         <Button
+          variant="next"
           className="w-full sm:w-auto"
           disabled={!checks.every(Boolean)}
           pending={pending}

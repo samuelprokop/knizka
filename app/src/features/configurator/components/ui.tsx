@@ -5,13 +5,15 @@
 
 import { cloneElement, isValidElement, type ButtonHTMLAttributes, type ReactNode } from "react";
 
+import { NextArrow } from "@/components/buttons";
 import { AlertIcon, CheckIcon, ChevronDownIcon } from "@/components/icons";
 
 export const cx = (...classes: (string | false | null | undefined)[]) => classes.filter(Boolean).join(" ");
 
 const FOCUS = "outline-none focus-visible:ring-4 focus-visible:ring-brand-orange/40";
 
-type Variant = "primary" | "secondary" | "ghost";
+/** "next" = hlavná akcia kroku (Pokračovať) – s NextArrow za textom. */
+type Variant = "primary" | "next" | "secondary" | "ghost";
 
 export function buttonClass(variant: Variant = "primary", extra?: string) {
   return cx(
@@ -19,6 +21,7 @@ export function buttonClass(variant: Variant = "primary", extra?: string) {
     "disabled:cursor-not-allowed disabled:opacity-50",
     FOCUS,
     variant === "primary" && "bg-brand-orange-dark text-white hover:bg-[#9a3500] active:scale-[0.98]",
+    variant === "next" && "group bg-linear-to-r from-brand-orange-dark to-[#8f3100] text-white shadow-md shadow-brand-orange/20 hover:from-[#9a3500] active:scale-[0.98] motion-reduce:active:scale-100",
     variant === "secondary" && "border-2 border-ink/15 bg-white text-ink hover:border-ink/35",
     variant === "ghost" && "px-3 text-ink/70 underline-offset-4 hover:text-ink hover:underline",
     extra
@@ -36,6 +39,7 @@ export function Button({
     <button type="button" {...props} disabled={props.disabled || pending} aria-busy={pending || undefined} className={buttonClass(variant, className)}>
       {pending && <span aria-hidden className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />}
       {children}
+      {variant === "next" && !pending && <NextArrow />}
     </button>
   );
 }

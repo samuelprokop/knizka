@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useId, useMemo, useState, useTransition } from "react";
 
+import { GoBackButton, NextArrow, ShowMoreButton } from "@/components/buttons";
+
 import type { ReadingLevel } from "@/config/catalog";
 import { useI18n } from "@/i18n/client";
 import { createTranslator } from "@/i18n/format";
@@ -17,7 +19,6 @@ import { Button, buttonClass, Chip, cx, Disclosure, Field, Notice, StepTitle, in
 import { useWizard } from "../WizardContext";
 import { StoryCustom } from "./StoryCustom";
 import { StoryTextReview, type SpreadView } from "./StoryTextReview";
-import { ChevronLeftIcon } from "@/components/icons";
 import { pluralForm } from "@/i18n/plural";
 import { useSubStep } from "../WizardMotion";
 
@@ -65,6 +66,8 @@ export type StoryStepProps = {
 };
 
 const CATEGORIES = ["milestones", "holidays", "adventure", "emotions", "learning"] as const;
+/** Koľko príbehov knižnica ukáže hneď (+ karta „na mieru“ = jeden riadok od desktopu, bez posúvania). */
+const LIBRARY_PREVIEW = 2;
 
 export function StoryStep(props: StoryStepProps) {
   switch (props.view) {
@@ -111,7 +114,12 @@ function StoryLibrary({ tiles, heroAge, heroPortrait, themeColor, companions, gu
   // Pre vek nič nie je → ukázať všetky (prázdna knižnica s jedinou kartou „na mieru“ mätie).
   const byAge = matches(false);
   const noAgeMatch = age !== null && byAge.length === 0 && matches(true).length > 0;
-  const visible = noAgeMatch ? matches(true) : byAge;
+  const filtered = noAgeMatch ? matches(true) : byAge;
+  // Najprv len pár príbehov (menej volieb = rýchlejšie rozhodnutie), zvyšok na požiadanie.
+  const [showAll, setShowAll] = useState(false);
+  const hiddenCount = Math.max(0, filtered.length - LIBRARY_PREVIEW);
+  const visible = showAll ? filtered : filtered.slice(0, LIBRARY_PREVIEW);
+  const listId = useId();
 
   return (
     <>
@@ -151,7 +159,7 @@ function StoryLibrary({ tiles, heroAge, heroPortrait, themeColor, companions, gu
       </Disclosure>
 
       {noAgeMatch && <Notice>{t("story.no_age_match", { age: t(`configurator.age.years.${pluralForm(age!)}`, { n: age! }) })}</Notice>}
-      <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <ul id={listId} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {visible.map((tile) => (
           <li key={tile.id}>
             <Link
@@ -186,11 +194,22 @@ function StoryLibrary({ tiles, heroAge, heroPortrait, themeColor, companions, gu
           </Link>
         </li>
       </ul>
+      {hiddenCount > 0 && (
+        <ShowMoreButton
+          className="self-center"
+          expanded={showAll}
+          onToggle={() => setShowAll(!showAll)}
+          controls={listId}
+          more={t("story.show_more", { n: hiddenCount })}
+          less={t("story.show_less")}
+        />
+      )}
 
       <StepFooter>
         {storyChosen && (
-          <Link href={stepHref(market, projectId!, 6)} className={buttonClass("primary", "w-full sm:w-auto")}>
+          <Link href={stepHref(market, projectId!, 6)} className={buttonClass("next", "w-full sm:w-auto")}>
             {t("common.continue")}
+            <NextArrow />
           </Link>
         )}
       </StepFooter>
@@ -244,10 +263,9 @@ function StoryDetail(props: StoryStepProps) {
 
   return (
     <>
-      <Link href={nav()} className={buttonClass("ghost", "self-start px-0")}>
-        <ChevronLeftIcon className="size-4" />
+      <GoBackButton href={nav()} className="self-start">
         {t("common.back")}
-      </Link>
+      </GoBackButton>
       {/* Od lg dva stĺpce: obálka vľavo, popis, ukážka a voľby vpravo. */}
       <div className="grid gap-5 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:items-start lg:gap-8">
       <div className="overflow-hidden rounded-3xl lg:sticky lg:top-4">
@@ -305,7 +323,7 @@ function StoryDetail(props: StoryStepProps) {
       </div>
 
       <StepFooter back={false}>
-        <Button className="w-full sm:w-auto" pending={pending} onClick={choose}>
+        <Button variant="next" className="w-full sm:w-auto" pending={pending} onClick={choose}>
           {withDetails ? t("common.continue") : t("story.select")}
         </Button>
         {!withDetails && tile.detailSlots.length > 0 && (

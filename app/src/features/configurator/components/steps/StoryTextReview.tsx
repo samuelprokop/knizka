@@ -42,6 +42,7 @@ export function StoryTextReview(props: StoryStepProps) {
       {error && <Notice tone="error">{t(error)}</Notice>}
       <StepFooter>
         <Button
+          variant="next"
           className="w-full sm:w-auto"
           pending={pending}
           onClick={() =>

@@ -287,7 +287,7 @@ export function ChildStep({ initial }: { initial: ChildInitial }) {
       )}
 
       <StepFooter>
-        <Button onClick={onContinue} pending={pending} className="w-full sm:w-auto">
+        <Button variant="next" onClick={onContinue} pending={pending} className="w-full sm:w-auto">
           {t("common.continue")}
         </Button>
       </StepFooter>

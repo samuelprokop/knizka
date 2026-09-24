@@ -29,7 +29,20 @@ type P = { className?: string };
 export const ChevronDownIcon = (p: P) => <Icon {...p}><path d="m6 9 6 6 6-6" /></Icon>;
 export const ChevronLeftIcon = (p: P) => <Icon {...p}><path d="m15 18-6-6 6-6" /></Icon>;
 export const ChevronRightIcon = (p: P) => <Icon {...p}><path d="m9 6 6 6-6 6" /></Icon>;
-export const CheckIcon = (p: P) => <Icon {...p}><path d="M5 12.5 9.5 17 19 7.5" /></Icon>;
+export const ArrowRightIcon = (p: P) => <Icon {...p}><path d="M5 12h14M13 6l6 6-6 6" /></Icon>;
+export const CopyIcon = (p: P) => (
+  <Icon {...p}>
+    <rect x="9" y="9" width="11" height="11" rx="2.5" />
+    <path d="M5 15V6.5A1.5 1.5 0 0 1 6.5 5H15" />
+  </Icon>
+);
+export const TagIcon = (p: P) => (
+  <Icon {...p}>
+    <path d="M3.5 12.1V5a1.5 1.5 0 0 1 1.5-1.5h7.1a1.5 1.5 0 0 1 1.06.44l7.4 7.4a1.5 1.5 0 0 1 0 2.12l-7.1 7.1a1.5 1.5 0 0 1-2.12 0l-7.4-7.4a1.5 1.5 0 0 1-.44-1.06z" />
+    <circle cx="8.5" cy="8.5" r="1.5" />
+  </Icon>
+);
+export const CheckIcon =(p: P) => <Icon {...p}><path d="M5 12.5 9.5 17 19 7.5" /></Icon>;
 export const CloseIcon = (p: P) => <Icon {...p}><path d="M6 6l12 12M18 6 6 18" /></Icon>;
 export const MinusIcon = (p: P) => <Icon {...p}><path d="M5 12h14" /></Icon>;
 export const PlusIcon = (p: P) => <Icon {...p}><path d="M12 5v14M5 12h14" /></Icon>;

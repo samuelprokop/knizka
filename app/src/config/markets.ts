@@ -54,6 +54,11 @@ export type Market = {
   freeShippingFromMinor: number;
   deliveryWorkingDays: number;
   supportEmail: string;
+  /**
+   * Úvodná zľava novej značky – kód, ktorý si zákazník v pokladni odkryje (null = vypnuté).
+   * Musí existovať medzi kódmi v features/checkout/voucher.ts.
+   */
+  launchVoucherCode: string | null;
 };
 
 export const MARKETS: Record<MarketCode, Market> = {
@@ -86,6 +91,7 @@ export const MARKETS: Record<MarketCode, Market> = {
     freeShippingFromMinor: 4500,
     deliveryWorkingDays: 5,
     supportEmail: "podpora@example.sk",
+    launchVoucherCode: "VITAJTE10",
   },
   cz: {
     code: "cz",
@@ -115,6 +121,7 @@ export const MARKETS: Record<MarketCode, Market> = {
     freeShippingFromMinor: 115000,
     deliveryWorkingDays: 5,
     supportEmail: "podpora@example.cz",
+    launchVoucherCode: "VITEJTE10",
   },
 };
 

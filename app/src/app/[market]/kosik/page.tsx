@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 
 import { AnimatedNumber } from "@/components/AnimatedNumber";
+import { GoBackButton, MotionCta } from "@/components/buttons";
 import { formatMoney } from "@/config/markets";
 import { computePrice, type PriceSelection } from "@/domain/pricing";
 import { PlanCards, type Plan } from "@/features/checkout/components/PlanCards";
@@ -10,7 +11,7 @@ import { loadCart } from "@/features/checkout/server/cart";
 import { computeOrderPrice } from "@/features/checkout/pricing";
 import { validateVoucherCode } from "@/features/checkout/voucher";
 import { SessionExpired } from "@/features/configurator/components/SessionExpired";
-import { buttonClass, StepTitle } from "@/features/configurator/components/ui";
+import { StepTitle } from "@/features/configurator/components/ui";
 import { hasProjectSession } from "@/features/configurator/server/session";
 import { stepHref } from "@/features/configurator/steps";
 import type { MessageKey } from "@/i18n/messages";
@@ -222,12 +223,12 @@ export default async function CartPage({ params, searchParams }: PageProps<"/[ma
             <div className="border-t border-ink/10 pt-3 text-right font-heading text-xl font-bold text-ink">
               <AnimatedNumber value={formatMoney(price.totalMinor, market)} {...splitAround(t("checkout.total", { price: SLOT }))} />
             </div>
-            <Link href={checkoutHref} className={buttonClass("primary", "hidden w-full lg:flex")}>
+            <MotionCta href={checkoutHref} className="hidden w-full justify-center text-base lg:inline-flex">
               {t("cart.continue")}
-            </Link>
-            <Link href={backHref} className={buttonClass("ghost", "self-center")}>
+            </MotionCta>
+            <GoBackButton href={backHref} className="self-center">
               {t("cart.back_to_book")}
-            </Link>
+            </GoBackButton>
           </aside>
         </div>
       </main>
@@ -238,9 +239,9 @@ export default async function CartPage({ params, searchParams }: PageProps<"/[ma
           <span className="font-heading text-lg font-bold text-ink">
             <AnimatedNumber value={formatMoney(price.totalMinor, market)} />
           </span>
-          <Link href={checkoutHref} className={buttonClass("primary", "flex-1 sm:flex-none")}>
+          <MotionCta href={checkoutHref} className="flex-1 justify-center text-base sm:flex-none">
             {t("cart.continue")}
-          </Link>
+          </MotionCta>
         </div>
       </div>
     </>

@@ -178,7 +178,7 @@ export function CharactersStep({
       {error && <Notice tone="error">{t(error)}</Notice>}
       {!adding && (decided || companions.length > 0) && (
         <StepFooter>
-          <Button className="w-full sm:w-auto" pending={pending} disabled={generating} onClick={next}>
+          <Button variant="next" className="w-full sm:w-auto" pending={pending} disabled={generating} onClick={next}>
             {t("common.continue")}
           </Button>
         </StepFooter>
