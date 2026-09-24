@@ -77,6 +77,7 @@ const STOPS = (() => {
 const navListeners = new Set<() => void>();
 let navCurrent = 0;
 let navGoTo: ((index: number) => void) | null = null;
+let navJumpTo: ((index: number) => void) | null = null;
 
 function publishCurrent(index: number) {
   if (navCurrent === index) return;
@@ -96,6 +97,8 @@ export const heroNavigation = {
   getCurrent: () => navCurrent,
   /** Prelistuje knihu na zastávku konštantnou rýchlosťou (aj spoza hero). */
   goTo: (index: number) => navGoTo?.(index),
+  /** Skočí na zastávku hneď, bez prehrávania otočení medzi (obsah stránky vľavo). */
+  jumpTo: (index: number) => navJumpTo?.(index),
 };
 
 // Konštantná rýchlosť prehrávania (sekundy na váhovú jednotku). Otočenie strany
@@ -383,6 +386,18 @@ function AnimatedHero({ copy, ctaHref }: HeroProps) {
       }, duration * 1000 + 400);
     };
 
+    const jumpTo = (index: number) => {
+      const target = Math.max(0, Math.min(LAST, index));
+      controls?.stop();
+      controls = null;
+      window.clearTimeout(safetyTimer);
+      current = target;
+      publishCurrent(target);
+      progress.jump(STOPS[target]);
+      setScroll(STOPS[target]);
+      lockedUntil = performance.now() + COOLDOWN_MS;
+    };
+
     // Vráti true, ak krok patrí heru (a vstup treba zablokovať), false ak má
     // stránka scrollovať normálne (pod herom, alebo za posledným zastavením).
     const claims = (direction: 1 | -1) => {
@@ -496,6 +511,7 @@ function AnimatedHero({ copy, ctaHref }: HeroProps) {
     };
 
     navGoTo = goTo;
+    navJumpTo = jumpTo;
     window.addEventListener("wheel", onWheel, { passive: false });
     window.addEventListener("touchstart", onTouchStart, { passive: true });
     window.addEventListener("touchmove", onTouchMove, { passive: false });
@@ -505,6 +521,7 @@ function AnimatedHero({ copy, ctaHref }: HeroProps) {
 
     return () => {
       navGoTo = null;
+      navJumpTo = null;
       controls?.stop();
       window.clearTimeout(safetyTimer);
       window.clearTimeout(settleTimer);

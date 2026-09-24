@@ -46,13 +46,14 @@ export function LandingToc({ copy, reviews = false }: { copy: LandingCopy; revie
     { key: "footer", label: copy.toc.footer, marker: <InfoIcon />, target: "footer" },
   ];
 
+  // Menu skáče rovno na cieľ – bez prehrávania otočení a bez plynulého posúvania cez knihu.
   const go = (target: Item["target"]) => {
     if (target === "reviews") {
-      document.getElementById(REVIEWS_ID)?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth" });
+      document.getElementById(REVIEWS_ID)?.scrollIntoView({ behavior: "instant" });
     } else if (target === "footer") {
-      window.scrollTo({ top: document.documentElement.scrollHeight, behavior: reduceMotion ? "auto" : "smooth" });
+      window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "instant" });
     } else {
-      heroNavigation.goTo(target);
+      heroNavigation.jumpTo(target);
     }
   };
 

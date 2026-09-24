@@ -5,7 +5,8 @@
   tri stĺpce kariet, ktoré sa nekonečne posúvajú nahor rôznou rýchlosťou,
   s vyblednutím hore a dole. Na mobile jeden stĺpec, na tablete dva.
 
-  Sekcia sa zmestí na jednu obrazovku. Karty stoja, kým sa posúva stránka
+  Sekcia sa zmestí na jednu obrazovku a stránka sa na nej pri posúvaní nadol
+  zastaví. Stredný stĺpec ide opačne. Karty stoja, kým sa posúva stránka
   (čítanie nerušia dva pohyby naraz), a pri prejdení myšou.
   Prístupnosť (WCAG 2.2.2): posúvanie sa dá zastaviť aj tlačidlom. Pri obmedzení animácií sa
   nehýbe nič a recenzie sú v obyčajnej mriežke. Kópia zoznamu pre plynulú
@@ -13,7 +14,7 @@
 */
 
 import { motion, useReducedMotion } from "motion/react";
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 
 import type { LandingCopy } from "@/content/landing";
 import type { Review } from "@/content/reviews";
@@ -21,7 +22,7 @@ import type { Review } from "@/content/reviews";
 const cx = (...classes: (string | false | undefined)[]) => classes.filter(Boolean).join(" ");
 
 /** Trvanie jedného obehu stĺpca – rôzne, aby sa stĺpce nehýbali naraz. */
-const DURATIONS = ["22s", "27s", "24s"];
+const DURATIONS = ["14s", "17s", "15s"];
 const AVATAR_COLORS = ["bg-brand-orange text-ink", "bg-brand-teal text-ink", "bg-brand-purple text-white"];
 
 export function ReviewsSection({
@@ -36,10 +37,13 @@ export function ReviewsSection({
   const reduceMotion = useReducedMotion();
   const [paused, setPaused] = useState(false);
   const scrolling = useScrolling();
+  const sectionRef = useRef<HTMLElement>(null);
+  useStopAtSection(sectionRef, !!reduceMotion);
   const columns = [0, 1, 2].map((c) => reviews.filter((_, i) => i % 3 === c));
 
   return (
     <section
+      ref={sectionRef}
       id="recenzie"
       aria-labelledby="reviews-title"
       className="relative flex min-h-dvh flex-col justify-center px-4 pt-28 pb-10 sm:px-6 sm:pt-24 lg:pl-[calc(var(--hero-inset,0px)+1.5rem)]"
@@ -77,7 +81,9 @@ export function ReviewsSection({
               "w-full max-w-xs flex-col gap-6 [animation:reviews-up_var(--duration)_linear_infinite] motion-reduce:[animation:none]",
               "group-hover:[animation-play-state:paused]",
               (paused || scrolling) && "[animation-play-state:paused]",
-              c === 0 ? "flex" : c === 1 ? "hidden md:flex" : "hidden lg:flex"
+              c === 0 ? "flex" : c === 1 ? "hidden md:flex" : "hidden lg:flex",
+              // Stredný stĺpec ide opačne (zhora nadol).
+              c === 1 && "[animation-direction:reverse]"
             )}
             style={{ "--duration": DURATIONS[c] } as CSSProperties}
           >
@@ -109,6 +115,86 @@ export function ReviewsSection({
       </div>
     </section>
   );
+}
+
+/**
+ * Stránka sa pri posúvaní nadol na sekcii zastaví: keď jej horný okraj prejde
+ * vrchom obrazovky, zarovná sa naň a vstup sa na chvíľu zablokuje (dobiehajúca
+ * zotrvačnosť touchpadu ju neprešvihne). Ak posúvanie skončí s odkrytou sekciou
+ * (aspoň do polovice), dotiahne sa. Nahor sa nezastavuje.
+ */
+function useStopAtSection(ref: React.RefObject<HTMLElement | null>, reduceMotion: boolean) {
+  useEffect(() => {
+    // Zastavenie drží, kým beží gesto, ktoré sem dopravilo (aj dobiehajúca zotrvačnosť);
+    // uvoľní sa po pauze bez vstupu, najskôr po MIN_LOCK_MS.
+    const GESTURE_GAP_MS = 200;
+    const MIN_LOCK_MS = 400;
+    let lastY = window.scrollY;
+    let lastTop = ref.current?.getBoundingClientRect().top ?? 0;
+    let stopped = false;
+    let stoppedAt = 0;
+    let release = 0;
+    let settle = 0;
+
+    const armRelease = () => {
+      window.clearTimeout(release);
+      const wait = Math.max(GESTURE_GAP_MS, MIN_LOCK_MS - (performance.now() - stoppedAt));
+      release = window.setTimeout(() => (stopped = false), wait);
+    };
+    const stop = () => {
+      stopped = true;
+      stoppedAt = performance.now();
+      armRelease();
+    };
+    const block = (e: Event) => {
+      if (!stopped) return;
+      e.preventDefault();
+      armRelease();
+    };
+    const align = (smooth: boolean) => {
+      const top = ref.current?.getBoundingClientRect().top ?? 0;
+      window.scrollBy({ top, behavior: smooth && !reduceMotion ? "smooth" : "instant" });
+    };
+
+    const onScroll = () => {
+      const el = ref.current;
+      if (!el) return;
+      const top = el.getBoundingClientRect().top;
+      const down = window.scrollY > lastY;
+      lastY = window.scrollY;
+      // Prekročenie vrchu smerom nadol → zastaviť presne na sekcii
+      // (len pri bežnom posúvaní – skok z menu na pätičku sekciu preletí celú).
+      if (down && lastTop > 1 && top <= 1 && top > -window.innerHeight * 0.5 && !stopped) {
+        stop();
+        align(false);
+      }
+      lastTop = top;
+      window.clearTimeout(settle);
+      settle = window.setTimeout(() => {
+        const t = el.getBoundingClientRect().top;
+        if (down && !stopped && t > 1 && t < window.innerHeight * 0.5) {
+          stop();
+          align(true);
+        }
+      }, 140);
+    };
+    const onTouchEnd = () => {
+      if (stopped) armRelease();
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("wheel", block, { passive: false });
+    window.addEventListener("touchmove", block, { passive: false });
+    window.addEventListener("touchend", onTouchEnd, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("wheel", block);
+      window.removeEventListener("touchmove", block);
+      window.removeEventListener("touchend", onTouchEnd);
+      window.clearTimeout(settle);
+      window.clearTimeout(release);
+    };
+  }, [ref, reduceMotion]);
 }
 
 /** true, kým sa stránka posúva (a chvíľu po poslednom posune). */
