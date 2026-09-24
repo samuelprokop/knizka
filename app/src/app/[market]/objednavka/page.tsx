@@ -4,6 +4,7 @@ import Link from "next/link";
 import { formatMoney } from "@/config/markets";
 import type { PriceSelection } from "@/domain/pricing";
 import { submitCheckoutAction } from "@/features/checkout/actions";
+import { PaymentPanel } from "@/features/checkout/components/PaymentPanel";
 import { loadCart } from "@/features/checkout/server/cart";
 import { computeOrderPrice } from "@/features/checkout/pricing";
 import { SessionExpired } from "@/features/configurator/components/SessionExpired";
@@ -113,17 +114,6 @@ export default async function CheckoutPage({ searchParams }: PageProps<"/[market
           </div>
         </section>
 
-        <section className="flex flex-col gap-3">
-          <h2 className="font-heading text-lg font-bold text-ink">{t("checkout.payment")}</h2>
-          <div className="flex flex-col gap-2">
-            {paymentMethods.map((method, i) => (
-              <label key={method} className="flex min-h-12 cursor-pointer items-center gap-3 rounded-2xl border-2 border-ink/10 px-4 has-checked:border-brand-orange">
-                <input type="radio" name="paymentMethod" value={method} defaultChecked={i === 0} className="size-5 accent-brand-orange-dark" />
-                <span className="text-base text-ink">{t(`checkout.payment.${method}` as MessageKey)}</span>
-              </label>
-            ))}
-          </div>
-        </section>
 
         <section className="flex flex-col gap-2 rounded-2xl border-2 border-ink/10 bg-white p-4">
           {[{ id: price.base.id, quantity: price.base.quantity, amountMinor: price.base.amountMinor }, ...price.surcharges].map((line) => (
@@ -154,14 +144,11 @@ export default async function CheckoutPage({ searchParams }: PageProps<"/[market
           <span className="text-base text-ink">{t("checkout.terms")}</span>
         </label>
 
-        <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:justify-between">
-          <Link href={cartHref} className={buttonClass("ghost")}>
-            {t("checkout.back_to_cart")}
-          </Link>
-          <button type="submit" className={buttonClass("primary")}>
-            {t("checkout.submit")}
-          </button>
-        </div>
+        <PaymentPanel methods={paymentMethods} total={formatMoney(price.totalMinor, market)} t={t} />
+
+        <Link href={cartHref} className={buttonClass("ghost", "self-start")}>
+          {t("checkout.back_to_cart")}
+        </Link>
       </form>
     </main>
   );
