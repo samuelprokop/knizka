@@ -41,7 +41,7 @@ export function PaymentPanel({
         <h2 id="payment-title" className="font-heading text-xl font-extrabold text-ink">
           {t("checkout.payment")}
         </h2>
-        <span className="font-heading text-lg font-bold text-ink">{total}</span>
+        <span className="text-lg font-semibold text-ink tabular-nums">{total}</span>
       </div>
 
       {has("apple_pay") && (

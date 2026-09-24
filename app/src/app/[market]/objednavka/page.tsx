@@ -151,7 +151,7 @@ export default async function CheckoutPage({ searchParams }: PageProps<"/[market
               <span>{formatMoney(price.discount.amountMinor, market)}</span>
             </div>
           )}
-          <div className="mt-2 border-t border-ink/10 pt-2 text-right font-heading text-xl font-bold text-ink">
+          <div className="mt-2 border-t border-ink/10 pt-2 text-right text-lg font-semibold text-ink tabular-nums">
             {t("checkout.total", { price: formatMoney(price.totalMinor, market) })}
           </div>
         </section>

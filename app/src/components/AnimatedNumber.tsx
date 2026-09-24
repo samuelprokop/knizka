@@ -40,7 +40,9 @@ export function AnimatedNumber({
   const chars = [...value];
 
   return (
-    <span className={cx("relative inline-flex items-baseline whitespace-pre tabular-nums", className)}>
+    <span className={cx("relative inline-flex items-end whitespace-pre tabular-nums", className)}>
+      {/* Nosič účaria: prvá položka bez orezania, aby okolitý text sedel na rovnakej čiare. */}
+      <span aria-hidden>{"\u200b"}</span>
       <span className="sr-only">
         {prefix}
         {value}
@@ -87,7 +89,7 @@ export function AnimatedNumber({
  */
 function DigitColumn({ digit, transition }: { digit: number; transition: typeof SPRING | typeof INSTANT }) {
   return (
-    <span className="relative -my-[0.2em] inline-block overflow-clip py-[0.2em] [mask-image:linear-gradient(to_bottom,transparent,black_0.2em,black_calc(100%-0.2em),transparent)]">
+    <span className="relative -my-[0.2em] inline-block overflow-hidden py-[0.2em] align-bottom [mask-image:linear-gradient(to_bottom,transparent,black_0.2em,black_calc(100%-0.2em),transparent)]">
       {/* Neviditeľná cifra drží šírku a výšku riadku. */}
       <span className="invisible">{digit}</span>
       <motion.span

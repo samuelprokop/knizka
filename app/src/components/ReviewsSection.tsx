@@ -5,14 +5,15 @@
   tri stĺpce kariet, ktoré sa nekonečne posúvajú nahor rôznou rýchlosťou,
   s vyblednutím hore a dole. Na mobile jeden stĺpec, na tablete dva.
 
-  Prístupnosť (WCAG 2.2.2): posúvanie sa dá zastaviť tlačidlom a zastaví sa
-  aj pri prejdení myšou. Pri obmedzení animácií sa
+  Sekcia sa zmestí na jednu obrazovku. Karty stoja, kým sa posúva stránka
+  (čítanie nerušia dva pohyby naraz), a pri prejdení myšou.
+  Prístupnosť (WCAG 2.2.2): posúvanie sa dá zastaviť aj tlačidlom. Pri obmedzení animácií sa
   nehýbe nič a recenzie sú v obyčajnej mriežke. Kópia zoznamu pre plynulú
   slučku je pred čítačkou skrytá.
 */
 
 import { motion, useReducedMotion } from "motion/react";
-import { useState, type CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 
 import type { LandingCopy } from "@/content/landing";
 import type { Review } from "@/content/reviews";
@@ -20,7 +21,7 @@ import type { Review } from "@/content/reviews";
 const cx = (...classes: (string | false | undefined)[]) => classes.filter(Boolean).join(" ");
 
 /** Trvanie jedného obehu stĺpca – rôzne, aby sa stĺpce nehýbali naraz. */
-const DURATIONS = ["34s", "41s", "37s"];
+const DURATIONS = ["22s", "27s", "24s"];
 const AVATAR_COLORS = ["bg-brand-orange text-ink", "bg-brand-teal text-ink", "bg-brand-purple text-white"];
 
 export function ReviewsSection({
@@ -34,13 +35,14 @@ export function ReviewsSection({
 }) {
   const reduceMotion = useReducedMotion();
   const [paused, setPaused] = useState(false);
+  const scrolling = useScrolling();
   const columns = [0, 1, 2].map((c) => reviews.filter((_, i) => i % 3 === c));
 
   return (
     <section
       id="recenzie"
       aria-labelledby="reviews-title"
-      className="relative scroll-mt-8 px-4 py-20 sm:px-6 sm:py-28 lg:pl-[calc(var(--hero-inset,0px)+1.5rem)]"
+      className="relative flex min-h-dvh flex-col justify-center px-4 pt-28 pb-10 sm:px-6 sm:pt-24 lg:pl-[calc(var(--hero-inset,0px)+1.5rem)]"
     >
       <motion.div
         initial={{ opacity: 0, y: 24 }}
@@ -63,9 +65,9 @@ export function ReviewsSection({
 
       <div
         className={cx(
-          "group relative mx-auto mt-12 flex max-w-5xl justify-center gap-6",
-          "max-h-[42rem] overflow-hidden [mask-image:linear-gradient(to_bottom,transparent,black_18%,black_82%,transparent)]",
-          "motion-reduce:max-h-none motion-reduce:flex-wrap motion-reduce:[mask-image:none]"
+          "group relative mx-auto mt-8 flex w-full max-w-5xl justify-center gap-6",
+          "h-[max(16rem,calc(100dvh-26rem))] max-h-[40rem] overflow-hidden [mask-image:linear-gradient(to_bottom,transparent,black_18%,black_82%,transparent)]",
+          "motion-reduce:h-auto motion-reduce:max-h-none motion-reduce:flex-wrap motion-reduce:[mask-image:none]"
         )}
       >
         {columns.map((column, c) => (
@@ -74,7 +76,7 @@ export function ReviewsSection({
             className={cx(
               "w-full max-w-xs flex-col gap-6 [animation:reviews-up_var(--duration)_linear_infinite] motion-reduce:[animation:none]",
               "group-hover:[animation-play-state:paused]",
-              paused && "[animation-play-state:paused]",
+              (paused || scrolling) && "[animation-play-state:paused]",
               c === 0 ? "flex" : c === 1 ? "hidden md:flex" : "hidden lg:flex"
             )}
             style={{ "--duration": DURATIONS[c] } as CSSProperties}
@@ -107,6 +109,25 @@ export function ReviewsSection({
       </div>
     </section>
   );
+}
+
+/** true, kým sa stránka posúva (a chvíľu po poslednom posune). */
+function useScrolling(idleMs = 180) {
+  const [scrolling, setScrolling] = useState(false);
+  useEffect(() => {
+    let timer = 0;
+    const onScroll = () => {
+      setScrolling(true);
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => setScrolling(false), idleMs);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.clearTimeout(timer);
+    };
+  }, [idleMs]);
+  return scrolling;
 }
 
 function ReviewCard({ review, color }: { review: Review; color: string }) {

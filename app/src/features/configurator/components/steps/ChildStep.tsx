@@ -16,6 +16,7 @@ import { AGE_OPTIONS, capitalizeName, isAgeOutsideStories, validateChildName } f
 import { StepFooter } from "../StepFooter";
 import { Button, Check, Chip, Disclosure, Field, FieldError, Notice, StepTitle, Toggle, inputClass, splitOptions } from "../ui";
 import { useWizard } from "../WizardContext";
+import { pluralForm } from "@/i18n/plural";
 
 export type ChildInitial = {
   name: string;
@@ -164,19 +165,29 @@ export function ChildStep({ initial, bookLanguages }: { initial: ChildInitial; b
           {touched && !gender && <FieldError>{t("configurator.required")}</FieldError>}
         </fieldset>
 
-        <fieldset className="flex flex-col gap-2.5">
-          <legend className="mb-1 text-sm font-semibold text-ink">{t("child.age.label")}</legend>
-          <p className="text-sm text-ink/65">{t("child.age.help")}</p>
-          <div className="grid grid-cols-5 gap-2 sm:grid-cols-9">
-            {AGE_OPTIONS.map((a) => (
-              <Chip key={a} shape="pill" selected={age === a} onClick={() => setAge(a)} className="px-0 text-center" aria-label={t("configurator.age.years", { n: a })}>
-                {a}
-              </Chip>
-            ))}
+        <div className="flex flex-col gap-2.5">
+          <div className="flex items-baseline justify-between gap-3">
+            <label htmlFor={`${ids}-age`} className="text-sm font-semibold text-ink">
+              {t("child.age.label")}
+            </label>
+            <span aria-hidden className={age === null ? "text-sm text-ink/55" : "font-heading text-lg font-extrabold text-brand-orange-dark"}>
+              {age === null ? t("child.age.slider_hint") : t(`configurator.age.years.${pluralForm(age)}`, { n: age })}
+            </span>
           </div>
+          <p id={`${ids}-age-help`} className="-mt-1 text-sm text-ink/65">
+            {t("child.age.help")}
+          </p>
+          <AgeSlider
+            id={`${ids}-age`}
+            value={age}
+            onChange={setAge}
+            describedBy={`${ids}-age-help`}
+            valueText={(n) => t(`configurator.age.years.${pluralForm(n)}`, { n })}
+            placeholder={t("child.age.slider_hint")}
+          />
           {age !== null && isAgeOutsideStories(age) && <Notice tone="warn">{t("child.age.outside")}</Notice>}
           {touched && age === null && <FieldError>{t("configurator.required")}</FieldError>}
-        </fieldset>
+        </div>
 
         {bookLanguages.length > 1 && (
           <fieldset className="flex flex-col gap-2.5">
@@ -326,5 +337,71 @@ function EmailDialog({
         </div>
       </form>
     </dialog>
+  );
+}
+
+/**
+ * Vek posuvníkom (2 – 10). Kým sa zákazník posuvníka nedotkne, vek nie je
+ * vybraný (sivý bežec, bez výplne); ťuknutie na číslo pod ním vek nastaví tiež.
+ */
+function AgeSlider({
+  id,
+  value,
+  onChange,
+  describedBy,
+  valueText,
+  placeholder,
+}: {
+  id: string;
+  value: number | null;
+  onChange: (age: number) => void;
+  describedBy: string;
+  valueText: (n: number) => string;
+  placeholder: string;
+}) {
+  const min = AGE_OPTIONS[0];
+  const max = AGE_OPTIONS[AGE_OPTIONS.length - 1];
+  const current = value ?? Math.round((min + max) / 2);
+  const ratio = (n: number) => (n - min) / (max - min);
+  // Stred bežca (1.75rem) – výplň aj čísla sa zarovnávajú naň.
+  const at = (r: number) => `calc(0.875rem + (100% - 1.75rem) * ${r})`;
+
+  return (
+    <div className="flex flex-col">
+      <input
+        id={id}
+        type="range"
+        min={min}
+        max={max}
+        step={1}
+        value={current}
+        data-unset={value === null || undefined}
+        aria-describedby={describedBy}
+        aria-valuetext={value === null ? placeholder : valueText(value)}
+        onChange={(e) => onChange(Number(e.target.value))}
+        // Klik alebo kláves bez posunu (bežec už stojí na hodnote) vek tiež vyberie.
+        onPointerUp={(e) => value === null && onChange(Number(e.currentTarget.value))}
+        onKeyUp={(e) => value === null && onChange(Number(e.currentTarget.value))}
+        className="range"
+        style={{ "--fill": value === null ? "0%" : at(ratio(value)) } as React.CSSProperties}
+      />
+      <div aria-hidden className="relative h-6">
+        {AGE_OPTIONS.map((n) => (
+          <button
+            key={n}
+            type="button"
+            tabIndex={-1}
+            onClick={() => onChange(n)}
+            style={{ left: at(ratio(n)) }}
+            className={
+              "absolute top-0 -translate-x-1/2 px-1.5 text-sm tabular-nums transition-colors " +
+              (value === n ? "font-semibold text-ink" : "text-ink/50 hover:text-ink")
+            }
+          >
+            {n}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }

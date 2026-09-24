@@ -10,6 +10,7 @@ import { StepFooter } from "../StepFooter";
 import { Button, Notice, StepTitle } from "../ui";
 import { useWizard } from "../WizardContext";
 import { useToast } from "@/components/Toaster";
+import { pluralForm } from "@/i18n/plural";
 
 export type PageThumb = { id: string; position: number; status: string; url: string | null; text: string | null };
 
@@ -35,7 +36,7 @@ export function GeneratingStep({ pages, maskedEmail }: { pages: PageThumb[]; mas
       <StepTitle title={t("gen.title", undefined, hero ?? undefined)} />
       <div aria-live="polite" className="flex flex-col gap-1">
         <p className="text-base font-semibold">{t("gen.progress", { n: done, total: spreads.length })}</p>
-        <p className="text-sm text-ink/70">{t("gen.eta", { minutes })}</p>
+        <p className="text-sm text-ink/70">{t(`gen.eta.${pluralForm(minutes)}`, { minutes })}</p>
       </div>
       <div
         role="progressbar"

@@ -18,6 +18,7 @@ import { useWizard } from "../WizardContext";
 import { StoryCustom } from "./StoryCustom";
 import { StoryTextReview, type SpreadView } from "./StoryTextReview";
 import { ChevronLeftIcon } from "@/components/icons";
+import { pluralForm } from "@/i18n/plural";
 
 export type StoryTile = {
   id: string;
@@ -123,7 +124,7 @@ function StoryLibrary({ tiles, heroAge, heroPortrait, themeColor, companions, gu
           <div className="flex flex-wrap gap-2">
             <Chip selected={age === null} onClick={() => setAge(null)}>{t("configurator.story.all")}</Chip>
             {[3, 4, 5, 6, 7, 8].map((a) => (
-              <Chip key={a} selected={age === a} onClick={() => setAge(a)} aria-label={t("configurator.age.years", { n: a })}>
+              <Chip key={a} selected={age === a} onClick={() => setAge(a)} aria-label={t(`configurator.age.years.${pluralForm(a)}`, { n: a })}>
                 {a}
               </Chip>
             ))}
@@ -249,7 +250,7 @@ function StoryDetail(props: StoryStepProps) {
           {tile.goal && <p className="text-sm text-ink/75">{t("story.card.goal", { goal: tile.goal })}</p>}
           <p className="text-sm text-ink/65">
             {tile.author && `${t("story.detail.author", { author: tile.author })} · `}
-            {t("story.detail.reading_time", { minutes })} · {t("story.card.pages", { n: tile.spreads })}
+            {t(`story.detail.reading_time.${pluralForm(minutes)}`, { minutes })} · {t("story.card.pages", { n: tile.spreads })}
           </p>
           {props.companions > tile.companionSlots && <Notice tone="warn">{t("configurator.story.no_slot")}</Notice>}
           <section className="flex flex-col gap-3">
