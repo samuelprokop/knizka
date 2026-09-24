@@ -7,7 +7,7 @@
 
   Sekcia sa zmestí na jednu obrazovku a správa sa ako ďalší krok knihy
   (jedno gesto = presun na recenzie, ďalšie = pätička). Stredný stĺpec ide opačne. Karty stoja, kým sa posúva stránka
-  (čítanie nerušia dva pohyby naraz), a pri prejdení myšou.
+  (čítanie nerušia dva pohyby naraz); pod myšou sa hýbu ďalej.
   Prístupnosť (WCAG 2.2.2): posúvanie sa dá zastaviť aj tlačidlom. Pri obmedzení animácií sa
   nehýbe nič a recenzie sú v obyčajnej mriežke. Kópia zoznamu pre plynulú
   slučku je pred čítačkou skrytá.
@@ -79,7 +79,6 @@ export function ReviewsSection({
             key={c}
             className={cx(
               "w-full max-w-xs flex-col gap-6 [animation:reviews-up_var(--duration)_linear_infinite] motion-reduce:[animation:none]",
-              "group-hover:[animation-play-state:paused]",
               (paused || scrolling) && "[animation-play-state:paused]",
               c === 0 ? "flex" : c === 1 ? "hidden md:flex" : "hidden lg:flex",
               // Stredný stĺpec ide opačne (zhora nadol).
