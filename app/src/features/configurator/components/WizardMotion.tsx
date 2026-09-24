@@ -14,7 +14,7 @@
 
 import Link from "next/link";
 import { motion, useReducedMotion } from "motion/react";
-import { useEffect, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from "react";
 
 import { ChevronLeftIcon } from "@/components/icons";
 import { cx } from "./ui";
@@ -39,7 +39,11 @@ const subscribeSub = (listener: () => void) => {
 };
 /** onBack: tlačidlo Späť v spodnej lište vráti z podstránky na hlavnú obrazovku kroku. */
 export function useSubStep(label: string | null, onBack?: () => void) {
-  const backRef = { current: onBack };
+  // Posledná verzia spätnej funkcie (môže závisieť od stavu, napr. číslo otázky).
+  const backRef = useRef(onBack);
+  useEffect(() => {
+    backRef.current = onBack;
+  });
   useEffect(() => {
     subLabel = label;
     subBack = label && backRef.current ? () => backRef.current?.() : null;
@@ -49,7 +53,6 @@ export function useSubStep(label: string | null, onBack?: () => void) {
       subBack = null;
       subListeners.forEach((l) => l());
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- spätná funkcia sa mení pri každom vykreslení, rozhoduje názov
   }, [label]);
 }
 /** Spätná akcia aktuálnej podstránky (null = žiadna podstránka). */
@@ -73,16 +76,19 @@ export function WizardProgress({
   current: stepCurrent,
   label,
   back,
+  backLabel,
 }: {
   items: ProgressItem[];
   current: number;
   label: string;
   /** Mobil: šípka späť vľavo od pásu (null = prvý krok). */
   back: { href: string; label: string } | null;
+  backLabel: string;
 }) {
   const reduceMotion = useReducedMotion();
   const previous = usePreviousIndex();
   const sub = useSubStepLabel();
+  const subBackAction = useSubStepBack();
   // Podstránka je v lište ďalší krok hneď za aktuálnym (aktuálny sa zobrazí ako hotový).
   const items: ProgressItem[] = sub
     ? [...stepItems.slice(0, stepCurrent + 1), { key: "sub", label: sub, href: null, ariaLabel: sub }, ...stepItems.slice(stepCurrent + 1)]
@@ -94,7 +100,17 @@ export function WizardProgress({
     <nav aria-label={label}>
       {/* Mobil (podľa „Onboarding“): späť + pás z úsekov; aktuálny úsek sa pri kroku dopredu vyplní. */}
       <div className="flex min-h-11 items-center gap-2 md:hidden">
-        {back ? (
+        {/* Na podstránke vedie späť na hlavnú obrazovku kroku, inak na predchádzajúci krok. */}
+        {subBackAction ? (
+          <button
+            type="button"
+            onClick={subBackAction}
+            aria-label={backLabel}
+            className="-ml-2 flex size-11 shrink-0 items-center justify-center rounded-full text-ink outline-none hover:bg-ink/5 focus-visible:ring-4 focus-visible:ring-brand-orange/40"
+          >
+            <ChevronLeftIcon className="size-6" />
+          </button>
+        ) : back ? (
           <Link
             href={back.href}
             aria-label={back.label}

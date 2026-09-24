@@ -108,10 +108,19 @@ input[type="range"].range {
 .range:focus-visible::-moz-range-thumb {
   box-shadow: 0 0 0 6px rgb(255 102 26 / 0.3);
 }
+/* Nevybraný vek: bežec skrytý (inak vyzerá ako zvolená hodnota), ukáže sa pri ovládaní klávesnicou. */
 .range[data-unset]::-webkit-slider-thumb {
-  border-color: rgb(23 20 15 / 0.3);
+  opacity: 0;
 }
 .range[data-unset]::-moz-range-thumb {
+  opacity: 0;
+}
+.range[data-unset]:focus-visible::-webkit-slider-thumb {
+  opacity: 1;
+  border-color: rgb(23 20 15 / 0.3);
+}
+.range[data-unset]:focus-visible::-moz-range-thumb {
+  opacity: 1;
   border-color: rgb(23 20 15 / 0.3);
 }
 @media (prefers-reduced-motion: reduce) {

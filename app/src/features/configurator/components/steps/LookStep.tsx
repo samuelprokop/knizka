@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
-import { GoBackButton } from "@/components/buttons";
 
 import { ACTIVITIES, ACTIVITY_PICK_COUNT, BOOK_FORMATS, COVER_DESIGNS, LAYOUTS, type ActivityId, type LayoutId } from "@/config/catalog";
 import { SampleSpread, type SampleSpreadData } from "@/features/book/components/SampleSpread";
@@ -152,12 +151,6 @@ export function LookStep(props: LookStepProps) {
                 ))}
               </div>
             </>
-          )}
-          {/* Na mobile späť v obsahu (spodná lišta má Späť až od tabletu). */}
-          {more !== null && (
-            <GoBackButton className="self-start md:hidden" onClick={() => setMore(null)}>
-              {t("common.back")}
-            </GoBackButton>
           )}
           {more === "cover" && (
             <div className="grid gap-x-6 gap-y-4 lg:grid-cols-2">

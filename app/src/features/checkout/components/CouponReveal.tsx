@@ -23,6 +23,31 @@ import { useI18n } from "@/i18n/client";
 const FOLD_REST = 14;
 const FOLD_HOVER = 22;
 
+type Pt = [number, number];
+
+/**
+ * Nálepka sa ohýba po uhlopriečke z pravého horného rohu: línia ohybu y = x − c, kde
+ * c = šírka − f. Nálepka ostáva tam, kde y ≥ x − c; odlepená časť sa zrkadlí cez
+ * líniu ohybu (x, y) → (y + c, x − c) – to je jej zadná strana. Obdĺžnik orezávame
+ * polrovinou (Sutherland–Hodgman), takže tvar sedí pre každé f až po úplné odlepenie.
+ */
+function clipHalf(poly: Pt[], c: number, keep: "stuck" | "peeled"): Pt[] {
+  const inside = ([x, y]: Pt) => (keep === "stuck" ? y >= x - c : y < x - c);
+  const cross = ([x1, y1]: Pt, [x2, y2]: Pt): Pt => {
+    // Priesečník úsečky s líniou y = x − c.
+    const t = (x1 - c - y1) / (y2 - y1 - (x2 - x1));
+    return [x1 + t * (x2 - x1), y1 + t * (y2 - y1)];
+  };
+  const out: Pt[] = [];
+  poly.forEach((p, i) => {
+    const q = poly[(i + 1) % poly.length];
+    if (inside(p)) out.push(p);
+    if (inside(p) !== inside(q)) out.push(cross(p, q));
+  });
+  return out;
+}
+const toPolygon = (pts: Pt[]) => (pts.length ? `polygon(${pts.map(([x, y]) => `${x.toFixed(1)}px ${y.toFixed(1)}px`).join(", ")})` : "polygon(0 0, 0 0, 0 0)");
+
 export function CouponReveal({ code, percent }: { code: string; percent: number }) {
   const { t } = useI18n();
   const router = useRouter();
@@ -35,17 +60,42 @@ export function CouponReveal({ code, percent }: { code: string; percent: number 
   const applyRef = useRef<HTMLButtonElement>(null);
 
   const fold = useMotionValue(FOLD_REST);
-  const clipPath = useTransform(fold, (f) => `polygon(0 0, calc(100% - ${f}px) 0, 100% ${f}px, 100% 100%, 0 100%)`);
+  const peeling = useRef(false);
+  // Rozmer nálepky pre výpočet ohybu (px); meria sa pri vykreslení a pri zmene šírky.
+  const size = useRef({ w: 320, h: 48 });
+  const boxRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = boxRef.current;
+    if (!el) return;
+    const measure = () => {
+      size.current = { w: el.offsetWidth, h: el.offsetHeight };
+      fold.set(fold.get() + 0.001);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [fold]);
+  const rect = (): Pt[] => [[0, 0], [size.current.w, 0], [size.current.w, size.current.h], [0, size.current.h]];
+  const clipPath = useTransform(fold, (f) => toPolygon(clipHalf(rect(), size.current.w - f, "stuck")));
+  const flapPath = useTransform(fold, (f) => {
+    const c = size.current.w - f;
+    return toPolygon(clipHalf(rect(), c, "peeled").map(([x, y]): Pt => [y + c, x - c]));
+  });
+  const hover = (to: number) => !reduce && !peeling.current && animate(fold, to, { duration: 0.2 });
 
   // Po odkrytí zameranie na Uplatniť – klávesnica pokračuje tam, kde bola nálepka.
   useEffect(() => {
     if (revealed) applyRef.current?.focus();
   }, [revealed]);
 
+  // Odlepenie celej nálepky: ohyb prejde od pravého horného rohu až za ľavý dolný, na konci zmizne tieň.
   const reveal = async () => {
+    peeling.current = true;
     if (!reduce) {
-      await animate(fold, 46, { duration: 0.3, ease: [0.4, 0, 0.2, 1] });
-      await animate(sticker.current, { x: 28, y: -20, rotate: 6, opacity: 0 }, { duration: 0.26, ease: "easeIn" });
+      const { w, h } = size.current;
+      await animate(fold, w + h + 2, { duration: 0.8, ease: [0.45, 0, 0.25, 1] });
+      await animate(sticker.current, { opacity: 0 }, { duration: 0.12 });
     }
     setRevealed(true);
   };
@@ -67,7 +117,7 @@ export function CouponReveal({ code, percent }: { code: string; percent: number 
   };
 
   return (
-    <div className="relative h-12">
+    <div ref={boxRef} className="relative h-12">
       {/* Pod nálepkou: kód a akcie. Kým je zalepený, nedá sa naň dostať. */}
       <div
         inert={!revealed}
@@ -98,20 +148,17 @@ export function CouponReveal({ code, percent }: { code: string; percent: number 
           <motion.button
             type="button"
             onClick={reveal}
-            onPointerEnter={() => !reduce && animate(fold, FOLD_HOVER, { duration: 0.2 })}
-            onPointerLeave={() => !reduce && animate(fold, FOLD_REST, { duration: 0.2 })}
+            onPointerEnter={() => hover(FOLD_HOVER)}
+            onPointerLeave={() => hover(FOLD_REST)}
             style={{ clipPath }}
             className="flex size-full items-center justify-center gap-2 rounded-xl bg-[#ffd9c4] text-sm font-semibold text-brand-orange-dark outline-none focus-visible:ring-4 focus-visible:ring-brand-orange/40"
           >
             <TagIcon className="size-5" />
             {t("cart.launch.reveal", { percent })}
           </motion.button>
-          {/* Ohnutý roh – zadná strana nálepky (odraz odrezaného trojuholníka). */}
-          <span aria-hidden className="pointer-events-none absolute top-0 right-0 drop-shadow-[-1px_2px_2px_rgb(23_20_15/0.25)]">
-            <motion.span
-              style={{ width: fold, height: fold }}
-              className="block rounded-bl-md bg-linear-to-br from-white to-[#fff3ec] [clip-path:polygon(0_0,0_100%,100%_100%)]"
-            />
+          {/* Zadná strana odlepenej časti (zrkadlo cez líniu ohybu); smie presahovať nálepku. */}
+          <span aria-hidden className="pointer-events-none absolute inset-0 drop-shadow-[-2px_3px_3px_rgb(23_20_15/0.22)]">
+            <motion.span style={{ clipPath: flapPath }} className="absolute inset-0 bg-linear-to-br from-white via-[#fff6f0] to-[#ffe4d6]" />
           </span>
         </motion.div>
       )}

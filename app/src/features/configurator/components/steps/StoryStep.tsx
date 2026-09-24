@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useId, useMemo, useState, useTransition } from "react";
 
-import { GoBackButton, NextArrow, ShowMoreButton } from "@/components/buttons";
+import { NextArrow, ShowMoreButton } from "@/components/buttons";
+import { ArrowRightIcon, PlusIcon } from "@/components/icons";
 
 import type { ReadingLevel } from "@/config/catalog";
 import { useI18n } from "@/i18n/client";
@@ -165,11 +166,12 @@ function StoryLibrary({ tiles, heroAge, heroPortrait, themeColor, companions, gu
             <Link
               href={nav({ pribeh: tile.id })}
               className={cx(
-                "flex h-full flex-col overflow-hidden rounded-3xl bg-white ring-1 outline-none transition hover:shadow-lg focus-visible:ring-4 focus-visible:ring-brand-orange/40",
+                "group flex h-full flex-col overflow-hidden rounded-3xl bg-white ring-1 outline-none transition duration-200 hover:-translate-y-0.5 hover:shadow-lg focus-visible:ring-4 focus-visible:ring-brand-orange/40 motion-reduce:hover:translate-y-0",
                 chosenId === tile.id ? "ring-4 ring-brand-orange" : "ring-ink/10"
               )}
             >
-              <StoryCover title={tile.title} portrait={heroPortrait} color={themeColor} />
+              {/* V knižnici nižšia obálka – karta s výzvou sa zmestí na obrazovku. */}
+              <StoryCover title={tile.title} portrait={heroPortrait} color={themeColor} compact />
               <div className="flex flex-1 flex-col gap-2 p-4">
                 <p className="text-sm text-ink/65">
                   {t("configurator.story.age_range", { from: tile.ageMin, to: tile.ageMax })} · {t("story.card.pages", { n: tile.spreads })}
@@ -180,6 +182,13 @@ function StoryLibrary({ tiles, heroAge, heroPortrait, themeColor, companions, gu
                   {tile.companionSlots > 0 ? <Tag>{t("story.card.companion_slots", { n: tile.companionSlots })}</Tag> : companions > 0 && <Tag warn>{t("configurator.story.no_slot")}</Tag>}
                   {tile.needsGuide && <Tag warn={guideNone}>{t("story.card.needs_guide")}</Tag>}
                 </ul>
+                {/* Viditeľná výzva – karta je celá klikateľná, ale bez nej nebolo jasné, kam kliknúť. */}
+                <span className="mt-2 flex min-h-11 items-center justify-between rounded-full bg-brand-orange/12 pr-1.5 pl-4 text-sm font-semibold text-ink transition-colors group-hover:bg-brand-orange-dark group-hover:text-white">
+                  {chosenId === tile.id ? t("story.card.chosen") : t("story.card.open")}
+                  <span aria-hidden className="flex size-8 items-center justify-center rounded-full bg-brand-orange-dark text-white transition-colors group-hover:bg-white group-hover:text-brand-orange-dark">
+                    <ArrowRightIcon className="size-4" />
+                  </span>
+                </span>
               </div>
             </Link>
           </li>
@@ -187,10 +196,14 @@ function StoryLibrary({ tiles, heroAge, heroPortrait, themeColor, companions, gu
         <li>
           <Link
             href={nav({ v: "vlastny" })}
-            className="flex h-full min-h-48 flex-col justify-center gap-2 rounded-3xl border-2 border-dashed border-brand-orange/60 bg-brand-orange/5 p-6 outline-none focus-visible:ring-4 focus-visible:ring-brand-orange/40"
+            className="group flex h-full min-h-48 flex-col justify-center gap-2 rounded-3xl border-2 border-dashed border-brand-orange/60 bg-brand-orange/5 p-6 outline-none transition duration-200 hover:-translate-y-0.5 hover:border-brand-orange hover:shadow-lg focus-visible:ring-4 focus-visible:ring-brand-orange/40 motion-reduce:hover:translate-y-0"
           >
             <span className="font-heading text-xl font-extrabold text-ink">{t("story.not_found.title")}</span>
             <span className="text-sm text-ink/75">{t("story.not_found.body")}</span>
+            <span className="mt-3 inline-flex items-center gap-2 self-start rounded-full border-2 border-brand-orange-dark/30 bg-white px-4 py-2 text-sm font-semibold text-brand-orange-dark transition-colors group-hover:border-brand-orange-dark">
+              <PlusIcon className="size-4" />
+              {t("story.not_found.cta")}
+            </span>
           </Link>
         </li>
       </ul>
@@ -222,9 +235,9 @@ function Tag({ children, warn }: { children: React.ReactNode; warn?: boolean }) 
 }
 
 /** Obálka v knižnici: hrdina (Karta) a názov s menom – kým nie sú vygenerované obálky príbehov. */
-export function StoryCover({ title, portrait, color }: { title: string; portrait: string | null; color: string }) {
+export function StoryCover({ title, portrait, color, compact }: { title: string; portrait: string | null; color: string; compact?: boolean }) {
   return (
-    <div className="relative flex aspect-[4/3] items-end overflow-hidden p-4" style={{ backgroundColor: color }}>
+    <div className={cx("relative flex items-end overflow-hidden p-4", compact ? "aspect-[16/9]" : "aspect-[4/3]")} style={{ backgroundColor: color }}>
       {portrait && (
         // eslint-disable-next-line @next/next/no-img-element -- súkromný súbor projektu
         <img src={portrait} alt="" className="absolute top-3 right-3 aspect-square h-3/4 rounded-full object-cover ring-4 ring-white/70" />
@@ -251,7 +264,10 @@ function StoryDetail(props: StoryStepProps) {
   const bookT = useMemo(() => createTranslator(bookLanguage as BookLanguage), [bookLanguage]);
   const heroCtx = hero ?? undefined;
 
-  useSubStep(tile ? (props.view === "details" ? t("story.details") : tile.title) : null);
+  // Späť (lišta dole, na mobile hore): z detailov na popis príbehu, z popisu do knižnice.
+  useSubStep(tile ? (props.view === "details" ? t("story.details") : tile.title) : null, () =>
+    router.push(props.view === "details" && tile ? nav({ pribeh: tile.id }) : nav())
+  );
   if (!tile) return <Notice tone="error">{t("story.refuse.retry")}</Notice>;
   const withDetails = props.view === "details";
   const minutes = Math.max(3, Math.round(tile.spreads * 0.5));
@@ -265,9 +281,6 @@ function StoryDetail(props: StoryStepProps) {
 
   return (
     <>
-      <GoBackButton href={nav()} className="self-start">
-        {t("common.back")}
-      </GoBackButton>
       {/* Od lg dva stĺpce: obálka vľavo, popis, ukážka a voľby vpravo. */}
       <div className="grid gap-5 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:items-start lg:gap-8">
       {/* Pod obálkou nepovinný vlastný názov – obálka ho hneď ukáže (K5.11, pole s náhľadom obálky). */}
@@ -337,7 +350,7 @@ function StoryDetail(props: StoryStepProps) {
       </div>
       </div>
 
-      <StepFooter back={false}>
+      <StepFooter>
         <Button variant="next" className="w-full sm:w-auto" pending={pending} onClick={choose}>
           {withDetails ? t("common.continue") : t("story.select")}
         </Button>

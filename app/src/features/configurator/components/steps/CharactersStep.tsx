@@ -18,6 +18,7 @@ import {
   onlyHeroAction,
   removeCompanionAction,
   setGuideAction,
+  updateCompanionAction,
 } from "../../actions/characters";
 import { MASCOT_NAME, type Appearance } from "../../model";
 import type { NameLookup } from "../../server/names";
@@ -29,7 +30,7 @@ import { PhotoUploader, type PhotoView } from "../PhotoUploader";
 import { StepFooter } from "../StepFooter";
 import { Button, Check, Chip, Field, Notice, StepTitle, inputClass, splitOptions } from "../ui";
 import { useWizard } from "../WizardContext";
-import { BanIcon, CheckIcon, CloseIcon, PlusIcon, SmileIcon } from "@/components/icons";
+import { BanIcon, CheckIcon, CloseIcon, PencilIcon, PlusIcon, SmileIcon } from "@/components/icons";
 import { ToastOnMount } from "@/components/Toaster";
 import { useSubStep } from "../WizardMotion";
 
@@ -38,6 +39,8 @@ export type CompanionView = {
   kind: string;
   name: string;
   storyRole: string | null;
+  gender: Gender | null;
+  appearance: Appearance;
   card: { status: string; url: string | null; approved: boolean } | null;
   photos: PhotoView[];
   withPhoto: boolean;
@@ -66,6 +69,8 @@ export function CharactersStep({
   const [adding, setAdding] = useState(false);
   // Po pridaní postavy s fotkou rovno podstránka s nahratím (inak by fotka čakala nenápadne v zozname).
   const [photoFor, setPhotoFor] = useState<string | null>(null);
+  // Klik na kartu postavy otvorí jej úpravu (rovnaký formulár ako pri pridaní).
+  const [editing, setEditing] = useState<CompanionView | null>(null);
   const photoCompanion = photoFor ? companions.find((c) => c.id === photoFor) : undefined;
   const [error, setError] = useState<MessageKey | null>(null);
   const [pending, start] = useTransition();
@@ -86,10 +91,31 @@ export function CharactersStep({
       router.refresh();
     });
 
-  useSubStep(adding ? t("chars.sub.new") : photoFor ? t("chars.sub.photo") : null, () => {
+  useSubStep(adding ? t("chars.sub.new") : editing ? t("chars.sub.edit") : photoFor ? t("chars.sub.photo") : null, () => {
     setAdding(false);
+    setEditing(null);
     setPhotoFor(null);
   });
+
+  if (editing) {
+    return (
+      <>
+        <StepTitle title={t("chars.edit.title", { name: editing.name })} />
+        <CompanionForm
+          key={editing.id}
+          initial={editing}
+          extraPrice={extraPrice}
+          onCancel={() => setEditing(null)}
+          onAdded={(characterId, withPhoto) => {
+            setEditing(null);
+            // Prechod na fotku (alebo fotka ešte bez Karty) = rovno nahratie.
+            if (withPhoto && !editing.card) setPhotoFor(characterId);
+            router.refresh();
+          }}
+        />
+      </>
+    );
+  }
 
   if (photoFor) {
     const usable = !!photoCompanion?.photos.some((p) => p.verdict === "good" || p.verdict === "ok");
@@ -152,8 +178,19 @@ export function CharactersStep({
       {!adding && companions.length > 0 && (
         <ul className="grid gap-3 lg:grid-cols-2">
           {companions.map((c) => (
-            <li key={c.id} className="flex flex-col gap-3 rounded-3xl bg-white p-4 ring-1 ring-ink/10">
-              <div className="flex items-center gap-3">
+            <li
+              key={c.id}
+              className="relative flex flex-col gap-3 rounded-3xl bg-white p-4 ring-1 ring-ink/10 transition-shadow has-[[data-edit]:hover]:shadow-lg has-[[data-edit]:focus-visible]:ring-4 has-[[data-edit]:focus-visible]:ring-brand-orange/40"
+            >
+              {/* Celá karta otvorí úpravu (roztiahnuté tlačidlo); ovládacie prvky v nej ležia nad ním. */}
+              <button
+                type="button"
+                data-edit
+                onClick={() => setEditing(c)}
+                aria-label={t("chars.edit.open", { name: c.name })}
+                className="absolute inset-0 z-0 rounded-3xl outline-none"
+              />
+              <div className="pointer-events-none relative flex items-center gap-3">
                 <SkeletonReveal
                   className="size-16 shrink-0"
                   loading={!c.card?.url}
@@ -171,27 +208,31 @@ export function CharactersStep({
                     {c.storyRole && ` · ${t(c.storyRole === "companion" ? "chars.role.companion" : "chars.role.cameo")}`}
                   </span>
                 </div>
-                <Button variant="ghost" onClick={() => refresh(() => removeCompanionAction(projectId!, c.id))} aria-label={t("configurator.chars.remove", { name: c.name })} className="min-w-12 px-0">
+                <span aria-hidden className="flex items-center gap-1 text-sm font-semibold text-brand-orange-dark">
+                  <PencilIcon className="size-4" />
+                  {t("common.edit")}
+                </span>
+                <Button variant="ghost" onClick={() => refresh(() => removeCompanionAction(projectId!, c.id))} aria-label={t("configurator.chars.remove", { name: c.name })} className="pointer-events-auto min-w-12 px-0">
                   <CloseIcon />
                 </Button>
               </div>
 
               {c.withPhoto && !c.card && (
-                <>
+                <div className="relative flex flex-col gap-3">
                   <PhotoUploader characterId={c.id} photos={c.photos} />
                   <Button variant="secondary" disabled={!c.photos.some((p) => p.verdict !== "bad")} onClick={() => refresh(() => generateCompanionCardAction(projectId!, c.id))}>
                     {t("configurator.chars.create_card")}
                   </Button>
-                </>
+                </div>
               )}
-              {c.card?.status === "generating" && <p className="text-sm text-ink/70">{t("hero.updating")}</p>}
+              {c.card?.status === "generating" && <p className="pointer-events-none relative text-sm text-ink/70">{t("hero.updating")}</p>}
               {c.card?.status === "ready" && !c.card.approved && (
-                <Button variant="secondary" onClick={() => refresh(() => approveCompanionAction(projectId!, c.id))}>
+                <Button variant="secondary" className="relative" onClick={() => refresh(() => approveCompanionAction(projectId!, c.id))}>
                   {t("configurator.chars.approve_card", { name: c.name })}
                 </Button>
               )}
               {c.card?.approved && (
-                <p className="flex items-center gap-1.5 text-sm font-medium text-[#1f7a3a]">
+                <p className="pointer-events-none relative flex items-center gap-1.5 text-sm font-medium text-[#1f7a3a]">
                   <CheckIcon className="size-4" />
                   {t("configurator.chars.card_approved")}
                 </p>
@@ -236,17 +277,29 @@ export function CharactersStep({
   );
 }
 
-function CompanionForm({ extraPrice, onCancel, onAdded }: { extraPrice: string; onCancel: () => void; onAdded: (characterId: string, withPhoto: boolean) => void }) {
+function CompanionForm({
+  extraPrice,
+  onCancel,
+  onAdded,
+  initial,
+}: {
+  extraPrice: string;
+  onCancel: () => void;
+  onAdded: (characterId: string, withPhoto: boolean) => void;
+  /** Úprava existujúcej postavy – formulár sa predvyplní a uloží cez updateCompanionAction. */
+  initial?: CompanionView;
+}) {
   const { t } = useI18n();
   const { projectId, bookLanguage } = useWizard();
   const ids = useId();
-  const [kind, setKind] = useState<CharacterKind | null>(null);
-  const [name, setName] = useState("");
-  const [gender, setGender] = useState<Gender | null>(null);
-  const [role, setRole] = useState<"companion" | "cameo">("companion");
-  const [withPhoto, setWithPhoto] = useState(false);
-  const [consent, setConsent] = useState(false);
-  const [look, setLook] = useState<Appearance>({});
+  const [kind, setKind] = useState<CharacterKind | null>((initial?.kind as CharacterKind) ?? null);
+  const [name, setName] = useState(initial?.name ?? "");
+  const [gender, setGender] = useState<Gender | null>(initial?.gender ?? null);
+  const [role, setRole] = useState<"companion" | "cameo">(initial?.storyRole === "cameo" ? "cameo" : "companion");
+  const [withPhoto, setWithPhoto] = useState(initial?.withPhoto ?? false);
+  // Pri úprave postavy, ktorá už fotku má, bol súhlas udelený pri pridaní.
+  const [consent, setConsent] = useState(!!initial?.withPhoto);
+  const [look, setLook] = useState<Appearance>(initial?.appearance ?? {});
   const [lookup, setLookup] = useState<NameLookup | null>(null);
   const [error, setError] = useState<MessageKey | null>(null);
   const [pending, start] = useTransition();
@@ -352,7 +405,7 @@ function CompanionForm({ extraPrice, onCancel, onAdded }: { extraPrice: string; 
           pending={pending}
           onClick={() =>
             start(async () => {
-              const result = await addCompanionAction(projectId!, {
+              const payload = {
                 kind,
                 name,
                 gender: effectiveGender,
@@ -362,18 +415,24 @@ function CompanionForm({ extraPrice, onCancel, onAdded }: { extraPrice: string; 
                 indeclinable: false,
                 otherPersonConsent: consent,
                 withPhoto: withPhoto && kind !== "pet",
-              });
+              };
+              if (initial) {
+                const result = await updateCompanionAction(projectId!, initial.id, payload);
+                if (!result.ok) return setError(result.error);
+                return onAdded(initial.id, payload.withPhoto);
+              }
+              const result = await addCompanionAction(projectId!, payload);
               if (!result.ok) return setError(result.error);
-              onAdded(result.data.characterId, withPhoto && kind !== "pet");
+              onAdded(result.data.characterId, payload.withPhoto);
             })
           }
         >
-          {t(withPhoto && kind !== "pet" ? "chars.photo.continue" : "configurator.chars.add_confirm")}
+          {initial ? t("chars.edit.save") : t(withPhoto && kind !== "pet" ? "chars.photo.continue" : "configurator.chars.add_confirm")}
         </Button>
         <Button variant="ghost" onClick={onCancel}>
           {t("common.cancel")}
         </Button>
-        <p className="text-sm text-ink/70">{t("chars.price_hint", { price: extraPrice })}</p>
+        {!initial && <p className="text-sm text-ink/70">{t("chars.price_hint", { price: extraPrice })}</p>}
       </div>
       </div>
     </section>

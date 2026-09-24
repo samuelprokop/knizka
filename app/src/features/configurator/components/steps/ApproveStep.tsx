@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useId, useRef, useState, useTransition } from "react";
 
-import { GoBackButton, NextArrow } from "@/components/buttons";
+import { NextArrow } from "@/components/buttons";
+import { useFlyToBasket } from "@/components/FlyToBasket";
 
 import { LIMITS } from "@/config/catalog";
 import { useI18n } from "@/i18n/client";
@@ -53,6 +54,7 @@ export function ApproveStep({
   const [checks, setChecks] = useState([false, false, false]);
   const [error, setError] = useState<MessageKey | null>(null);
   const [pending, start] = useTransition();
+  const basket = useFlyToBasket(t("cart.title"));
 
   // Bez venovania = prázdne venovanie, od koho aj dátum; pôvodný text sa pamätá pre návrat.
   const [moreTexts, setMoreTexts] = useState(false);
@@ -113,9 +115,6 @@ export function ApproveStep({
     <>
       {moreTexts ? (
         <>
-          <GoBackButton className="self-start md:hidden" onClick={() => setMoreTexts(false)}>
-            {t("common.back")}
-          </GoBackButton>
           <StepTitle title={t("approve.more_texts")} />
           <div className="grid gap-4 lg:grid-cols-2">
         {letterEnabled && (
@@ -183,21 +182,25 @@ export function ApproveStep({
       )}
 
       {error && <Notice tone="error">{t(error)}</Notice>}
+      {basket.layer}
       <StepFooter>
         <Button
           variant="next"
           className="w-full sm:w-auto"
           disabled={!checks.every(Boolean)}
           pending={pending}
-          onClick={() =>
+          onClick={(event) => {
+            const button = event.currentTarget;
             start(async () => {
               const saved = await savePersonalTextsAction(projectId!, values);
               if (!saved.ok) return setError(saved.error);
               const result = await approveBookAction(projectId!, checks);
               if (!result.ok) return setError(result.error);
-              router.refresh();
-            })
-          }
+              // Kniha „vletí“ do košíka a hneď sa otvorí košík (bez medzikroku).
+              await basket.fly(button);
+              router.push(cartHref);
+            });
+          }}
         >
           {t("approve.cta")}
         </Button>

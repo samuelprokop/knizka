@@ -11,6 +11,7 @@ import {
   generateCompanionCard,
   onlyHero,
   removeCompanion,
+  updateCompanion,
   setGuide,
 } from "../server/characters";
 import { recordConsents } from "../server/consents";
@@ -58,6 +59,30 @@ export async function addCompanionAction(projectId: string, input: unknown): Pro
       await generateCompanionCard(id, character.id);
     }
     return { characterId: character.id };
+  });
+}
+
+/** Úprava postavy z jej karty; pri prechode na fotku treba vyhlásenie o súhlase ako pri pridaní. */
+export async function updateCompanionAction(projectId: string, characterId: string, input: unknown): Promise<ActionResult> {
+  return projectAction(projectId, async (id) => {
+    const parsed = companionSchema.safeParse(input);
+    if (!parsed.success) throw new ValidationError("child.name.invalid_chars");
+    const data = parsed.data;
+    const bundle = await loadBundle(id);
+    const current = bundle?.companions.find((c) => c.id === String(characterId));
+    if (!bundle || !current) throw new ValidationError("error.generic");
+    const toPhoto = data.withPhoto && current.appearanceSource !== "photo";
+    if (toPhoto && !data.otherPersonConsent) throw new ValidationError("chars.consent.other_person");
+
+    await updateCompanion(id, current.id, { ...data, appearance: parseAppearance(data.appearance) });
+    if (toPhoto) {
+      const market = isMarketCode(bundle.project.market) ? getMarket(bundle.project.market) : null;
+      await recordConsents(
+        id,
+        [{ type: "other_person_photo", granted: true, textKey: "chars.consent.other_person", characterId: current.id }],
+        { language: market?.uiLanguage ?? "sk", userAgent: await userAgent() }
+      );
+    }
   });
 }
 

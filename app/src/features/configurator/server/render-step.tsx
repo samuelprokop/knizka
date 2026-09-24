@@ -25,7 +25,7 @@ import { PreviewStep } from "../components/steps/PreviewStep";
 import { StoryStep, type StoryView } from "../components/steps/StoryStep";
 import { StyleStep } from "../components/steps/StyleStep";
 import { fileUrl } from "../files";
-import { MASCOT_NAME, STYLE_BY_AGE, THEME_SPECS, WIZARD_MAX_IDEA_ROUNDS, type DetailSlot } from "../model";
+import { MASCOT_NAME, STYLE_BY_AGE, THEME_SPECS, WIZARD_MAX_IDEA_ROUNDS, type Appearance, type DetailSlot } from "../model";
 import { priceSelection } from "../pricing";
 import type { StepNumber } from "../steps";
 import { renderDetails, renderStoryText } from "../story-text";
@@ -180,6 +180,8 @@ function charactersStep({ bundle, market, query }: Ctx) {
           kind: c.kind ?? "other",
           name: c.name,
           storyRole: c.storyRole,
+          gender: (c.gender as "girl" | "boy" | null) ?? null,
+          appearance: (c.appearance ?? {}) as Appearance,
           card: card ? { status: card.status, url: cardUrl(market.code, id, card), approved: card.status === "approved" } : null,
           photos: photos.map((p) => ({ id: p.id, verdict: p.verdict, reason: p.verdictReason })),
           withPhoto: c.appearanceSource === "photo",

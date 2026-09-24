@@ -2,7 +2,7 @@
 
 /*
   Listovací náhľad knihy (K8.1, proces: Krok 8 – Náhľad): dvojstrany s animovaným
-  otáčaním, vodoznak cez obrázky, lišta miniatúr, zväčšenie strany dvojitým
+  otáčaním, vodoznak cez obrázky, 3D prehľad strán (PageCarousel3D), zväčšenie strany dvojitým
   klepnutím, ovládanie šípkami, tlačidlami aj potiahnutím prstom.
 
   Použitie (balík A, krok 7 – 8):
@@ -18,7 +18,7 @@ import { FORMAT_SPECS } from "../design";
 import { previewSpreads, type PreviewSpread } from "../model/pages";
 import type { Book, PageRef } from "../model/types";
 import { BookPage, type PageRenderOptions } from "./BookPage";
-import { BookSpread } from "./BookSpread";
+import { PageCarousel3D, type CarouselPage } from "./PageCarousel3D";
 
 type Sides = { left: PageRef | null; right: PageRef | null };
 
@@ -53,7 +53,6 @@ export function BookFlipbook({
   const [index, setIndex] = useState(() => Math.min(initialSpread, spreads.length - 1));
   const [flip, setFlip] = useState<Flip | null>(null);
   const [zoom, setZoom] = useState<PageRef | null>(null);
-  const thumbsRef = useRef<HTMLDivElement>(null);
 
   const opts: PageRenderOptions = useMemo(
     () => ({
@@ -89,12 +88,6 @@ export function BookFlipbook({
     return () => window.removeEventListener("keydown", onKey);
   }, [go, index, zoom]);
 
-  // Aktuálna miniatúra ostáva viditeľná.
-  useEffect(() => {
-    const thumb = thumbsRef.current?.querySelector<HTMLElement>(`[data-index="${index}"]`);
-    thumb?.scrollIntoView({ block: "nearest", inline: "center", behavior: reduceMotion ? "auto" : "smooth" });
-  }, [index, reduceMotion]);
-
   // Potiahnutie prstom
   const swipeStart = useRef<number | null>(null);
   const onPointerDown = (event: PointerEvent) => {
@@ -106,6 +99,24 @@ export function BookFlipbook({
     swipeStart.current = null;
     if (Math.abs(delta) > 50) go(delta < 0 ? index + 1 : index - 1);
   };
+
+  // Jednotlivé strany pre 3D prehľad (prázdne strany vynechané).
+  const carouselPages: CarouselPage[] = useMemo(
+    () =>
+      spreads.flatMap((spread, spreadIndex) => {
+        const { left, right } = sides(spread);
+        return [left, right].flatMap((ref, side): CarouselPage[] => {
+          if (!ref || ref.type === "blank") return [];
+          const label =
+            ref.type === "cover" ? t("book.preview.cover")
+            : ref.type === "back_cover" ? t("book.preview.back_cover")
+            : ref.type === "endpaper" ? t("book.preview.endpaper")
+            : t("book.preview.page", { n: ref.page.number });
+          return [{ key: `${spread.id}-${side}`, ref, spreadIndex, label }];
+        });
+      }),
+    [spreads, t]
+  );
 
   const current = sides(spreads[index]);
   const forward = flip ? flip.to > flip.from : true;
@@ -239,28 +250,18 @@ export function BookFlipbook({
         </button>
       </div>
 
-      <nav aria-label={t("book.preview.thumbnails")} className="w-full">
-        <div ref={thumbsRef} className="flex gap-3 overflow-x-auto px-1 pb-3 pt-1">
-          {spreads.map((spread, i) => (
-            <button
-              key={spread.id}
-              type="button"
-              data-index={i}
-              onClick={() => go(i)}
-              aria-current={i === index ? "true" : undefined}
-              aria-label={spreadLabel(spread, i, spreads.length, t)}
-              className={`shrink-0 rounded-md p-1 transition focus-visible:outline-2 focus-visible:outline-brand-orange ${
-                i === index ? "bg-brand-orange/15 ring-2 ring-brand-orange" : "ring-1 ring-ink/10 hover:ring-ink/30"
-              }`}
-              style={{ width: `${Math.round(56 * spreadAspect)}px` }}
-            >
-              <span aria-hidden="true" className="pointer-events-none block">
-                <BookSpread book={book} spread={spread} opts={{ watermark: undefined }} />
-              </span>
-            </button>
-          ))}
-        </div>
-      </nav>
+      {/* Prehľad strán: 3D valec jednotlivých strán; klik = zväčšenie + nalistovanie. */}
+      <PageCarousel3D
+        book={book}
+        pages={carouselPages}
+        currentSpread={index}
+        label={t("book.preview.thumbnails")}
+        opts={{ watermark: undefined }}
+        onPick={(page) => {
+          go(page.spreadIndex);
+          setZoom(page.ref);
+        }}
+      />
 
       {zoom && <ZoomDialog book={book} page={zoom} opts={opts} onClose={() => setZoom(null)} closeLabel={t("book.preview.close")} />}
     </section>

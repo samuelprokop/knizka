@@ -147,7 +147,7 @@ function HeroCard({
     });
 
   const exhausted = retriesLeft <= 0;
-  useSubStep(panel === "edit" ? t("hero.edit") : panel === "retry" ? t("hero.retry") : null);
+  useSubStep(panel === "edit" ? t("hero.edit") : panel === "retry" ? t("hero.retry") : null, () => setPanel("none"));
 
   return (
     <>
@@ -178,15 +178,14 @@ function HeroCard({
             choices={["hairColor", "hairLength", "hairstyle", "eyes", "skin", "outfitColor", "accessory"]}
             flags={["glasses", "freckles", "braces", "hearingAid", "wheelchair"]}
           />
-          <div className="flex flex-wrap gap-2">
-            <Button pending={pending} onClick={() => run(() => updateAppearanceAction(projectId!, heroId, look), () => setPanel("none"))}>
-              {t("common.done")}
-            </Button>
-            <Button variant="ghost" onClick={() => setPanel("none")}>
-              {t("common.back")}
-            </Button>
-          </div>
         </section>
+      )}
+      {panel === "edit" && (
+        <StepFooter>
+          <Button variant="next" className="w-full sm:w-auto" pending={pending} onClick={() => run(() => updateAppearanceAction(projectId!, heroId, look), () => setPanel("none"))}>
+            {t("common.done")}
+          </Button>
+        </StepFooter>
       )}
 
       {panel === "retry" && !exhausted && (
@@ -200,15 +199,14 @@ function HeroCard({
             ))}
           </div>
           <p className="text-sm text-ink/70">{t("hero.retry.counter", { n: retriesLeft })}</p>
-          <div className="flex flex-wrap gap-2">
-            <Button disabled={!reason} pending={pending} onClick={() => run(() => retryCardAction(projectId!, reason!), () => setPanel("none"))}>
-              {t("hero.retry")}
-            </Button>
-            <Button variant="ghost" onClick={() => setPanel("none")}>
-              {t("common.back")}
-            </Button>
-          </div>
         </fieldset>
+      )}
+      {panel === "retry" && !exhausted && (
+        <StepFooter>
+          <Button variant="next" className="w-full sm:w-auto" disabled={!reason} pending={pending} onClick={() => run(() => retryCardAction(projectId!, reason!), () => setPanel("none"))}>
+            {t("hero.retry")}
+          </Button>
+        </StepFooter>
       )}
 
       {exhausted && !approved && (

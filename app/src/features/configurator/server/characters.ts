@@ -130,6 +130,44 @@ export async function approveCompanionCard(projectId: string, characterId: strin
     .where(eq(schema.characterCards.id, card.id));
 }
 
+/**
+ * Úprava existujúcej postavy (klik na jej kartu v kroku 4). Pri opise sa po zmene
+ * podoby, typu alebo rodu nakreslí nová Karta; pri fotke ostáva, kým sa nenahrá nová.
+ */
+export async function updateCompanion(projectId: string, characterId: string, input: CompanionInput) {
+  if (!CHARACTER_KINDS.includes(input.kind)) throw new ValidationError("chars.type.label");
+  const bundle = await loadBundle(projectId);
+  const current = bundle?.companions.find((c) => c.id === characterId);
+  if (!bundle || !current) throw new Error("Postava nepatrí k projektu");
+
+  const name = await namePayload(input, bundle.project.bookLanguage as BookLanguage);
+  const source = input.withPhoto ? "photo" : "description";
+  await db
+    .update(schema.characters)
+    .set({
+      kind: input.kind,
+      name: name.name,
+      nameForms: name.nameForms,
+      nameIndeclinable: name.nameIndeclinable,
+      gender: input.gender,
+      storyRole: input.storyRole,
+      appearanceSource: source,
+      appearance: input.appearance,
+    })
+    .where(and(eq(schema.characters.id, characterId), eq(schema.characters.projectId, projectId)));
+
+  if (current.name !== name.name || current.gender !== input.gender) {
+    await reviewIfNeeded(projectId, characterId, bundle.project.bookLanguage as BookLanguage, input.gender, input.editedForms, name);
+  }
+  const lookChanged =
+    source !== current.appearanceSource ||
+    current.kind !== input.kind ||
+    current.gender !== input.gender ||
+    JSON.stringify(current.appearance ?? {}) !== JSON.stringify(input.appearance);
+  if (source === "description" && lookChanged) await generateCompanionCard(projectId, characterId);
+  await markChanged(projectId, name.needsReview);
+}
+
 export async function removeCompanion(projectId: string, characterId: string) {
   await db
     .delete(schema.characters)

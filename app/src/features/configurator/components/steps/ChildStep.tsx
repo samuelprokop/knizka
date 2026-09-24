@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useMemo, useRef, useState, useTransition } from "react";
 
+import { FluidSelect } from "@/components/FluidSelect";
+import { BackpackIcon, BookIcon, CakeIcon, HeartIcon, StarIcon, TreeIcon } from "@/components/icons";
 import { useI18n } from "@/i18n/client";
 import { createTranslator } from "@/i18n/format";
 import type { BookLanguage } from "@/i18n/locales";
@@ -29,6 +31,15 @@ export type ChildInitial = {
   indeclinable: boolean;
 };
 
+const OCCASION_ICONS: Record<(typeof WIZARD_OCCASIONS)[number], React.ReactNode> = {
+  birthday: <CakeIcon />,
+  nameday: <StarIcon />,
+  christmas: <TreeIcon />,
+  kindergarten: <BackpackIcon />,
+  school: <BookIcon />,
+  none: <HeartIcon />,
+};
+
 const SAMPLES = ["child.check.sample1", "child.check.sample2", "child.check.sample3"] as const satisfies readonly MessageKey[];
 
 export function ChildStep({ initial }: { initial: ChildInitial }) {
@@ -39,6 +50,8 @@ export function ChildStep({ initial }: { initial: ChildInitial }) {
 
   const [name, setName] = useState(initial.name);
   const [touched, setTouched] = useState(false);
+  // Chýbajúce pohlavie a vek hlásime až po pokuse pokračovať (nie po opustení poľa s menom).
+  const [attempted, setAttempted] = useState(false);
   const [gender, setGender] = useState<Gender | null>(initial.gender);
   const [genderTouched, setGenderTouched] = useState(initial.gender !== null);
   const [age, setAge] = useState<number | null>(initial.age);
@@ -95,6 +108,7 @@ export function ChildStep({ initial }: { initial: ChildInitial }) {
 
   function onContinue() {
     setTouched(true);
+    setAttempted(true);
     if (!ready) return;
     if (!projectId) {
       dialogRef.current?.showModal();
@@ -208,8 +222,22 @@ export function ChildStep({ initial }: { initial: ChildInitial }) {
               </Chip>
             ))}
           </div>
-          {touched && !gender && <FieldError>{t("configurator.required")}</FieldError>}
+          {attempted && !gender && <FieldError>{t("configurator.required")}</FieldError>}
         </fieldset>
+
+        <div className="flex flex-col gap-2.5">
+          <span id={`${ids}-occasion-label`} className="text-sm font-semibold text-ink">
+            {t("child.occasion.label")}
+          </span>
+          <FluidSelect
+            id={`${ids}-occasion`}
+            labelledBy={`${ids}-occasion-label`}
+            value={occasion}
+            onChange={setOccasion}
+            placeholder={t("child.occasion.placeholder")}
+            options={WIZARD_OCCASIONS.map((o, i) => ({ value: o, label: occasionLabels[i], icon: OCCASION_ICONS[o] }))}
+          />
+        </div>
 
         {/* Jazyk knihy = jazyk trhu (/sk slovensky, /cz česky) – na výber nie je. */}
 
@@ -220,7 +248,7 @@ export function ChildStep({ initial }: { initial: ChildInitial }) {
             <label htmlFor={`${ids}-age`} className="text-sm font-semibold text-ink">
               {t("child.age.label")}
             </label>
-            <span aria-hidden className={age === null ? "text-sm text-ink/55" : "font-heading text-lg font-extrabold text-brand-orange-dark"}>
+            <span aria-hidden className={age === null ? "rounded-full bg-brand-orange/10 px-2.5 py-0.5 text-sm font-semibold text-brand-orange-dark" : "font-heading text-lg font-extrabold text-brand-orange-dark"}>
               {age === null ? t("child.age.slider_hint") : t(`configurator.age.years.${pluralForm(age)}`, { n: age })}
             </span>
           </div>
@@ -236,7 +264,7 @@ export function ChildStep({ initial }: { initial: ChildInitial }) {
             placeholder={t("child.age.slider_hint")}
           />
           {age !== null && isAgeOutsideStories(age) && <Notice tone="warn">{t("child.age.outside")}</Notice>}
-          {touched && age === null && <FieldError>{t("configurator.required")}</FieldError>}
+          {attempted && age === null && <FieldError>{t("configurator.required")}</FieldError>}
         </div>
 
         {nameCtx && (
@@ -263,21 +291,6 @@ export function ChildStep({ initial }: { initial: ChildInitial }) {
             />
           </section>
         )}
-          <Field label={t("child.occasion.label")} htmlFor={`${ids}-occasion`}>
-            <select
-              id={`${ids}-occasion`}
-              className={inputClass}
-              value={occasion ?? ""}
-              onChange={(e) => setOccasion(e.target.value || null)}
-            >
-              <option value="">–</option>
-              {WIZARD_OCCASIONS.map((o, i) => (
-                <option key={o} value={o}>
-                  {occasionLabels[i]}
-                </option>
-              ))}
-            </select>
-          </Field>
 
         </div>
         {error && <Notice tone="error">{t(error)}</Notice>}
@@ -410,7 +423,9 @@ function AgeSlider({
         className="range"
         style={{ "--fill": value === null ? "0%" : at(ratio(value)) } as React.CSSProperties}
       />
-      <div aria-hidden className="relative h-6">
+      {/* Čísla pod posuvníkom sa dajú ťuknúť. Kým vek nie je vybraný, bežec nie je vidieť
+          a čísla sú krúžky – nič nevyzerá ako predvolená hodnota. */}
+      <div aria-hidden className="relative h-8">
         {AGE_OPTIONS.map((n) => (
           <button
             key={n}
@@ -419,8 +434,12 @@ function AgeSlider({
             onClick={() => onChange(n)}
             style={{ left: at(ratio(n)) }}
             className={
-              "absolute top-0 -translate-x-1/2 px-1.5 text-sm tabular-nums transition-colors " +
-              (value === n ? "font-semibold text-ink" : "text-ink/50 hover:text-ink")
+              "absolute top-0 flex size-8 -translate-x-1/2 items-center justify-center rounded-full text-sm tabular-nums transition-colors " +
+              (value === n
+                ? "bg-brand-orange-dark font-semibold text-white"
+                : value === null
+                  ? "bg-white text-ink ring-1 ring-ink/20 hover:ring-brand-orange hover:text-brand-orange-dark"
+                  : "text-ink/50 hover:text-ink")
             }
           >
             {n}

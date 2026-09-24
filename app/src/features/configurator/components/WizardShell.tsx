@@ -81,6 +81,7 @@ export function WizardShell({
                 current={current - 1}
                 label={t("configurator.progress.label")}
                 back={prevHref ? { href: prevHref, label: t("common.back") } : null}
+                backLabel={t("common.back")}
               />
               {/* Na mobile nie sú názvy pri bodkách – aktuálny krok slovom. */}
               <p className="pb-2 text-center text-sm font-medium text-ink/70 md:hidden">

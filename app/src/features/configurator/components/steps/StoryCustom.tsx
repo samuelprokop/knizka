@@ -4,8 +4,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useId, useState, useTransition } from "react";
 
-import { GoBackButton } from "@/components/buttons";
-
 import { LIMITS } from "@/config/catalog";
 import { useI18n } from "@/i18n/client";
 import type { MessageKey } from "@/i18n/messages";
@@ -15,6 +13,7 @@ import { WIZARD_MESSAGES, WIZARD_OCCASIONS, WIZARD_TONES, WIZARD_WORLDS, type Wi
 import { StepFooter } from "../StepFooter";
 import { Button, buttonClass, Chip, Field, Notice, StepTitle, inputClass, splitOptions } from "../ui";
 import { useWizard } from "../WizardContext";
+import { useSubStep } from "../WizardMotion";
 import { StoryOptions, useStoryNav, type StoryStepProps } from "./StoryStep";
 
 export function StoryCustom(props: StoryStepProps) {
@@ -32,12 +31,11 @@ export function StoryCustom(props: StoryStepProps) {
 
 function Chooser(props: StoryStepProps) {
   const { t } = useI18n();
+  const router = useRouter();
   const nav = useStoryNav();
+  useSubStep(t("story.sub.custom"), () => router.push(nav()));
   return (
     <>
-      <GoBackButton href={nav()} className="self-start">
-        {t("common.back")}
-      </GoBackButton>
       <StepTitle title={t("story.not_found.title")} subtitle={t("story.custom.surcharge", { price: props.prices.customStory })} />
       {props.customLimitReached ? (
         <Notice tone="warn">{t("story.limit.custom")}</Notice>
@@ -52,7 +50,7 @@ function Chooser(props: StoryStepProps) {
         </div>
       )}
       <StoryOptions options={props.options} prices={props.prices} showLength />
-      <StepFooter back={false} />
+      <StepFooter />
     </>
   );
 }
@@ -68,6 +66,8 @@ function Questions(props: StoryStepProps) {
   const heroCtx = hero ?? undefined;
   const [answers, setAnswers] = useState<WizardAnswers>(props.storyInput.wizard?.answers ?? {});
   const [index, setIndex] = useState(0);
+  // Späť: predchádzajúca otázka, z prvej na výber „na mieru“.
+  useSubStep(t("story.sub.custom"), () => (index > 0 ? setIndex(index - 1) : router.push(nav({ v: "vlastny" }))));
   const [error, setError] = useState<MessageKey | null>(null);
   const [pending, start] = useTransition();
 
@@ -140,15 +140,10 @@ function Questions(props: StoryStepProps) {
 
       {pending && <Notice>{t("wizard.ideas.generating")}</Notice>}
       {error && <Notice tone="error">{t(error)}</Notice>}
-      <StepFooter back={false}>
+      <StepFooter>
         <Button variant="next" className="w-full sm:w-auto" pending={pending} disabled={(q === "occasion" && !answers.occasion) || (q === "world" && !answers.worlds?.length) || (q === "tone" && !answers.tone)} onClick={next}>
           {t("common.continue")}
         </Button>
-        {index > 0 ? (
-          <GoBackButton onClick={() => setIndex(index - 1)}>{t("common.back")}</GoBackButton>
-        ) : (
-          <GoBackButton href={nav({ v: "vlastny" })}>{t("common.back")}</GoBackButton>
-        )}
       </StepFooter>
     </>
   );
@@ -180,6 +175,7 @@ function Ideas(props: StoryStepProps) {
   const ideas = props.storyInput.wizard?.ideas ?? [];
   const heroCtx = hero ?? undefined;
   const render = (text: string) => (hero ? renderNameTokens(text, hero) : text);
+  useSubStep(t("story.sub.custom"), () => router.push(nav({ v: "otazky" })));
 
   return (
     <>
@@ -244,12 +240,10 @@ function OwnStory(props: StoryStepProps) {
   const [mode, setMode] = useState<"strict" | "free">(props.storyInput.own?.mode ?? "free");
   const [error, setError] = useState<MessageKey | null>(null);
   const [pending, start] = useTransition();
+  useSubStep(t("story.sub.own"), () => router.push(nav({ v: "vlastny" })));
 
   return (
     <>
-      <GoBackButton href={nav({ v: "vlastny" })} className="self-start">
-        {t("common.back")}
-      </GoBackButton>
       <StepTitle title={t("own.title", undefined, hero ?? undefined)} />
       <Field label={t("configurator.own.label")} htmlFor={`${ids}-own`} help={t("own.counter", { n: text.length })}>
         <textarea
@@ -267,7 +261,7 @@ function OwnStory(props: StoryStepProps) {
       </div>
       {pending && <Notice>{t("text.generating")}</Notice>}
       {error && <Notice tone="error">{t(error)}</Notice>}
-      <StepFooter back={false}>
+      <StepFooter>
         <Button
           variant="next"
           className="w-full sm:w-auto"
