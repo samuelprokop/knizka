@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useId, useState, useTransition } from "react";
+import { useId, useRef, useState, useTransition } from "react";
 
 import { LIMITS } from "@/config/catalog";
 import { useI18n } from "@/i18n/client";
@@ -11,7 +11,7 @@ import { approveBookAction, reopenBookAction, savePersonalTextsAction } from "..
 import type { PersonalTexts } from "../../model";
 import { stepHref } from "../../steps";
 import { StepFooter } from "../StepFooter";
-import { Button, buttonClass, Check, Field, Notice, StepTitle, inputClass } from "../ui";
+import { Button, buttonClass, Check, Field, Notice, StepTitle, Toggle, inputClass } from "../ui";
 import { useWizard } from "../WizardContext";
 
 export type ApproveSummary = {
@@ -48,8 +48,20 @@ export function ApproveStep({
   const [error, setError] = useState<MessageKey | null>(null);
   const [pending, start] = useTransition();
 
+  // Bez venovania = prázdne venovanie, od koho aj dátum; pôvodný text sa pamätá pre návrat.
+  const [skipDedication, setSkipDedication] = useState(!texts.dedication && !texts.from && !texts.date);
+  const stashed = useRef({ dedication: texts.dedication, from: texts.from, date: texts.date });
+
   const set = (key: keyof PersonalTexts, value: string) => setValues({ ...values, [key]: value });
-  const persist = () => start(async () => void (await savePersonalTextsAction(projectId!, values)));
+  const persistWith = (next: Required<PersonalTexts>) => start(async () => void (await savePersonalTextsAction(projectId!, next)));
+  const persist = () => persistWith(values);
+  const toggleDedication = (skip: boolean) => {
+    if (skip) stashed.current = { dedication: values.dedication, from: values.from, date: values.date };
+    const next = skip ? { ...values, dedication: "", from: "", date: "" } : { ...values, ...stashed.current };
+    setSkipDedication(skip);
+    setValues(next);
+    persistWith(next);
+  };
 
   if (approved) {
     return (
@@ -80,6 +92,9 @@ export function ApproveStep({
     <>
       <StepTitle title={t("dedication.title")} />
       <div className="flex flex-col gap-4">
+        <Toggle checked={skipDedication} onChange={toggleDedication} label={t("dedication.skip")} hint={t("dedication.skip.hint")} />
+        {!skipDedication && (
+          <>
         <Field label={t("dedication.title")} htmlFor={`${ids}-ded`} help={t("editor.text.counter", { n: values.dedication.length, max: LIMITS.dedicationMaxChars })}>
           <textarea id={`${ids}-ded`} lang={bookLanguage} className={`${inputClass} min-h-24 py-3`} maxLength={LIMITS.dedicationMaxChars} value={values.dedication} onChange={(e) => set("dedication", e.target.value)} onBlur={persist} />
         </Field>
@@ -95,6 +110,8 @@ export function ApproveStep({
           <p>{values.dedication}</p>
           {(values.from || values.date) && <p className="mt-3 text-base text-ink/70">{[values.from, values.date].filter(Boolean).join(" · ")}</p>}
         </figure>
+          </>
+        )}
         {letterEnabled && (
           <Field label={t("dedication.letter")} htmlFor={`${ids}-letter`} help={t("editor.text.counter", { n: values.letter.length, max: LIMITS.parentLetterMaxChars })}>
             <textarea id={`${ids}-letter`} lang={bookLanguage} className={`${inputClass} min-h-40 py-3`} maxLength={LIMITS.parentLetterMaxChars} value={values.letter} onChange={(e) => set("letter", e.target.value)} onBlur={persist} />

@@ -13,6 +13,7 @@ import { hasProjectSession } from "@/features/configurator/server/session";
 import type { MessageKey } from "@/i18n/messages";
 import { getMarketContext } from "@/i18n/server";
 import { ShopHeader } from "@/components/ShopHeader";
+import { DeliveryFields } from "@/features/checkout/components/DeliveryFields";
 
 function readParam(value: string | string[] | undefined) {
   return typeof value === "string" ? value : undefined;
@@ -81,33 +82,15 @@ export default async function CheckoutPage({ searchParams }: PageProps<"/[market
         {isPrint && (
           <section className="flex flex-col gap-4">
             <h2 className="font-heading text-lg font-bold text-ink">{t("checkout.shipping")}</h2>
-            <Field label={t("checkout.carrier")} htmlFor="carrierId">
-              <select id="carrierId" name="carrierId" defaultValue={carrierId ?? undefined} className={inputClass}>
-                {market.carriers.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name} – {formatMoney(price.totalMinor >= market.freeShippingFromMinor ? 0 : c.priceMinor, market)}
-                    {c.pickupPoint ? ` (${t("checkout.shipping.pickup")})` : ""}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <Field label={t("checkout.address.name")} htmlFor="addressName">
-              <input id="addressName" name="addressName" required autoComplete="name" className={inputClass} />
-            </Field>
-            <Field label={t("checkout.shipping.address")} htmlFor="addressStreet" help={t("checkout.shipping.pickup_placeholder")}>
-              <input id="addressStreet" name="addressStreet" placeholder={t("checkout.address.street")} autoComplete="street-address" className={inputClass} />
-            </Field>
-            <div className="grid grid-cols-[2fr_1fr] gap-3">
-              <Field label={t("checkout.address.city")} htmlFor="addressCity">
-                <input id="addressCity" name="addressCity" autoComplete="address-level2" className={inputClass} />
-              </Field>
-              <Field label={t("checkout.address.zip")} htmlFor="addressZip">
-                <input id="addressZip" name="addressZip" inputMode="numeric" autoComplete="postal-code" className={inputClass} />
-              </Field>
-            </div>
-            <Field label={t("checkout.shipping.pickup")} htmlFor="pickupPointLabel">
-              <input id="pickupPointLabel" name="pickupPointLabel" className={inputClass} />
-            </Field>
+            <DeliveryFields
+              defaultCarrierId={carrierId}
+              carriers={market.carriers.map((c) => ({
+                id: c.id,
+                name: c.name,
+                price: formatMoney(price.totalMinor >= market.freeShippingFromMinor ? 0 : c.priceMinor, market),
+                pickupPoint: c.pickupPoint,
+              }))}
+            />
           </section>
         )}
 

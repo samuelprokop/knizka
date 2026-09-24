@@ -69,6 +69,7 @@ export default async function CartPage({ params, searchParams }: PageProps<"/[ma
     const p = new URLSearchParams({ projekt: projectId, variant, extraCopies: String(extraCopies), giftWrap: giftWrap ? "1" : "0", voucher: voucherCode, ...over });
     return `${base}?${p}`;
   };
+  const backHref = cart.reorder ? `/${market.code}/moja-kniha/${cart.personalToken}` : stepHref(market.code, projectId, 9);
   const checkoutHref = `/${market.code}/objednavka?${new URLSearchParams({ projekt: projectId, variant, extraCopies: String(extraCopies), giftWrap: giftWrap ? "1" : "0", voucher: voucherCode })}`;
 
   const lines = [
@@ -115,105 +116,131 @@ export default async function CartPage({ params, searchParams }: PageProps<"/[ma
 
   return (
     <>
-      <ShopHeader />
-      <main className="mx-auto flex w-full flex-1 max-w-2xl flex-col gap-8 px-4 py-10">
-      <StepTitle title={t(cart.reorder ? "cart.reorder.title" : "cart.title")} />
+      <ShopHeader wide />
+      <main className="mx-auto w-full max-w-5xl flex-1 px-4 pt-10 pb-32 lg:pb-12">
+        <StepTitle title={t(cart.reorder ? "cart.reorder.title" : "cart.title")} />
 
-      <section className="flex gap-4 rounded-2xl border-2 border-ink/10 bg-white p-4">
-        {cart.thumbnailUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element -- podpísaná URL, nie next/image doména
-          <img src={cart.thumbnailUrl} alt="" className="h-32 w-24 shrink-0 rounded-lg object-cover" />
-        ) : null}
-        <div className="flex flex-col gap-1">
-          <p className="font-heading text-lg font-bold text-ink">{t("cart.item", { title: cart.bookTitle }, cart.hero)}</p>
-          <p className="text-sm text-ink/70">{t("cart.delivery_promise")}</p>
-        </div>
-      </section>
-
-      {!cart.reorder && <PlanCards plans={plans} t={t} />}
-
-      {isPrint && (
-        <fieldset className="flex flex-col gap-3">
-          <div className="flex items-center justify-between gap-4 rounded-2xl border-2 border-ink/10 bg-white px-4 py-3">
-            <span className="text-base text-ink">{t("cart.addon.copy")}</span>
-            <div className="flex items-center gap-3">
-              <Link href={qs({ extraCopies: String(Math.max(0, extraCopies - 1)) })} scroll={false} className={buttonClass("secondary", "min-h-11 min-w-11 px-0")} aria-label={t("cart.addon.copy_less")}>
-                <MinusIcon />
-              </Link>
-              <AnimatedNumber value={String(extraCopies)} className="w-4 justify-center font-semibold text-ink" />
-              <Link href={qs({ extraCopies: String(Math.min(20, extraCopies + 1)) })} scroll={false} className={buttonClass("secondary", "min-h-11 min-w-11 px-0")} aria-label={t("cart.addon.copy_more")}>
-                <PlusIcon />
-              </Link>
+        {/* Dva stĺpce od lg: voľby vľavo, súhrn objednávky vpravo (lepí sa pri posúvaní). */}
+        <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start lg:gap-10">
+          <div className="flex min-w-0 flex-col gap-8">
+          <section className="flex gap-4 rounded-2xl border-2 border-ink/10 bg-white p-4 lg:hidden">
+            {cart.thumbnailUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element -- podpísaná URL, nie next/image doména
+              <img src={cart.thumbnailUrl} alt="" className="h-32 w-24 shrink-0 rounded-lg object-cover" />
+            ) : null}
+            <div className="flex flex-col gap-1">
+              <p className="font-heading text-lg font-bold text-ink">{t("cart.item", { title: cart.bookTitle }, cart.hero)}</p>
+              <p className="text-sm text-ink/70">{t("cart.delivery_promise")}</p>
             </div>
-          </div>
-          <Link
-            href={qs({ giftWrap: giftWrap ? "0" : "1" })}
-            scroll={false}
-            className={buttonClass(giftWrap ? "primary" : "secondary")}
-          >
-            {giftWrap ? <CheckIcon /> : <PlusIcon />}
-            {t("cart.addon.giftwrap")}
-            {giftWrap && <span className="sr-only">({t("cart.plan.chosen")})</span>}
-          </Link>
-        </fieldset>
-      )}
+          </section>
 
-      <form method="get" action={base} className="flex flex-col gap-2">
-        <input type="hidden" name="projekt" value={projectId} />
-        <input type="hidden" name="variant" value={variant} />
-        <input type="hidden" name="extraCopies" value={extraCopies} />
-        <input type="hidden" name="giftWrap" value={giftWrap ? "1" : "0"} />
-        <label className="text-sm font-semibold text-ink" htmlFor="voucher">
-          {t("cart.code")}
-        </label>
-        <div className="flex gap-2">
-          <input id="voucher" name="voucher" defaultValue={voucherCode} className={inputClass} placeholder={t("voucher.enter")} />
-          <button type="submit" className={buttonClass("secondary")}>
-            {t("cart.voucher.apply")}
-          </button>
+            {!cart.reorder && <PlanCards plans={plans} t={t} />}
+          {isPrint && (
+            <fieldset className="flex flex-col gap-3">
+              <div className="flex items-center justify-between gap-4 rounded-2xl border-2 border-ink/10 bg-white px-4 py-3">
+                <span className="text-base text-ink">{t("cart.addon.copy")}</span>
+                <div className="flex items-center gap-3">
+                  <Link href={qs({ extraCopies: String(Math.max(0, extraCopies - 1)) })} scroll={false} className={buttonClass("secondary", "min-h-11 min-w-11 px-0")} aria-label={t("cart.addon.copy_less")}>
+                    <MinusIcon />
+                  </Link>
+                  <AnimatedNumber value={String(extraCopies)} className="w-4 justify-center font-semibold text-ink" />
+                  <Link href={qs({ extraCopies: String(Math.min(20, extraCopies + 1)) })} scroll={false} className={buttonClass("secondary", "min-h-11 min-w-11 px-0")} aria-label={t("cart.addon.copy_more")}>
+                    <PlusIcon />
+                  </Link>
+                </div>
+              </div>
+              <Link
+                href={qs({ giftWrap: giftWrap ? "0" : "1" })}
+                scroll={false}
+                className={buttonClass(giftWrap ? "primary" : "secondary")}
+              >
+                {giftWrap ? <CheckIcon /> : <PlusIcon />}
+                {t("cart.addon.giftwrap")}
+                {giftWrap && <span className="sr-only">({t("cart.plan.chosen")})</span>}
+              </Link>
+            </fieldset>
+          )}
+
+          <form method="get" action={base} className="flex flex-col gap-2">
+            <input type="hidden" name="projekt" value={projectId} />
+            <input type="hidden" name="variant" value={variant} />
+            <input type="hidden" name="extraCopies" value={extraCopies} />
+            <input type="hidden" name="giftWrap" value={giftWrap ? "1" : "0"} />
+            <label className="text-sm font-semibold text-ink" htmlFor="voucher">
+              {t("cart.code")}
+            </label>
+            <div className="flex gap-2">
+              <input id="voucher" name="voucher" defaultValue={voucherCode} className={inputClass} placeholder={t("voucher.enter")} />
+              <button type="submit" className={buttonClass("secondary")}>
+                {t("cart.voucher.apply")}
+              </button>
+            </div>
+            {voucherResult?.ok && (
+              <Notice tone="ok">{t("cart.voucher.applied", { code: voucherResult.code, amount: formatMoney(-(price.discount?.amountMinor ?? 0), market) })}</Notice>
+            )}
+            {voucherResult && !voucherResult.ok && voucherResult.reason === "wrong_market" && (
+              <Notice tone="warn">{t("voucher.wrong_market", { country: market.code.toUpperCase() })}</Notice>
+            )}
+            {voucherResult && !voucherResult.ok && voucherResult.reason === "not_found" && <Notice tone="warn">{t("cart.voucher.invalid")}</Notice>}
+          </form>
+          </div>
+
+          <aside aria-labelledby="cart-summary" className="flex flex-col gap-4 rounded-3xl bg-white p-5 shadow-sm ring-1 ring-ink/10 lg:sticky lg:top-6">
+            <h2 id="cart-summary" className="sr-only">{t("cart.summary")}</h2>
+            <div className="hidden gap-3 lg:flex">
+              {cart.thumbnailUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element -- podpísaná URL, nie next/image doména
+                <img src={cart.thumbnailUrl} alt="" className="h-20 w-16 shrink-0 rounded-lg object-cover" />
+              ) : null}
+              <div className="flex min-w-0 flex-col gap-1">
+                <p className="font-heading text-base leading-snug font-bold text-ink">{t("cart.item", { title: cart.bookTitle }, cart.hero)}</p>
+                <p className="text-xs text-ink/65">{t("cart.delivery_promise")}</p>
+              </div>
+            </div>
+            <div className="flex flex-col gap-2 border-ink/10 lg:border-t lg:pt-4">
+              {lines.map((line) => (
+                <div key={line.id} className="flex justify-between text-sm text-ink/80">
+                  <span>{t(`configurator.price.${line.id}` as MessageKey, { n: line.quantity })}</span>
+                  <span>{formatMoney(line.amountMinor, market)}</span>
+                </div>
+              ))}
+              {price.shipping && (
+                <div className="flex justify-between text-sm text-ink/80">
+                  <span>{t("checkout.price.shipping", { carrier: shippingCarrierName })}</span>
+                  <span>{formatMoney(price.shipping.amountMinor, market)}</span>
+                </div>
+              )}
+              {price.discount && (
+                <div className="flex justify-between text-sm text-[#2e7d32]">
+                  <span>{t("checkout.price.discount", { code: voucherResult?.ok ? voucherResult.code : "" })}</span>
+                  <span>{formatMoney(price.discount.amountMinor, market)}</span>
+                </div>
+              )}
+            </div>
+            <div className="border-t border-ink/10 pt-3 text-right font-heading text-xl font-bold text-ink">
+              <AnimatedNumber value={formatMoney(price.totalMinor, market)} {...splitAround(t("checkout.total", { price: SLOT }))} />
+            </div>
+            <Link href={checkoutHref} className={buttonClass("primary", "hidden w-full lg:flex")}>
+              {t("cart.continue")}
+            </Link>
+            <Link href={backHref} className={buttonClass("ghost", "self-center")}>
+              {t("cart.back_to_book")}
+            </Link>
+          </aside>
         </div>
-        {voucherResult?.ok && (
-          <Notice tone="ok">{t("cart.voucher.applied", { code: voucherResult.code, amount: formatMoney(-(price.discount?.amountMinor ?? 0), market) })}</Notice>
-        )}
-        {voucherResult && !voucherResult.ok && voucherResult.reason === "wrong_market" && (
-          <Notice tone="warn">{t("voucher.wrong_market", { country: market.code.toUpperCase() })}</Notice>
-        )}
-        {voucherResult && !voucherResult.ok && voucherResult.reason === "not_found" && <Notice tone="warn">{t("cart.voucher.invalid")}</Notice>}
-      </form>
-
-      <section className="flex flex-col gap-2 rounded-2xl border-2 border-ink/10 bg-white p-4">
-        {lines.map((line) => (
-          <div key={line.id} className="flex justify-between text-sm text-ink/80">
-            <span>{t(`configurator.price.${line.id}` as MessageKey, { n: line.quantity })}</span>
-            <span>{formatMoney(line.amountMinor, market)}</span>
-          </div>
-        ))}
-        {price.shipping && (
-          <div className="flex justify-between text-sm text-ink/80">
-            <span>{t("checkout.price.shipping", { carrier: shippingCarrierName })}</span>
-            <span>{formatMoney(price.shipping.amountMinor, market)}</span>
-          </div>
-        )}
-        {price.discount && (
-          <div className="flex justify-between text-sm text-[#2e7d32]">
-            <span>{t("checkout.price.discount", { code: voucherResult?.ok ? voucherResult.code : "" })}</span>
-            <span>{formatMoney(price.discount.amountMinor, market)}</span>
-          </div>
-        )}
-        <div className="mt-2 border-t border-ink/10 pt-2 text-right font-heading text-lg font-bold text-ink">
-          <AnimatedNumber value={formatMoney(price.totalMinor, market)} {...splitAround(t("checkout.total", { price: SLOT }))} />
-        </div>
-      </section>
-
-      <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:justify-between">
-        <Link href={cart.reorder ? `/${market.code}/moja-kniha/${cart.personalToken}` : stepHref(market.code, projectId, 9)} className={buttonClass("ghost")}>
-          {t("cart.back_to_book")}
-        </Link>
-        <Link href={checkoutHref} className={buttonClass("primary")}>
-          {t("cart.continue")}
-        </Link>
-      </div>
       </main>
+
+      {/* Mobil a tablet: suma a pokračovanie stále po ruke. */}
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-ink/10 bg-white/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur lg:hidden">
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-4">
+          <span className="font-heading text-lg font-bold text-ink">
+            <AnimatedNumber value={formatMoney(price.totalMinor, market)} />
+          </span>
+          <Link href={checkoutHref} className={buttonClass("primary", "flex-1 sm:flex-none")}>
+            {t("cart.continue")}
+          </Link>
+        </div>
+      </div>
     </>
   );
 }

@@ -115,35 +115,43 @@ export function BookFlipbook({
       : { left: target.left, right: current.right }
     : current;
 
-  const page = (ref: PageRef | null, interactive: boolean) => {
+  const page = (ref: PageRef | null) => {
     if (!ref) return <div aria-hidden="true" />;
-    const number = ref.type === "interior" ? ref.page.number : null;
     return (
       <div className="relative" onDoubleClick={() => setZoom(ref)}>
         <BookPage book={book} page={ref} opts={opts} />
-        {interactive && (
-          <div className="absolute right-1.5 top-1.5 flex gap-1.5">
-            <button
-              type="button"
-              onClick={() => setZoom(ref)}
-              className="grid size-11 place-items-center rounded-full bg-white/90 text-ink shadow-sm ring-1 ring-ink/10 hover:bg-white focus-visible:outline-2 focus-visible:outline-brand-orange"
-              aria-label={t("book.preview.zoom")}
-            >
-              <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                <circle cx="11" cy="11" r="6.5" />
-                <path d="M16 16l4.5 4.5M11 8v6M8 11h6" strokeLinecap="round" />
-              </svg>
-            </button>
-            {onEditPage && number !== null && (
-              <button
-                type="button"
-                onClick={() => onEditPage(number)}
-                className="h-11 rounded-full bg-white/90 px-4 text-sm font-semibold text-ink shadow-sm ring-1 ring-ink/10 hover:bg-white focus-visible:outline-2 focus-visible:outline-brand-orange"
-              >
-                {t("preview.edit_page")}
-              </button>
-            )}
-          </div>
+      </div>
+    );
+  };
+
+  /** Akcie strany (zväčšiť, upraviť) pod ňou – nezakrývajú ilustráciu. */
+  const pageActions = (ref: PageRef | null, side: "left" | "right") => {
+    if (!ref) return <div key={side} />;
+    const number = ref.type === "interior" ? ref.page.number : null;
+    return (
+      <div key={side} className="flex flex-wrap items-center justify-center gap-2">
+        <button
+          type="button"
+          onClick={() => setZoom(ref)}
+          className="grid size-11 place-items-center rounded-full bg-white text-ink shadow-sm ring-1 ring-ink/10 transition hover:ring-ink/30 focus-visible:outline-2 focus-visible:outline-brand-orange"
+          aria-label={number !== null ? t("book.preview.zoom_page", { n: number }) : t("book.preview.zoom")}
+        >
+          <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+            <circle cx="11" cy="11" r="6.5" />
+            <path d="M16 16l4.5 4.5M11 8v6M8 11h6" strokeLinecap="round" />
+          </svg>
+        </button>
+        {onEditPage && number !== null && (
+          <button
+            type="button"
+            onClick={() => onEditPage(number)}
+            className="inline-flex h-11 items-center gap-1.5 rounded-full bg-white px-4 text-sm font-semibold text-ink shadow-sm ring-1 ring-ink/10 transition hover:ring-ink/30 focus-visible:outline-2 focus-visible:outline-brand-orange"
+          >
+            <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M14.5 5.5l4 4L8 20H4v-4z" />
+            </svg>
+            {t("preview.edit_page_n", { n: number })}
+          </button>
         )}
       </div>
     );
@@ -161,8 +169,8 @@ export function BookFlipbook({
         onPointerUp={onPointerUp}
       >
         <div className="grid grid-cols-2 drop-shadow-xl">
-          {page(base.left, !flip)}
-          {page(base.right, !flip)}
+          {page(base.left)}
+          {page(base.right)}
         </div>
 
         {flip && (
@@ -189,6 +197,15 @@ export function BookFlipbook({
             </div>
           </motion.div>
         )}
+      </div>
+
+      {/* Akcie strán pod knihou – pod ľavou a pravou stranou, rovnaká šírka ako kniha. */}
+      <div
+        className={`grid w-full grid-cols-2 gap-3 transition-opacity ${flip ? "pointer-events-none opacity-0" : "opacity-100"}`}
+        style={{ maxWidth: `min(100%, calc((100dvh - 15rem) * ${spreadAspect}))` }}
+      >
+        {pageActions(base.left, "left")}
+        {pageActions(base.right, "right")}
       </div>
 
       <div className="flex items-center gap-4">
