@@ -18,8 +18,12 @@
 */
 
 import Image from "next/image";
-import { motion, useTransform, type MotionValue } from "motion/react";
-import type { ReactNode } from "react";
+import { motion, useMotionValueEvent, useTransform, type MotionValue } from "motion/react";
+import { useState, type ReactNode } from "react";
+
+import { STYLES } from "@/config/catalog";
+import { useI18n } from "@/i18n/client";
+import { HeroStyleShowcase } from "./HeroStyleShowcase";
 
 import type { LandingCopy } from "@/content/landing";
 
@@ -62,7 +66,7 @@ export function HeroBook({
     <div role="img" aria-label={label} className="absolute top-[8%] left-[3%] aspect-[1.3] w-[94%] [container-type:inline-size] md:top-[3.5%] md:left-[16%] md:w-[68%]">
       <Leaf index={0} state={state} board front={<Cover title={coverTitle} />} back={<StepLeft step={s1} page={1} />} />
       <Leaf index={1} state={state} front={<StepRight step={s1} page={2} art={<ArtChild />} />} back={<StepLeft step={s2} page={3} />} />
-      <Leaf index={2} state={state} front={<StepRight step={s2} page={4} art={<ArtPortrait />} />} back={<StepLeft step={s3} page={5} />} />
+      <Leaf index={2} state={state} front={<StylePage state={state} text={s2.text} page={4} />} back={<StepLeft step={s3} page={5} />} />
       <Leaf index={3} state={state} front={<StepRight step={s3} page={6} art={<ArtStory />} />} back={<StepLeft step={s4} page={7} />} />
       <Leaf index={4} state={state} board front={<StepRight step={s4} page={8} art={<ArtBook />} />} back={<BackCover />} />
     </div>
@@ -175,6 +179,23 @@ function StepRight({ step, page, art }: { step: LandingCopy["steps"][number]; pa
   );
 }
 
+/** Pravá strana dvojstrany „Fotka“: fotka dieťaťa → ilustračné štýly (beží len keď je dvojstrana otvorená). */
+function StylePage({ state, text, page }: { state: MotionValue<BookState>; text: string; page: number }) {
+  const { t } = useI18n();
+  const [active, setActive] = useState(false);
+  useMotionValueEvent(state, "change", (s) => setActive(s.done === 2 && s.moving === -1));
+  const labels = {
+    photo: t("common.progress.photo"),
+    ...Object.fromEntries(STYLES.map((id) => [id, t(`style.${id}`)])),
+  } as Parameters<typeof HeroStyleShowcase>[0]["labels"];
+  return (
+    <div className="relative h-full">
+      <HeroStyleShowcase active={active} labels={labels} text={text} />
+      <PageNumber side="right">{page}</PageNumber>
+    </div>
+  );
+}
+
 function PageNumber({ side, children }: { side: "left" | "right"; children: ReactNode }) {
   return (
     <span className={"absolute bottom-[5%] text-[1.25cqw] text-[#8a7f6d] " + (side === "left" ? "left-[10%]" : "right-[10%]")}>
@@ -236,22 +257,6 @@ function ArtChild() {
       <path d="M55 52c3 2.5 7 2.5 10 0" stroke="#c0552a" strokeWidth="2" fill="none" strokeLinecap="round" />
       <path d="M38 86c3-14 12-22 22-22s19 8 22 22" fill="#00a5a0" />
       <path d="M22 22l2.4 5 5.4.8-4 3.8 1 5.4-4.8-2.6-4.8 2.6 1-5.4-4-3.8 5.4-.8zM98 16l1.8 3.8 4.2.6-3 2.9.7 4.1-3.7-2-3.7 2 .7-4.1-3-2.9 4.2-.6z" fill="#ff661a" />
-    </svg>
-  );
-}
-
-function ArtPortrait() {
-  return (
-    <svg viewBox="0 0 120 100" className={art} aria-hidden>
-      <rect x="18" y="20" width="46" height="58" rx="4" fill="#fff" stroke="#d9cfb8" strokeWidth="2" transform="rotate(-6 41 49)" />
-      <circle cx="40" cy="44" r="10" fill="#f6c9a6" transform="rotate(-6 41 49)" />
-      <path d="M26 72c3-10 8-14 14-14s11 4 14 14z" fill="#b8b0a0" transform="rotate(-6 41 49)" />
-      <path d="M68 50h14m-5-5 5 5-5 5" stroke="#ff661a" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="98" cy="50" r="18" fill="#ffe3cf" />
-      <circle cx="98" cy="46" r="9" fill="#f6c9a6" />
-      <path d="M89 44c0-7 4-10 9-10s9 3 9 10c-2-3-5-4-9-4s-7 1-9 4z" fill="#8a4b2a" />
-      <path d="M86 66c2-7 6-10 12-10s10 3 12 10" fill="#5e3f61" />
-      <path d="M112 26l1.4 3 3.2.4-2.4 2.2.6 3.2-2.8-1.6-2.8 1.6.6-3.2-2.4-2.2 3.2-.4z" fill="#ff661a" />
     </svg>
   );
 }
