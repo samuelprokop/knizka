@@ -2,7 +2,8 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 
 import { formatMoney } from "@/config/markets";
-import type { PriceSelection } from "@/domain/pricing";
+import { computePrice, type PriceSelection } from "@/domain/pricing";
+import { PlanCards, type Plan } from "@/features/checkout/components/PlanCards";
 import { loadCart } from "@/features/checkout/server/cart";
 import { computeOrderPrice } from "@/features/checkout/pricing";
 import { validateVoucherCode } from "@/features/checkout/voucher";
@@ -66,6 +67,42 @@ export default async function CartPage({ params, searchParams }: PageProps<"/[ma
   ];
   const shippingCarrierName = isPrint ? (market.carriers[0]?.name ?? "") : "";
 
+  // Cena variantu bez doplnkov (výtlačky, balenie) – porovnanie v kartách.
+  const planPrice = (v: PriceSelection["variant"]) =>
+    formatMoney(computePrice({ ...selection, variant: v, extraCopies: 0, giftWrap: false }, market).totalMinor, market);
+  const cheapestShipping = Math.min(...market.carriers.map((c) => c.priceMinor));
+  const plans: Plan[] = [
+    {
+      id: "ebook",
+      name: t("cart.plan.ebook.name"),
+      description: t("cart.plan.ebook.desc"),
+      price: planPrice("ebook"),
+      unit: t("cart.plan.ebook.unit"),
+      features: [t("cart.plan.ebook.f1"), t("cart.plan.ebook.f2"), t("cart.plan.ebook.f3"), t("cart.plan.ebook.f4")],
+      href: qs({ variant: "ebook", extraCopies: "0", giftWrap: "0" }),
+      selected: !isPrint,
+      recommended: false,
+    },
+    {
+      id: "print_ebook",
+      name: t("cart.plan.print.name"),
+      description: t("cart.plan.print.desc"),
+      price: planPrice("print_ebook"),
+      unit: t("cart.plan.print.unit"),
+      priceNote: t("cart.plan.print.shipping", { price: formatMoney(cheapestShipping, market) }),
+      features: [
+        t("cart.plan.print.f1", { format: t(`book.format.${cart.format}` as MessageKey) }),
+        t("cart.plan.print.f2"),
+        t("cart.plan.print.f3"),
+        t("cart.plan.print.f4", { days: market.deliveryWorkingDays }),
+        t("cart.plan.print.f5"),
+      ],
+      href: qs({ variant: "print_ebook" }),
+      selected: isPrint,
+      recommended: true,
+    },
+  ];
+
   return (
     <main className="mx-auto flex min-h-dvh max-w-2xl flex-col gap-8 px-4 py-10">
       <StepTitle title={t(cart.reorder ? "cart.reorder.title" : "cart.title")} />
@@ -81,22 +118,7 @@ export default async function CartPage({ params, searchParams }: PageProps<"/[ma
         </div>
       </section>
 
-      {!cart.reorder && (
-        <fieldset className="flex flex-col gap-2">
-          <div className="flex flex-wrap gap-3">
-            {(["print_ebook", "ebook"] as const).map((v) => (
-              <Link
-                key={v}
-                href={qs({ variant: v, extraCopies: v === "ebook" ? "0" : String(extraCopies), giftWrap: v === "ebook" ? "0" : giftWrap ? "1" : "0" })}
-                aria-pressed={variant === v}
-                className={buttonClass(variant === v ? "primary" : "secondary")}
-              >
-                {t(v === "print_ebook" ? "cart.variant.print" : "cart.variant.ebook")}
-              </Link>
-            ))}
-          </div>
-        </fieldset>
-      )}
+      {!cart.reorder && <PlanCards plans={plans} t={t} />}
 
       {isPrint && (
         <fieldset className="flex flex-col gap-3">
