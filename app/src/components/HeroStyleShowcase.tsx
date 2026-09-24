@@ -8,17 +8,17 @@
   toto je vlastná implementácia.
 
   Beží len kým je dvojstrana otvorená (active); pri obmedzení animácií stojí
-  na prvom štýle. Obrázky: HERO_STYLE_IMAGES – kým chýbajú, kreslí sa zástupná
-  ilustrácia v danom štýle.
+  na prvom štýle. Obrázky: HERO_STYLE_IMAGES – kým chýbajú, kreslí sa vektorová
+  ilustrácia v danom štýle (HeroPortraits).
 */
 
 import Image from "next/image";
 import { motion, useAnimate, useReducedMotion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 
-import { STYLES, type StyleId } from "@/config/catalog";
+import { STYLES } from "@/config/catalog";
+import { StylePortrait, type Look } from "./HeroPortraits";
 
-type Look = "photo" | StyleId;
 const SEQUENCE: Look[] = ["photo", ...STYLES];
 
 /**
@@ -102,7 +102,7 @@ export function HeroStyleShowcase({
           {HERO_STYLE_IMAGES[look] ? (
             <Image src={HERO_STYLE_IMAGES[look]!} alt="" fill sizes="20vw" className="object-cover" />
           ) : (
-            <PlaceholderPortrait look={look} />
+            <StylePortrait look={look} />
           )}
           <motion.div data-curtain className="absolute inset-0 origin-left" style={{ scaleX: 0 }} />
         </div>
@@ -166,53 +166,4 @@ function useTypewriter(target: string, animated: boolean) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [target, animated]);
   return animated ? text : target;
-}
-
-// ---------------------------------------------------------------- zástupná kresba (kým nie sú obrázky)
-
-function PlaceholderPortrait({ look }: { look: Look }) {
-  const p = {
-    photo: { bg: "#cfc6b8", skin: "#e7c2a0", hair: "#6b4a33", shirt: "#8fa3ad", filter: "photo" },
-    watercolor: { bg: "#d9eef0", skin: "#f6cfae", hair: "#9a5a35", shirt: "#7cc6c2", filter: "wash" },
-    modern: { bg: "#ffe0cc", skin: "#f4c09a", hair: "#3b2a20", shirt: "#ff661a", filter: "" },
-    animated: { bg: "#e8dcf0", skin: "#ffd2b3", hair: "#7a4424", shirt: "#5e3f61", filter: "" },
-    crayon: { bg: "#fff4d1", skin: "#f7c9a4", hair: "#a0592c", shirt: "#e76f51", filter: "crayon" },
-  }[look];
-  const eyes = look === "animated" ? 4.2 : 2.4;
-  return (
-    <svg viewBox="0 0 80 100" className="h-full w-full" aria-hidden>
-      <defs>
-        <filter id="hsw-wash">
-          <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="2" seed="3" />
-          <feDisplacementMap in="SourceGraphic" scale="3" />
-        </filter>
-        <filter id="hsw-crayon">
-          <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="5" />
-          <feDisplacementMap in="SourceGraphic" scale="1.6" />
-        </filter>
-        <filter id="hsw-photo">
-          <feGaussianBlur stdDeviation="0.6" />
-        </filter>
-      </defs>
-      <rect width="80" height="100" fill={p.bg} />
-      <g filter={p.filter ? `url(#hsw-${p.filter})` : undefined}>
-        {look === "photo" && <circle cx="62" cy="18" r="16" fill="#fff" opacity=".35" />}
-        <path d="M14 100c2-20 12-30 26-30s24 10 26 30z" fill={p.shirt} />
-        <rect x="35" y="56" width="10" height="12" rx="4" fill={p.skin} />
-        <ellipse cx="40" cy="44" rx="17" ry="19" fill={p.skin} />
-        <path d="M22 42c0-15 8-23 18-23s18 8 18 23c-3-7-10-10-18-10s-15 3-18 10z" fill={p.hair} />
-        <circle cx="33" cy="46" r={eyes} fill="#2a241c" />
-        <circle cx="47" cy="46" r={eyes} fill="#2a241c" />
-        {look === "animated" && (
-          <>
-            <circle cx="34.4" cy="44.6" r="1.3" fill="#fff" />
-            <circle cx="48.4" cy="44.6" r="1.3" fill="#fff" />
-          </>
-        )}
-        <circle cx="29" cy="53" r="3" fill="#ff8f8f" opacity={look === "photo" ? 0.15 : 0.45} />
-        <circle cx="51" cy="53" r="3" fill="#ff8f8f" opacity={look === "photo" ? 0.15 : 0.45} />
-        <path d="M34 55c3.5 3 8.5 3 12 0" stroke="#b5533a" strokeWidth="1.6" fill="none" strokeLinecap="round" />
-      </g>
-    </svg>
-  );
 }
