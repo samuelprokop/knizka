@@ -3,7 +3,8 @@
 import { useI18n } from "@/i18n/client";
 import type { MessageKey } from "@/i18n/messages";
 import { APPEARANCE_CHOICES, SWATCH, type Appearance } from "../model";
-import { Chip, cx, splitOptions, Toggle } from "./ui";
+import { CheckIcon, PlusIcon } from "@/components/icons";
+import { Chip, cx, splitOptions } from "./ui";
 
 type ChoiceKey = keyof typeof APPEARANCE_CHOICES;
 
@@ -88,11 +89,23 @@ export function AppearancePicker({
           </fieldset>
         );
       })}
-      <div className={cx("grid gap-x-10", columns === 2 && "lg:col-span-2 lg:grid-cols-2")}>
-        {flags.map((flag) => (
-          <Toggle key={flag} checked={!!value[flag]} onChange={(v) => onChange({ ...value, [flag]: v })} label={t(FLAG_LABELS[flag])} />
-        ))}
-      </div>
+      {/* Áno/nie znaky ako čipy s ikonou (nie prepínače cez celý riadok) – rovnaký jazyk ako voľby vyššie. */}
+      {flags.length > 0 && (
+        <fieldset className="flex flex-col gap-2">
+          <legend className="text-sm font-semibold text-ink">{t("appearance.flags")}</legend>
+          <div className="flex flex-wrap gap-2">
+            {flags.map((flag) => {
+              const on = !!value[flag];
+              return (
+                <Chip key={flag} shape="pill" selected={on} onClick={() => onChange({ ...value, [flag]: !on })} className="inline-flex min-h-11 items-center gap-1.5 py-1.5 pl-3.5 text-sm lg:min-h-10">
+                  {on ? <CheckIcon className="size-4 text-brand-orange-dark" /> : <PlusIcon className="size-4 text-ink/50" />}
+                  {t(FLAG_LABELS[flag])}
+                </Chip>
+              );
+            })}
+          </div>
+        </fieldset>
+      )}
     </div>
   );
 }

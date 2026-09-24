@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useId, useMemo, useState, useTransition } from "react";
+import { useEffect, useId, useMemo, useRef, useState, useTransition } from "react";
 
 import { CHARACTER_KINDS, GUIDE_ANIMALS, MAX_EXTRA_CHARACTERS, type CharacterKind, type GuideKind } from "@/config/catalog";
 import { Skeleton, SkeletonReveal } from "@/components/Skeleton";
@@ -29,7 +29,7 @@ import { PhotoUploader, type PhotoView } from "../PhotoUploader";
 import { StepFooter } from "../StepFooter";
 import { Button, Check, Chip, Field, Notice, StepTitle, inputClass, splitOptions } from "../ui";
 import { useWizard } from "../WizardContext";
-import { CheckIcon, CloseIcon, PlusIcon } from "@/components/icons";
+import { BanIcon, CheckIcon, CloseIcon, PlusIcon, SmileIcon } from "@/components/icons";
 import { ToastOnMount } from "@/components/Toaster";
 import { useSubStep } from "../WizardMotion";
 
@@ -64,6 +64,9 @@ export function CharactersStep({
   const { market, projectId, hero } = useWizard();
   const router = useRouter();
   const [adding, setAdding] = useState(false);
+  // Po pridaní postavy s fotkou rovno podstránka s nahratím (inak by fotka čakala nenápadne v zozname).
+  const [photoFor, setPhotoFor] = useState<string | null>(null);
+  const photoCompanion = photoFor ? companions.find((c) => c.id === photoFor) : undefined;
   const [error, setError] = useState<MessageKey | null>(null);
   const [pending, start] = useTransition();
   const heroCtx = hero ?? undefined;
@@ -83,7 +86,51 @@ export function CharactersStep({
       router.refresh();
     });
 
-  useSubStep(adding ? t("chars.sub.new") : null);
+  useSubStep(adding ? t("chars.sub.new") : photoFor ? t("chars.sub.photo") : null, () => {
+    setAdding(false);
+    setPhotoFor(null);
+  });
+
+  if (photoFor) {
+    const usable = !!photoCompanion?.photos.some((p) => p.verdict === "good" || p.verdict === "ok");
+    return (
+      <>
+        <StepTitle title={t("chars.photo.title", { name: photoCompanion?.name ?? "" })} subtitle={t("chars.photo.subtitle")} />
+        <div className="grid gap-5 lg:grid-cols-2 lg:gap-8">
+          <div className="grid grid-cols-2 content-start gap-3 text-sm">
+            <div className="flex flex-col gap-2 rounded-2xl bg-[#e3f4e6] p-3.5">
+              <SmileIcon className="size-6 text-[#1f7a3a]" />
+              <p className="text-ink">{t("photo.tip.good")}</p>
+            </div>
+            <div className="flex flex-col gap-2 rounded-2xl bg-[#fde8e6] p-3.5">
+              <BanIcon className="size-6 text-[#b3261e]" />
+              <p className="text-ink">{t("photo.tip.bad")}</p>
+            </div>
+          </div>
+          {photoCompanion ? <PhotoUploader characterId={photoCompanion.id} photos={photoCompanion.photos} /> : <Skeleton className="h-56 rounded-3xl" />}
+        </div>
+        {error && <Notice tone="error">{t(error)}</Notice>}
+        <StepFooter>
+          <Button
+            variant="next"
+            className="w-full sm:w-auto"
+            pending={pending}
+            disabled={!usable}
+            onClick={() =>
+              start(async () => {
+                const result = await generateCompanionCardAction(projectId!, photoFor);
+                if (!result.ok) return setError(result.error ?? "error.generic");
+                setPhotoFor(null);
+                router.refresh();
+              })
+            }
+          >
+            {t("configurator.chars.create_card")}
+          </Button>
+        </StepFooter>
+      </>
+    );
+  }
 
   return (
     <>
@@ -159,8 +206,9 @@ export function CharactersStep({
           <CompanionForm
             extraPrice={extraPrice}
             onCancel={() => setAdding(false)}
-            onAdded={() => {
+            onAdded={(characterId, withPhoto) => {
               setAdding(false);
+              if (withPhoto) setPhotoFor(characterId);
               router.refresh();
             }}
           />
@@ -188,7 +236,7 @@ export function CharactersStep({
   );
 }
 
-function CompanionForm({ extraPrice, onCancel, onAdded }: { extraPrice: string; onCancel: () => void; onAdded: () => void }) {
+function CompanionForm({ extraPrice, onCancel, onAdded }: { extraPrice: string; onCancel: () => void; onAdded: (characterId: string, withPhoto: boolean) => void }) {
   const { t } = useI18n();
   const { projectId, bookLanguage } = useWizard();
   const ids = useId();
@@ -218,7 +266,7 @@ function CompanionForm({ extraPrice, onCancel, onAdded }: { extraPrice: string; 
 
   return (
     <section className="grid gap-5 lg:grid-cols-2 lg:gap-8">
-      {/* Vľavo kto a ako sa volá, vpravo podoba a rola – všetko na jednej obrazovke. */}
+      {/* Vľavo kto to je, meno a rola, vpravo podoba a pridanie – všetko na jednej obrazovke. */}
       <div className="flex flex-col gap-4">
       <fieldset className="flex flex-col gap-2">
         <legend className="text-sm font-semibold">{t("chars.type.label")}</legend>
@@ -260,6 +308,16 @@ function CompanionForm({ extraPrice, onCancel, onAdded }: { extraPrice: string; 
         </p>
       )}
 
+      <fieldset className="flex flex-col gap-2">
+        <legend className="text-sm font-semibold">{t("chars.role.label")}</legend>
+        <div className="grid gap-2 sm:grid-cols-2">
+          {(["companion", "cameo"] as const).map((r) => (
+            <Chip key={r} selected={role === r} onClick={() => setRole(r)} className="text-sm">
+              {t(`chars.role.${r}`)}
+            </Chip>
+          ))}
+        </div>
+      </fieldset>
       </div>
       <div className="flex flex-col gap-4">
       {kind !== "pet" && (
@@ -274,25 +332,18 @@ function CompanionForm({ extraPrice, onCancel, onAdded }: { extraPrice: string; 
           </div>
           {kind === "friend" && <p className="text-sm text-ink/65">{t("chars.friend_hint")}</p>}
           {withPhoto ? (
-            <Check id={`${ids}-consent`} checked={consent} onChange={setConsent}>
-              {t("chars.consent.other_person")}
-            </Check>
+            <>
+              <Check id={`${ids}-consent`} checked={consent} onChange={setConsent}>
+                {t("chars.consent.other_person")}
+              </Check>
+              <p className="text-sm text-ink/65">{t("chars.photo.next_hint")}</p>
+            </>
           ) : (
             <AppearancePicker value={look} onChange={setLook} choices={["hairColor", "hairLength", "skin"]} flags={["glasses"]} columns={1} />
           )}
         </fieldset>
       )}
 
-      <fieldset className="flex flex-col gap-2">
-        <legend className="text-sm font-semibold">{t("chars.role.label")}</legend>
-        <div className="grid gap-2 sm:grid-cols-2">
-          {(["companion", "cameo"] as const).map((r) => (
-            <Chip key={r} selected={role === r} onClick={() => setRole(r)} className="text-sm">
-              {t(`chars.role.${r}`)}
-            </Chip>
-          ))}
-        </div>
-      </fieldset>
 
       {error && <Notice tone="error">{t(error)}</Notice>}
       <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
@@ -313,11 +364,11 @@ function CompanionForm({ extraPrice, onCancel, onAdded }: { extraPrice: string; 
                 withPhoto: withPhoto && kind !== "pet",
               });
               if (!result.ok) return setError(result.error);
-              onAdded();
+              onAdded(result.data.characterId, withPhoto && kind !== "pet");
             })
           }
         >
-          {t("configurator.chars.add_confirm")}
+          {t(withPhoto && kind !== "pet" ? "chars.photo.continue" : "configurator.chars.add_confirm")}
         </Button>
         <Button variant="ghost" onClick={onCancel}>
           {t("common.cancel")}
@@ -334,57 +385,88 @@ function GuidePicker({ guide }: { guide: GuideView }) {
   const { projectId, hero } = useWizard();
   const router = useRouter();
   const ids = useId();
+  const dialogRef = useRef<HTMLDialogElement>(null);
   const [kind, setKind] = useState<GuideKind>(guide.kind);
   const [animal, setAnimal] = useState<string>(guide.animal ?? GUIDE_ANIMALS[0]);
   const [name, setName] = useState(guide.name ?? "");
-  const [saved, setSaved] = useState(true);
   const [error, setError] = useState<MessageKey | null>(null);
   const [pending, start] = useTransition();
   const animals = splitOptions(t("guide.animal.options"));
+  const nameError = validateChildName(name);
 
-  const save = (next: GuideKind) =>
+  const save = (next: GuideKind, after?: () => void) =>
     start(async () => {
       const input = next === "animal" ? { kind: next, animal, name, gender: "boy" } : { kind: next };
       const result = await setGuideAction(projectId!, input);
       if (!result.ok) return setError(result.error);
       setError(null);
-      setSaved(true);
+      setKind(next);
+      after?.();
       router.refresh();
     });
+
+  // Výber zvieratka je v okne – stránka sa nepredĺži; zavretie bez uloženia nechá pôvodnú voľbu.
+  const openAnimal = () => {
+    setError(null);
+    dialogRef.current?.showModal();
+  };
+  const savedAnimal = kind === "animal" && guide.animal && guide.name ? `${animals[GUIDE_ANIMALS.indexOf(guide.animal as never)] ?? ""} ${guide.name}`.trim() : null;
 
   return (
     <section className="flex flex-col gap-3">
       <h2 className="font-heading text-xl font-extrabold">{t("guide.title", undefined, hero ?? undefined)}</h2>
-      <div className="flex flex-col gap-2">
-        <Chip selected={kind === "mascot"} onClick={() => { setKind("mascot"); save("mascot"); }}>
+      <div className="grid gap-2 sm:grid-cols-3">
+        <Chip selected={kind === "mascot"} onClick={() => save("mascot")}>
           {t("guide.mascot", { mascot: MASCOT_NAME })}
         </Chip>
-        <Chip selected={kind === "animal"} onClick={() => { setKind("animal"); setSaved(false); }}>
-          {t("guide.animal")}
+        <Chip selected={kind === "animal"} onClick={openAnimal} aria-haspopup="dialog">
+          <span className="flex flex-col">
+            {t("guide.animal")}
+            {savedAnimal && <span className="text-sm font-normal text-ink/65">{savedAnimal}</span>}
+          </span>
         </Chip>
-        <Chip selected={kind === "none"} onClick={() => { setKind("none"); save("none"); }}>
+        <Chip selected={kind === "none"} onClick={() => save("none")}>
           {t("guide.none")}
         </Chip>
       </div>
       {kind === "none" && <p className="text-sm text-ink/65">{t("guide.none.hint")}</p>}
-      {kind === "animal" && (
-        <div className="flex flex-col gap-3 rounded-3xl bg-white p-4 ring-1 ring-ink/10">
+      {error && <Notice tone="error">{t(error)}</Notice>}
+
+      <dialog
+        ref={dialogRef}
+        aria-labelledby={`${ids}-title`}
+        className="m-auto w-[min(100vw-2rem,28rem)] rounded-3xl bg-white p-0 text-ink shadow-2xl backdrop:bg-ink/50"
+      >
+        <div className="flex flex-col gap-4 p-6">
+          <div className="flex items-start justify-between gap-3">
+            <h2 id={`${ids}-title`} className="font-heading text-xl font-extrabold">
+              {t("guide.animal")}
+            </h2>
+            <button
+              type="button"
+              onClick={() => dialogRef.current?.close()}
+              aria-label={t("common.close")}
+              className="-mt-1 -mr-2 flex size-11 shrink-0 items-center justify-center rounded-full text-ink/60 outline-none hover:bg-ink/5 focus-visible:ring-4 focus-visible:ring-brand-orange/40"
+            >
+              <CloseIcon className="size-5" />
+            </button>
+          </div>
           <div className="grid grid-cols-3 gap-2">
             {GUIDE_ANIMALS.map((a, i) => (
-              <Chip key={a} selected={animal === a} onClick={() => { setAnimal(a); setSaved(false); }} className="text-center">
+              <Chip key={a} selected={animal === a} onClick={() => setAnimal(a)} className="text-center">
                 {animals[i]}
               </Chip>
             ))}
           </div>
           <Field label={t("guide.animal.name")} htmlFor={`${ids}-guide`}>
-            <input id={`${ids}-guide`} className={inputClass} maxLength={30} value={name} onChange={(e) => { setName(e.target.value); setSaved(false); }} />
+            <input id={`${ids}-guide`} className={inputClass} maxLength={30} autoFocus value={name} onChange={(e) => setName(e.target.value)} />
           </Field>
-          <Button variant="secondary" disabled={saved || !!validateChildName(name)} pending={pending} onClick={() => save("animal")}>
+          {error && <Notice tone="error">{t(error)}</Notice>}
+          <Button disabled={!!nameError} pending={pending} onClick={() => save("animal", () => dialogRef.current?.close())}>
             {t("common.done")}
           </Button>
         </div>
-      )}
-      {error && <Notice tone="error">{t(error)}</Notice>}
+      </dialog>
     </section>
   );
 }

@@ -383,6 +383,7 @@ async function approveStep({ bundle, market, t }: Ctx) {
     <ApproveStep
       approved={bundle.project.status === "approved_by_customer"}
       cartHref={`/${market.code}/kosik?projekt=${bundle.project.id}`}
+      dedicationChosen={!!(texts.dedication || texts.from || texts.date)}
       letterEnabled={look.parentLetter}
       texts={{
         dedication: texts.dedication ?? bookT(occasionKey, { age: hero.age ?? "" }, ctx),

@@ -5,7 +5,8 @@
                     prejdení myšou rozleje na celé tlačidlo. Na dotykových
                     zariadeniach (bez hover) je rovno vyplnené – výzva nesmie
                     závisieť od hover (N9).
-  - NextArrow     – šípka v krúžku pre „Pokračovať“ vo formulári (Button variant="next").
+  - NextArrow     – šípka v tmavom krúžku pre „Pokračovať“ vo formulári (Button variant="next"):
+                    svetlooranžový podklad, pri hover celé tlačidlo stmavne.
   - ShowMoreButton – Zobraziť viac / menej so šípkou, aria-expanded + aria-controls.
   - GoBackButton  – jednoduché Späť (odkaz alebo tlačidlo), nekonkuruje hlavnej výzve.
 
@@ -32,14 +33,13 @@ export function MotionCta({ className, children, ...props }: ComponentProps<type
         className
       )}
     >
-      {/* Výplň: v pokoji kruh vľavo, pri hover/zameraní celé tlačidlo (clip-path drží zaoblenie). */}
+      {/* Výplň: v pokoji kruh vľavo (šírka = výška), pri hover/zameraní sa roztiahne na celé tlačidlo. */}
       <span
         aria-hidden
         className={cx(
-          "absolute inset-0 -z-10 rounded-full bg-brand-orange-dark shadow-lg shadow-brand-orange/25",
-          "[clip-path:inset(0_calc(100%-3em)_0_0_round_9999px)] transition-[clip-path] duration-500 motion-reduce:transition-none",
-          "group-hover:[clip-path:inset(0_0_0_0_round_9999px)] group-focus-visible:[clip-path:inset(0_0_0_0_round_9999px)]",
-          "[@media(hover:none)]:[clip-path:inset(0_0_0_0_round_9999px)]",
+          "absolute inset-y-0 left-0 -z-10 w-[3em] rounded-full bg-brand-orange-dark shadow-md shadow-brand-orange/25",
+          "transition-[width] duration-500 motion-reduce:transition-none",
+          "group-hover:w-full group-focus-visible:w-full [@media(hover:none)]:w-full",
           EASE
         )}
       />
@@ -59,7 +59,7 @@ export function MotionCta({ className, children, ...props }: ComponentProps<type
  */
 export function NextArrow() {
   return (
-    <span aria-hidden className="relative -mr-3.5 ml-1 flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white text-brand-orange-dark transition-transform duration-300 group-hover:scale-110 group-disabled:scale-100 motion-reduce:transition-none">
+    <span aria-hidden className="relative -mr-3.5 ml-1 flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand-orange-dark text-white transition-colors duration-300 group-hover:bg-white group-hover:text-brand-orange-dark group-disabled:bg-brand-orange-dark group-disabled:text-white motion-reduce:transition-none">
       <ArrowRightIcon className={cx("size-4 transition-transform duration-300 group-hover:translate-x-6 group-disabled:translate-x-0 motion-reduce:transition-none", EASE)} />
       <ArrowRightIcon className={cx("absolute size-4 -translate-x-6 transition-transform duration-300 group-hover:translate-x-0 group-disabled:-translate-x-6 motion-reduce:transition-none", EASE)} />
     </span>

@@ -6,6 +6,7 @@ import { GoBackButton, MotionCta } from "@/components/buttons";
 import { formatMoney } from "@/config/markets";
 import { computePrice, type PriceSelection } from "@/domain/pricing";
 import { PlanCards, type Plan } from "@/features/checkout/components/PlanCards";
+import { CouponReveal } from "@/features/checkout/components/CouponReveal";
 import { VoucherDialog } from "@/features/checkout/components/VoucherDialog";
 import { loadCart } from "@/features/checkout/server/cart";
 import { computeOrderPrice } from "@/features/checkout/pricing";
@@ -65,6 +66,9 @@ export default async function CartPage({ params, searchParams }: PageProps<"/[ma
   };
   const price = computeOrderPrice(selection, market, { carrierId: null, voucherCode });
   const voucherResult = voucherCode.trim() ? validateVoucherCode(voucherCode, market.code) : null;
+  // Úvodná zľava novej značky – nálepka sa ukáže, kým na objednávke nie je platný kód (jeden kód na objednávku).
+  const launch = market.launchVoucherCode ? validateVoucherCode(market.launchVoucherCode, market.code) : null;
+  const launchOffer = launch?.ok && launch.kind === "percent" ? { code: launch.code, percent: launch.percent } : null;
 
   const base = `/${market.code}/kosik`;
   const qs = (over: Record<string, string>) => {
@@ -138,7 +142,7 @@ export default async function CartPage({ params, searchParams }: PageProps<"/[ma
             {!cart.reorder && <PlanCards plans={plans} t={t} />}
           </div>
 
-          <aside aria-labelledby="cart-summary" className="flex flex-col gap-4 rounded-3xl bg-white p-5 shadow-sm ring-1 ring-ink/10 lg:sticky lg:top-6">
+          <aside aria-labelledby="cart-summary" className="flex flex-col gap-3 rounded-3xl bg-white p-5 shadow-sm ring-1 ring-ink/10 lg:sticky lg:top-6">
             <h2 id="cart-summary" className="sr-only">{t("cart.summary")}</h2>
             <div className="hidden gap-3 lg:flex">
               {cart.thumbnailUrl ? (
@@ -207,6 +211,8 @@ export default async function CartPage({ params, searchParams }: PageProps<"/[ma
                 {t("cart.voucher.remove")}
               </Link>
             ) : (
+              <>
+              {launchOffer && <CouponReveal code={launchOffer.code} percent={launchOffer.percent} />}
               <VoucherDialog
                 action={base}
                 hidden={{ projekt: projectId, variant, extraCopies: String(extraCopies), giftWrap: giftWrap ? "1" : "0" }}
@@ -219,6 +225,7 @@ export default async function CartPage({ params, searchParams }: PageProps<"/[ma
                     : null
                 }
               />
+              </>
             )}
             <div className="border-t border-ink/10 pt-3 text-right font-heading text-xl font-bold text-ink">
               <AnimatedNumber value={formatMoney(price.totalMinor, market)} {...splitAround(t("checkout.total", { price: SLOT }))} />

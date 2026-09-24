@@ -246,6 +246,8 @@ function StoryDetail(props: StoryStepProps) {
   );
   const [error, setError] = useState<MessageKey | null>(null);
   const [pending, start] = useTransition();
+  const [bookTitle, setBookTitle] = useState(props.options.bookTitle);
+  const [, startSave] = useTransition();
   const bookT = useMemo(() => createTranslator(bookLanguage as BookLanguage), [bookLanguage]);
   const heroCtx = hero ?? undefined;
 
@@ -268,8 +270,22 @@ function StoryDetail(props: StoryStepProps) {
       </GoBackButton>
       {/* Od lg dva stĺpce: obálka vľavo, popis, ukážka a voľby vpravo. */}
       <div className="grid gap-5 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:items-start lg:gap-8">
-      <div className="overflow-hidden rounded-3xl lg:sticky lg:top-4">
-        <StoryCover title={tile.title} portrait={props.heroPortrait} color={props.themeColor} />
+      {/* Pod obálkou nepovinný vlastný názov – obálka ho hneď ukáže (K5.11, pole s náhľadom obálky). */}
+      <div className="flex flex-col gap-3 lg:sticky lg:top-4">
+        <div className="overflow-hidden rounded-3xl">
+          <StoryCover title={bookTitle.trim() || tile.title} portrait={props.heroPortrait} color={props.themeColor} />
+        </div>
+        <Field label={t("story.options.title_optional")} htmlFor={`${ids}-title`} help={t("configurator.story.title_help")}>
+          <input
+            id={`${ids}-title`}
+            className={inputClass}
+            maxLength={60}
+            placeholder={tile.title}
+            value={bookTitle}
+            onChange={(e) => setBookTitle(e.target.value)}
+            onBlur={() => bookTitle !== props.options.bookTitle && startSave(async () => void (await saveStoryOptionsAction(projectId!, { bookTitle })))}
+          />
+        </Field>
       </div>
       <div className="flex min-w-0 flex-col gap-4">
 
@@ -318,7 +334,6 @@ function StoryDetail(props: StoryStepProps) {
       )}
 
       {error && <Notice tone="error">{t(error)}</Notice>}
-      <StoryOptions {...props} fixedLength={tile.spreads as 12 | 16} />
       </div>
       </div>
 
@@ -336,13 +351,12 @@ function StoryDetail(props: StoryStepProps) {
   );
 }
 
-/** Voľby k príbehu: čitateľská úroveň (len C/D, pri hotových fáza 2), dĺžka, vlastný názov (K5.11). */
+/** Voľby k príbehu na mieru (C/D): čitateľská úroveň, dĺžka, vlastný názov (K5.11). Pri hotovom príbehu je názov pod obálkou. */
 export function StoryOptions({
   options,
   prices,
-  fixedLength,
   showLength,
-}: Pick<StoryStepProps, "options" | "prices"> & { fixedLength?: 12 | 16; showLength?: boolean }) {
+}: Pick<StoryStepProps, "options" | "prices"> & { showLength?: boolean }) {
   const { t } = useI18n();
   const { projectId } = useWizard();
   const router = useRouter();
@@ -352,7 +366,6 @@ export function StoryOptions({
   const [title, setTitle] = useState(options.bookTitle);
   const [, start] = useTransition();
   const lengthLabels = splitOptions(t("story.options.length.options", { price: prices.pages40 }));
-  const custom = !fixedLength;
 
   const save = (patch: Record<string, unknown>) =>
     start(async () => {
@@ -362,8 +375,7 @@ export function StoryOptions({
 
   return (
     <Disclosure summary={t("common.more_options")}>
-      {custom && (
-        <fieldset className="flex flex-col gap-2">
+      <fieldset className="flex flex-col gap-2">
           <legend className="text-sm font-semibold">{t("story.options.level")}</legend>
           {(["A", "B", "C"] as const).map((l) => (
             <Chip key={l} selected={level === l} onClick={() => { setLevel(l); save({ readingLevel: l }); }}>
@@ -371,8 +383,7 @@ export function StoryOptions({
             </Chip>
           ))}
         </fieldset>
-      )}
-      {custom && showLength && (
+      {showLength && (
         <fieldset className="flex flex-col gap-2">
           <legend className="text-sm font-semibold">{t("story.options.length")}</legend>
           <div className="grid grid-cols-2 gap-2">

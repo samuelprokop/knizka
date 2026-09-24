@@ -1,13 +1,12 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 
 import { formatMoney } from "@/config/markets";
 import type { PriceSelection } from "@/domain/pricing";
 import { submitCheckoutAction } from "@/features/checkout/actions";
-import { CouponReveal } from "@/features/checkout/components/CouponReveal";
 import { PaymentPanel } from "@/features/checkout/components/PaymentPanel";
 import { loadCart } from "@/features/checkout/server/cart";
 import { computeOrderPrice } from "@/features/checkout/pricing";
-import { validateVoucherCode } from "@/features/checkout/voucher";
 import { SessionExpired } from "@/features/configurator/components/SessionExpired";
 import { Field, inputClass, Notice } from "@/features/configurator/components/ui";
 import { hasProjectSession } from "@/features/configurator/server/session";
@@ -52,9 +51,9 @@ export default async function CheckoutPage({ searchParams }: PageProps<"/[market
   };
   const price = computeOrderPrice(selection, market, { carrierId: isPrint ? carrierId : null, voucherCode });
 
-  // Úvodná zľava novej značky – len keď na objednávke ešte nie je iný kód (jeden kód na objednávku).
-  const launch = market.launchVoucherCode && !voucherCode ? validateVoucherCode(market.launchVoucherCode, market.code) : null;
-  const launchOffer = launch?.ok && launch.kind === "percent" ? { code: launch.code, percent: launch.percent } : null;
+  const removeVoucherHref = `/${market.code}/objednavka?${new URLSearchParams(
+    Object.entries(query).flatMap(([k, v]) => (typeof v === "string" && k !== "voucher" && k !== "chyba" ? [[k, v]] : []))
+  )}`;
 
   const paymentMethods = market.paymentMethods.filter((m) => m !== "cod" || market.codAllowedForPersonalizedBook);
   const cartHref = `/${market.code}/kosik?${new URLSearchParams({ projekt: projectId, variant, extraCopies: String(extraCopies), giftWrap: giftWrap ? "1" : "0", voucher: voucherCode })}`;
@@ -99,7 +98,6 @@ export default async function CheckoutPage({ searchParams }: PageProps<"/[market
         )}
 
         <InvoiceFields />
-        {launchOffer && <CouponReveal code={launchOffer.code} percent={launchOffer.percent} />}
           <GoBackButton href={cartHref} className="self-start">
             {t("checkout.back_to_cart")}
           </GoBackButton>
@@ -122,8 +120,14 @@ export default async function CheckoutPage({ searchParams }: PageProps<"/[market
             </div>
           )}
           {price.discount && (
-            <div className="flex justify-between text-sm text-[#2e7d32]">
-              <span>{t("checkout.price.discount", { code: voucherCode })}</span>
+            <div className="flex items-center justify-between gap-2 text-sm text-[#2e7d32]">
+              <span className="flex flex-wrap items-center gap-x-2">
+                {t("checkout.price.discount", { code: voucherCode })}
+                {/* Kód sa dá zrušiť (napr. kvôli lepšiemu) – ostatné voľby v URL zostanú. */}
+                <Link href={removeVoucherHref} replace scroll={false} className="rounded text-xs text-ink/60 underline underline-offset-4 outline-none hover:text-ink focus-visible:ring-4 focus-visible:ring-brand-orange/40">
+                  {t("cart.voucher.remove")}
+                </Link>
+              </span>
               <span>{formatMoney(price.discount.amountMinor, market)}</span>
             </div>
           )}

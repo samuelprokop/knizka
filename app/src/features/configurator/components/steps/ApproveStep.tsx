@@ -31,12 +31,15 @@ const CHECKS = ["approve.check1", "approve.check2", "approve.check3"] as const s
 
 export function ApproveStep({
   texts,
+  dedicationChosen,
   letterEnabled,
   summary,
   approved,
   cartHref,
 }: {
   texts: Required<PersonalTexts>;
+  /** Zákazník už venovanie napísal/uložil – inak je predvolene kniha bez venovania (návrh textu čaká v zálohe). */
+  dedicationChosen: boolean;
   letterEnabled: boolean;
   summary: ApproveSummary;
   approved: boolean;
@@ -46,7 +49,7 @@ export function ApproveStep({
   const { market, projectId, bookLanguage } = useWizard();
   const router = useRouter();
   const ids = useId();
-  const [values, setValues] = useState(texts);
+  const [values, setValues] = useState(() => (dedicationChosen ? texts : { ...texts, dedication: "", from: "", date: "" }));
   const [checks, setChecks] = useState([false, false, false]);
   const [error, setError] = useState<MessageKey | null>(null);
   const [pending, start] = useTransition();
@@ -54,7 +57,7 @@ export function ApproveStep({
   // Bez venovania = prázdne venovanie, od koho aj dátum; pôvodný text sa pamätá pre návrat.
   const [moreTexts, setMoreTexts] = useState(false);
   useSubStep(moreTexts ? t("approve.more_texts") : null, () => setMoreTexts(false));
-  const [skipDedication, setSkipDedication] = useState(!texts.dedication && !texts.from && !texts.date);
+  const [skipDedication, setSkipDedication] = useState(!dedicationChosen);
   const stashed = useRef({ dedication: texts.dedication, from: texts.from, date: texts.date });
 
   const set = (key: keyof PersonalTexts, value: string) => setValues({ ...values, [key]: value });
@@ -94,6 +97,18 @@ export function ApproveStep({
     );
   }
 
+  const checksBlock = (
+    <fieldset className="flex flex-col gap-1">
+      <legend className="sr-only">{t("approve.title")}</legend>
+      {CHECKS.map((key, i) => (
+        <Check key={key} id={`${ids}-c${i}`} checked={checks[i]} onChange={(v) => setChecks(checks.map((c, j) => (j === i ? v : c)))}>
+          {t(key)}
+        </Check>
+      ))}
+      <p className="text-xs text-ink/55">{t("approve.check.note")}</p>
+    </fieldset>
+  );
+
   return (
     <>
       {moreTexts ? (
@@ -115,13 +130,34 @@ export function ApproveStep({
         </>
       ) : (
       <>
-      <StepTitle title={t("dedication.title")} />
-      {/* Od lg dva stĺpce: venovanie vľavo, posledná kontrola vpravo. */}
+      <StepTitle title={t("approve.title")} />
+      {/* Predvolene bez venovania: prepínač pod poslednou kontrolou, potvrdenia vpravo. Keď ho
+          zákazník vypne, venovanie sa otvorí v pravom stĺpci a potvrdenia prejdú pod kontrolu. */}
       <div className="grid gap-5 lg:grid-cols-2 lg:items-start lg:gap-8">
       <div className="flex flex-col gap-4">
-        <Toggle checked={skipDedication} onChange={toggleDedication} label={t("dedication.skip")} hint={t("dedication.skip.hint")} />
-        {!skipDedication && (
-          <>
+      <section aria-labelledby={`${ids}-check`} className="flex flex-col gap-3 rounded-3xl bg-white p-5 ring-1 ring-ink/10 lg:p-4">
+        <h2 id={`${ids}-check`} className="sr-only">{t("approve.title")}</h2>
+        <ul className="flex flex-col gap-1.5 text-sm">
+          <SummaryRow step={1} text={summary.nameLine} extra={<span className="font-heading" lang={bookLanguage}>„{summary.sample}“</span>} />
+          <SummaryRow step={4} text={summary.characters} />
+          <SummaryRow step={5} text={summary.story} />
+          <SummaryRow step={6} text={summary.look} />
+          {summary.edited && <SummaryRow step={8} text={summary.edited} />}
+          <SummaryRow text={summary.price} />
+        </ul>
+      </section>
+        {skipDedication ? <Toggle checked={skipDedication} onChange={toggleDedication} label={t("dedication.skip")} hint={t("dedication.skip.hint")} /> : checksBlock}
+      </div>
+      {skipDedication ? (
+        <div className="flex flex-col gap-4">
+          {checksBlock}
+          <Button variant="secondary" className="self-start" onClick={() => setMoreTexts(true)}>
+            {t("approve.more_texts")}
+          </Button>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-4">
+          <Toggle checked={skipDedication} onChange={toggleDedication} label={t("dedication.skip")} hint={t("dedication.skip.hint")} />
         <Field label={t("dedication.title")} htmlFor={`${ids}-ded`} help={t("editor.text.counter", { n: values.dedication.length, max: LIMITS.dedicationMaxChars })}>
           <textarea id={`${ids}-ded`} lang={bookLanguage} className={`${inputClass} min-h-24 py-3`} maxLength={LIMITS.dedicationMaxChars} value={values.dedication} onChange={(e) => set("dedication", e.target.value)} onBlur={persist} />
         </Field>
@@ -137,36 +173,11 @@ export function ApproveStep({
           <p>{values.dedication}</p>
           {(values.from || values.date) && <p className="mt-3 text-base text-ink/70">{[values.from, values.date].filter(Boolean).join(" · ")}</p>}
         </figure>
-          </>
-        )}
         <Button variant="secondary" className="self-start" onClick={() => setMoreTexts(true)}>
           {t("approve.more_texts")}
         </Button>
-      </div>
-      <div className="flex flex-col gap-4">
-      <section aria-labelledby={`${ids}-check`} className="flex flex-col gap-3 rounded-3xl bg-white p-5 ring-1 ring-ink/10 lg:p-4">
-        <h2 id={`${ids}-check`} className="font-heading text-xl font-extrabold">{t("approve.title")}</h2>
-        <ul className="flex flex-col gap-1.5 text-sm">
-          <SummaryRow step={1} text={summary.nameLine} extra={<span className="font-heading" lang={bookLanguage}>„{summary.sample}“</span>} />
-          <SummaryRow step={4} text={summary.characters} />
-          <SummaryRow step={5} text={summary.story} />
-          <SummaryRow step={6} text={summary.look} />
-          {summary.edited && <SummaryRow step={8} text={summary.edited} />}
-          <SummaryRow text={summary.price} />
-        </ul>
-      </section>
-
-      <fieldset className="flex flex-col gap-1">
-        <legend className="sr-only">{t("approve.title")}</legend>
-        {CHECKS.map((key, i) => (
-          <Check key={key} id={`${ids}-c${i}`} checked={checks[i]} onChange={(v) => setChecks(checks.map((c, j) => (j === i ? v : c)))}>
-            {t(key)}
-          </Check>
-        ))}
-        <p className="text-xs text-ink/55">{t("approve.check.note")}</p>
-      </fieldset>
-
-      </div>
+        </div>
+      )}
       </div>
       </>
       )}

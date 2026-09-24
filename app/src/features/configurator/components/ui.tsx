@@ -21,7 +21,7 @@ export function buttonClass(variant: Variant = "primary", extra?: string) {
     "disabled:cursor-not-allowed disabled:opacity-50",
     FOCUS,
     variant === "primary" && "bg-brand-orange-dark text-white hover:bg-[#9a3500] active:scale-[0.98]",
-    variant === "next" && "group bg-linear-to-r from-brand-orange-dark to-[#8f3100] text-white shadow-md shadow-brand-orange/20 hover:from-[#9a3500] active:scale-[0.98] motion-reduce:active:scale-100",
+    variant === "next" && "group bg-brand-orange/15 text-ink transition-colors duration-300 hover:bg-brand-orange-dark hover:text-white active:scale-[0.98] disabled:hover:bg-brand-orange/15 disabled:hover:text-ink motion-reduce:active:scale-100",
     variant === "secondary" && "border-2 border-ink/15 bg-white text-ink hover:border-ink/35",
     variant === "ghost" && "px-3 text-ink/70 underline-offset-4 hover:text-ink hover:underline",
     extra
