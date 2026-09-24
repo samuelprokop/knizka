@@ -147,6 +147,13 @@ export default async function UiCatalogPage() {
       ],
     },
     {
+      title: "Notifikácie",
+      items: [
+        { label: "Ukážka notifikácií", note: "pridávanie, zatváranie, zoznam", href: "/ui/notifikacie" },
+        { label: "Po schválení podoby", note: "notifikácia pri kroku 4", href: step("krok-4", "postavy", "?schvalene=1") },
+      ],
+    },
+    {
       title: "Kniha (renderer)",
       items: [{ label: "Vývojová ukážka knihy", note: "všetky voľby v URL, PDF na stiahnutie", href: "/sk/nahlad?meno=Janko&rod=boy" }],
     },

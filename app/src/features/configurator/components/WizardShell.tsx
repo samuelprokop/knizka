@@ -76,8 +76,13 @@ export function WizardShell({
             </Link>
             {projectId && <SaveExitButton projectId={projectId} />}
           </div>
-          <div className="mx-auto max-w-3xl px-2 pb-1 sm:px-4">
-            <WizardProgress items={progress} current={current - 1} label={t("configurator.progress.label")} />
+          <div className="mx-auto max-w-3xl px-4 pb-1 md:px-4">
+            <WizardProgress
+              items={progress}
+              current={current - 1}
+              label={t("configurator.progress.label")}
+              back={prevHref ? { href: prevHref, label: t("common.back") } : null}
+            />
             {/* Na mobile nie sú názvy pri bodkách – aktuálny krok slovom. */}
             <p className="pb-2 text-center text-sm font-medium text-ink/70 md:hidden">{stepLabel(current, title.progressKey)}</p>
           </div>

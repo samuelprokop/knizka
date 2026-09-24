@@ -3,8 +3,9 @@
   dotykové plochy aspoň 48 px, viditeľné zameranie, kontrast WCAG AA (N9).
 */
 
-import type { ButtonHTMLAttributes, ReactNode } from "react";
-import { ChevronDownIcon } from "@/components/icons";
+import { cloneElement, isValidElement, type ButtonHTMLAttributes, type ReactNode } from "react";
+
+import { AlertIcon, CheckIcon, ChevronDownIcon } from "@/components/icons";
 
 export const cx = (...classes: (string | false | null | undefined)[]) => classes.filter(Boolean).join(" ");
 
@@ -39,24 +40,31 @@ export function Button({
   );
 }
 
-/** Výberový čip / dlaždica s aria-pressed (prepínač v skupine). */
+/**
+ * Výberový čip / dlaždica s aria-pressed (prepínač v skupine).
+ * shape="pill" = krátka voľba v rade (pohlavie, vek, jazyk), inak dlaždica.
+ */
 export function Chip({
   selected,
+  shape = "tile",
   className,
   children,
   ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & { selected: boolean }) {
+}: ButtonHTMLAttributes<HTMLButtonElement> & { selected: boolean; shape?: "pill" | "tile" }) {
   return (
     <button
       type="button"
       aria-pressed={selected}
       {...props}
       className={cx(
-        "min-h-12 rounded-2xl border-2 px-4 py-2 text-base font-medium transition",
+        "min-h-12 px-4 py-2 text-base transition-[background-color,box-shadow,transform] duration-150 active:scale-[0.98] motion-reduce:active:scale-100",
+        shape === "pill" ? "rounded-full px-5" : "rounded-2xl",
         !className?.includes("text-center") && "text-left",
         FOCUS,
-        selected ? "border-brand-orange bg-brand-orange/10 text-ink" : "border-ink/12 bg-white text-ink hover:border-ink/30",
-        "disabled:cursor-not-allowed disabled:opacity-45",
+        selected
+          ? "bg-brand-orange/10 font-semibold text-ink ring-2 ring-brand-orange"
+          : "bg-white font-medium text-ink shadow-[0_1px_2px_rgb(23_20_15/0.06)] ring-1 ring-ink/12 hover:ring-ink/30",
+        "disabled:cursor-not-allowed disabled:opacity-45 disabled:active:scale-100",
         className
       )}
     >
@@ -65,16 +73,49 @@ export function Chip({
   );
 }
 
-export function Field({ label, htmlFor, help, error, children }: { label: ReactNode; htmlFor?: string; help?: ReactNode; error?: ReactNode; children: ReactNode }) {
+/**
+ * Pole s popisom nad sebou, pomocným textom a chybou pod sebou. Pomocný text
+ * a chyba sa na pole naviažu cez aria-describedby (ak je dieťa jeden prvok s htmlFor).
+ */
+export function Field({
+  label,
+  htmlFor,
+  help,
+  error,
+  optional,
+  children,
+}: {
+  label: ReactNode;
+  htmlFor?: string;
+  help?: ReactNode;
+  error?: ReactNode;
+  /** Text „nepovinné“ vedľa popisu. */
+  optional?: ReactNode;
+  children: ReactNode;
+}) {
+  const helpId = htmlFor && help ? `${htmlFor}-help` : undefined;
+  const errorId = htmlFor && error ? `${htmlFor}-error` : undefined;
+  const describedBy = [errorId, !error ? helpId : undefined].filter(Boolean).join(" ") || undefined;
+  const control =
+    describedBy && isValidElement<{ "aria-describedby"?: string }>(children)
+      ? cloneElement(children, { "aria-describedby": [children.props["aria-describedby"], describedBy].filter(Boolean).join(" ") })
+      : children;
+
   return (
     <div className="flex flex-col gap-2">
-      <label htmlFor={htmlFor} className="text-sm font-semibold text-ink">
+      <label htmlFor={htmlFor} className="flex items-baseline justify-between gap-3 text-sm font-semibold text-ink">
         {label}
+        {optional && <span className="text-xs font-normal text-ink/55">{optional}</span>}
       </label>
-      {children}
-      {help && !error && <p className="text-sm text-ink/65">{help}</p>}
+      {control}
+      {help && !error && (
+        <p id={helpId} className="text-sm text-ink/65">
+          {help}
+        </p>
+      )}
       {error && (
-        <p role="alert" className="text-sm font-medium text-[#b3261e]">
+        <p id={errorId} role="alert" className="flex items-start gap-1.5 text-sm font-medium text-[#b3261e]">
+          <AlertIcon className="mt-px size-4 shrink-0" />
           {error}
         </p>
       )}
@@ -82,22 +123,47 @@ export function Field({ label, htmlFor, help, error, children }: { label: ReactN
   );
 }
 
+/** Chyba skupiny volieb (fieldset) – rovnaký vzhľad ako chyba poľa. */
+export function FieldError({ children }: { children: ReactNode }) {
+  return (
+    <p role="alert" className="flex items-start gap-1.5 text-sm font-medium text-[#b3261e]">
+      <AlertIcon className="mt-px size-4 shrink-0" />
+      {children}
+    </p>
+  );
+}
+
+/*
+  Vstupné pole: jemný rámik a vnútorný tieň; pri zameraní oranžový rámik,
+  prstenec a nádych; chyba (aria-invalid) červená; zablokované sivé.
+  Trieda „field“ dáva výberom (select) vlastnú šípku (globals.css).
+*/
 export const inputClass = cx(
-  "min-h-12 w-full rounded-2xl border-2 border-ink/15 bg-white px-4 text-base text-ink placeholder:text-ink/40",
-  "focus:border-brand-orange",
-  FOCUS
+  "field min-h-12 w-full rounded-2xl border border-ink/15 bg-white px-4 text-base text-ink outline-none placeholder:text-ink/40",
+  "shadow-[inset_0_1px_2px_rgb(23_20_15/0.06)] transition-[border-color,box-shadow,background-color] duration-150",
+  "hover:border-ink/30 focus:border-brand-orange focus:bg-[#fffaf6] focus:ring-4 focus:ring-brand-orange/15",
+  "aria-[invalid=true]:border-[#b3261e] aria-[invalid=true]:ring-4 aria-[invalid=true]:ring-[#b3261e]/10",
+  "disabled:cursor-not-allowed disabled:bg-ink/[0.04] disabled:text-ink/45"
 );
 
 export function Check({ checked, onChange, children, id }: { checked: boolean; onChange: (v: boolean) => void; children: ReactNode; id: string }) {
   return (
-    <label htmlFor={id} className="flex min-h-12 cursor-pointer items-start gap-3 rounded-2xl py-2">
-      <input
-        id={id}
-        type="checkbox"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-        className="mt-0.5 size-6 shrink-0 cursor-pointer rounded accent-brand-orange-dark"
-      />
+    <label htmlFor={id} className="group flex min-h-12 cursor-pointer items-start gap-3 rounded-2xl py-2">
+      <span className="relative mt-px flex size-6 shrink-0">
+        <input
+          id={id}
+          type="checkbox"
+          checked={checked}
+          onChange={(e) => onChange(e.target.checked)}
+          className={cx(
+            "peer size-6 cursor-pointer appearance-none rounded-lg border-2 border-ink/25 bg-white transition-colors",
+            "group-hover:border-ink/45 checked:border-brand-orange-dark checked:bg-brand-orange-dark",
+            "disabled:cursor-not-allowed disabled:opacity-50",
+            FOCUS
+          )}
+        />
+        <CheckIcon className="pointer-events-none absolute inset-0.5 size-5 text-white opacity-0 transition-opacity peer-checked:opacity-100" />
+      </span>
       <span className="text-base leading-snug text-ink">{children}</span>
     </label>
   );
@@ -143,16 +209,16 @@ export function Notice({ tone = "info", children }: { tone?: "info" | "warn" | "
 
 export function StepTitle({ title, subtitle }: { title: ReactNode; subtitle?: ReactNode }) {
   return (
-    <header className="flex flex-col gap-2">
-      <h1 className="font-heading text-[1.75rem] leading-tight font-extrabold text-ink sm:text-4xl">{title}</h1>
-      {subtitle && <p className="text-base text-ink/70">{subtitle}</p>}
+    <header className="flex flex-col gap-2.5">
+      <h1 className="font-heading text-[2rem] leading-[1.1] font-extrabold text-balance text-ink sm:text-4xl">{title}</h1>
+      {subtitle && <p className="text-base text-pretty text-ink/65">{subtitle}</p>}
     </header>
   );
 }
 
 export function Disclosure({ summary, children, defaultOpen }: { summary: ReactNode; children: ReactNode; defaultOpen?: boolean }) {
   return (
-    <details open={defaultOpen} className="group rounded-2xl border-2 border-ink/10 bg-white">
+    <details open={defaultOpen} className="group rounded-2xl border border-ink/12 bg-white shadow-[0_1px_2px_rgb(23_20_15/0.05)]">
       <summary className={cx("flex min-h-12 cursor-pointer list-none items-center justify-between px-4 font-semibold text-ink", FOCUS, "rounded-2xl")}>
         {summary}
         <ChevronDownIcon className="size-5 shrink-0 text-ink/60 transition group-open:rotate-180 motion-reduce:transition-none" />

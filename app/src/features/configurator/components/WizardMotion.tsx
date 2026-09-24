@@ -16,6 +16,7 @@ import Link from "next/link";
 import { motion, useReducedMotion } from "motion/react";
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 
+import { ChevronLeftIcon } from "@/components/icons";
 import { cx } from "./ui";
 
 export type ProgressItem = { key: string; label: string; href: string | null; ariaLabel: string };
@@ -28,13 +29,53 @@ function usePreviousIndex() {
   return previous;
 }
 
-export function WizardProgress({ items, current, label }: { items: ProgressItem[]; current: number; label: string }) {
+export function WizardProgress({
+  items,
+  current,
+  label,
+  back,
+}: {
+  items: ProgressItem[];
+  current: number;
+  label: string;
+  /** Mobil: šípka späť vľavo od pásu (null = prvý krok). */
+  back: { href: string; label: string } | null;
+}) {
   const reduceMotion = useReducedMotion();
   const previous = usePreviousIndex();
   const ratio = (i: number) => (items.length > 1 ? i / (items.length - 1) : 1);
 
   return (
-    <nav aria-label={label} className="relative">
+    <nav aria-label={label}>
+      {/* Mobil (podľa „Onboarding“): späť + pás z úsekov; aktuálny úsek sa pri kroku dopredu vyplní. */}
+      <div className="flex min-h-11 items-center gap-2 md:hidden">
+        {back ? (
+          <Link
+            href={back.href}
+            aria-label={back.label}
+            className="-ml-2 flex size-11 shrink-0 items-center justify-center rounded-full text-ink outline-none hover:bg-ink/5 focus-visible:ring-4 focus-visible:ring-brand-orange/40"
+          >
+            <ChevronLeftIcon className="size-6" />
+          </Link>
+        ) : null}
+        <ol className="grid flex-1 gap-1.5" style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}>
+          {items.map((item, i) => (
+            <li key={item.key} aria-current={i === current ? "step" : undefined} className="relative h-1.5 overflow-hidden rounded-full bg-ink/10">
+              {i <= current && (
+                <motion.span
+                  className="absolute inset-0 origin-left rounded-full bg-brand-orange"
+                  initial={{ scaleX: i === current && previous !== null && previous < current ? 0 : 1 }}
+                  animate={{ scaleX: 1 }}
+                  transition={reduceMotion ? { duration: 0 } : { duration: 0.45, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
+                />
+              )}
+              <span className="sr-only">{item.ariaLabel}</span>
+            </li>
+          ))}
+        </ol>
+      </div>
+
+      <div className="relative hidden md:block">
       {/* Pás priebehu – ide stredom bodiek. */}
       <div aria-hidden className="absolute inset-x-[calc(100%/var(--n)/2)] top-5 h-1 rounded-full bg-ink/10" style={{ "--n": items.length } as CSSProperties}>
         <motion.div
@@ -62,7 +103,7 @@ export function WizardProgress({ items, current, label }: { items: ProgressItem[
               </span>
               <span
                 className={cx(
-                  "-mt-1.5 hidden px-0.5 text-center text-xs leading-tight md:block",
+                  "-mt-1.5 block px-0.5 text-center text-xs leading-tight",
                   state === "current" ? "font-semibold text-ink" : "text-ink/60",
                   item.href && "group-hover:text-ink"
                 )}
@@ -91,6 +132,7 @@ export function WizardProgress({ items, current, label }: { items: ProgressItem[
           );
         })}
       </ol>
+      </div>
     </nav>
   );
 }

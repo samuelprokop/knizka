@@ -256,6 +256,7 @@
   "common.back": "Späť",
   "common.cancel": "Zrušiť",
   "common.change_earlier_step": "Keď zmeníte tento krok, časť knihy vytvoríme znova. Potrvá to asi {minutes} minút.",
+  "common.close": "Zavrieť",
   "common.continue": "Pokračovať",
   "common.delete_all": "Zmazať všetko",
   "common.delivery_promise": "E-kniha ihneď, tlačená kniha do 5 pracovných dní",

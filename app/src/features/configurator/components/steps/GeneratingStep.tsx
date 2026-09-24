@@ -9,6 +9,7 @@ import { AutoRefresh } from "../AutoRefresh";
 import { StepFooter } from "../StepFooter";
 import { Button, Notice, StepTitle } from "../ui";
 import { useWizard } from "../WizardContext";
+import { useToast } from "@/components/Toaster";
 
 export type PageThumb = { id: string; position: number; status: string; url: string | null; text: string | null };
 
@@ -18,6 +19,7 @@ export function GeneratingStep({ pages, maskedEmail }: { pages: PageThumb[]; mas
   const { projectId, hero, bookLanguage } = useWizard();
   const [open, setOpen] = useState<string | null>(null);
   const [left, setLeft] = useState(false);
+  const toast = useToast();
   const [pending, start] = useTransition();
 
   const spreads = pages.filter((p) => p.position > 0);
@@ -81,7 +83,6 @@ export function GeneratingStep({ pages, maskedEmail }: { pages: PageThumb[]; mas
         </figure>
       )}
 
-      {left && <Notice tone="ok">{t("gen.leave.confirm", { email: maskedEmail })}</Notice>}
       <StepFooter>
         <Button
           variant="secondary"
@@ -92,6 +93,7 @@ export function GeneratingStep({ pages, maskedEmail }: { pages: PageThumb[]; mas
             start(async () => {
               const result = await notifyWhenReadyAction(projectId!);
               setLeft(result.ok);
+              if (result.ok) toast({ title: t("gen.leave.confirm", { email: maskedEmail }), tone: "ok" });
             })
           }
         >

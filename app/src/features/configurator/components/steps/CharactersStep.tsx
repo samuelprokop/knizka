@@ -30,6 +30,7 @@ import { StepFooter } from "../StepFooter";
 import { Button, Check, Chip, Field, Notice, StepTitle, inputClass, splitOptions } from "../ui";
 import { useWizard } from "../WizardContext";
 import { CheckIcon, CloseIcon, PlusIcon } from "@/components/icons";
+import { ToastOnMount } from "@/components/Toaster";
 
 export type CompanionView = {
   id: string;
@@ -84,7 +85,7 @@ export function CharactersStep({
   return (
     <>
       <AutoRefresh active={generating} />
-      {justApproved && <Notice tone="ok">{t("hero.approved.toast")}</Notice>}
+      {justApproved && <ToastOnMount title={t("hero.approved.toast")} tone="ok" />}
       <StepTitle title={t("chars.title")} />
 
       {!decided && companions.length === 0 && !adding && (

@@ -32,6 +32,7 @@ export const CheckIcon = (p: P) => <Icon {...p}><path d="M5 12.5 9.5 17 19 7.5" 
 export const CloseIcon = (p: P) => <Icon {...p}><path d="M6 6l12 12M18 6 6 18" /></Icon>;
 export const MinusIcon = (p: P) => <Icon {...p}><path d="M5 12h14" /></Icon>;
 export const PlusIcon = (p: P) => <Icon {...p}><path d="M12 5v14M5 12h14" /></Icon>;
+export const UndoIcon = (p: P) => <Icon {...p}><path d="M9 14 4 9l5-5" /><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" /></Icon>;
 export const AlertIcon = (p: P) => <Icon {...p}><path d="M12 8v5M12 16.5h.01" /><circle cx="12" cy="12" r="9" /></Icon>;
 export const CameraIcon = (p: P) => (
   <Icon {...p}>

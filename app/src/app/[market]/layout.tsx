@@ -7,6 +7,7 @@ import { getMarket, isMarketCode, MARKET_CODES } from "@/config/markets";
 import { UiPreviewBadge } from "@/features/ui-preview/UiPreviewBadge";
 import { I18nProvider } from "@/i18n/client";
 import "../globals.css";
+import { ToastProvider } from "@/components/Toaster";
 
 const heading = Bitter({
   variable: "--font-heading",
@@ -44,8 +45,10 @@ export default async function MarketLayout({ children, params }: LayoutProps<"/[
     >
       <body className="min-h-full flex flex-col font-body bg-white text-ink">
         <I18nProvider market={market.code} language={market.uiLanguage}>
-          {children}
-          <CookieConsent />
+          <ToastProvider>
+            {children}
+            <CookieConsent />
+          </ToastProvider>
         </I18nProvider>
         <UiPreviewBadge />
       </body>

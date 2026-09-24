@@ -14,6 +14,8 @@ import { AutoRefresh } from "../AutoRefresh";
 import { StepFooter } from "../StepFooter";
 import { Button, Chip, Field, Notice, StepTitle, inputClass, splitOptions } from "../ui";
 import { useWizard } from "../WizardContext";
+import { UndoIcon } from "@/components/icons";
+import { useToast } from "@/components/Toaster";
 
 export type PreviewPage = {
   id: string;
@@ -93,7 +95,7 @@ function PageEditor({ page, rewritesLeft, imageEditsLeft, editorial, rewriteChar
   const [imageInstruction, setImageInstruction] = useState("");
   const [compare, setCompare] = useState(false);
   const [error, setError] = useState<MessageKey | null>(null);
-  const [done, setDone] = useState<MessageKey | null>(null);
+  const toast = useToast();
   const [pending, start] = useTransition();
 
   const run = (action: () => Promise<{ ok: boolean; error?: MessageKey }>, doneKey?: MessageKey) =>
@@ -101,7 +103,7 @@ function PageEditor({ page, rewritesLeft, imageEditsLeft, editorial, rewriteChar
       const result = await action();
       if (!result.ok) return setError(result.error ?? "error.generic");
       setError(null);
-      setDone(doneKey ?? null);
+      if (doneKey) toast({ title: t(doneKey), tone: "ok" });
       router.refresh();
     });
 
@@ -193,14 +195,13 @@ function PageEditor({ page, rewritesLeft, imageEditsLeft, editorial, rewriteChar
         <div className="flex flex-col gap-2 border-t border-ink/10 pt-3">
           <div className="flex flex-wrap gap-2">
             {page.canUndo && (
-              <Button variant="secondary" pending={pending} onClick={() => run(() => undoPageAction(projectId!, page.id))}>↶ {t("common.undo")}</Button>
+              <Button variant="secondary" pending={pending} onClick={() => run(() => undoPageAction(projectId!, page.id))}><UndoIcon className="size-4" />{t("common.undo")}</Button>
             )}
             <Button variant="ghost" onClick={() => setCompare(!compare)} aria-expanded={compare}>{t("editor.compare")}</Button>
           </div>
           {compare && <p lang={bookLanguage} className="rounded-2xl bg-paper p-3 text-sm text-ink/80">{page.original}</p>}
         </div>
       )}
-      {done && <Notice tone="ok">{t(done)}</Notice>}
       {error && <Notice tone="error">{t(error)}</Notice>}
     </section>
   );

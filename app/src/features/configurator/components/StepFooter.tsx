@@ -10,7 +10,7 @@ import { useWizard } from "./WizardContext";
 
 /**
  * Spodná lišta pre jednoručné ovládanie: aktuálna cena s rozpisom
- * príplatkov (mení sa pri každej voľbe), Späť na predchádzajúci krok
+ * príplatkov (mení sa pri každej voľbe), Späť na predchádzajúci krok (od tabletu; na mobile je hore pri páse priebehu)
  * a hlavná akcia kroku. Krok s vlastným „Späť“ (podobrazovky) dá back={false}.
  */
 export function StepFooter({ children, hidePrice, back = true }: { children?: ReactNode; hidePrice?: boolean; back?: boolean }) {
@@ -54,12 +54,12 @@ export function StepFooter({ children, hidePrice, back = true }: { children?: Re
             <Link
               href={backHref}
               aria-label={t("common.back")}
-              className="flex min-h-12 min-w-12 shrink-0 items-center justify-center gap-1 rounded-full border-2 border-ink/15 bg-white px-3 text-base font-semibold text-ink transition outline-none hover:border-ink/35 focus-visible:ring-4 focus-visible:ring-brand-orange/40 active:scale-[0.98] motion-reduce:active:scale-100 sm:pr-5"
+              className="hidden min-h-12 min-w-12 shrink-0 items-center justify-center gap-1 md:flex rounded-full border-2 border-ink/15 bg-white px-3 text-base font-semibold text-ink transition outline-none hover:border-ink/35 focus-visible:ring-4 focus-visible:ring-brand-orange/40 active:scale-[0.98] motion-reduce:active:scale-100 pr-5"
             >
               <svg aria-hidden viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="size-4">
                 <path d="M10 3.5 5.5 8l4.5 4.5" />
               </svg>
-              <span aria-hidden className="hidden sm:inline">
+              <span aria-hidden>
                 {t("common.back")}
               </span>
             </Link>

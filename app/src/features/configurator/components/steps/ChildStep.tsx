@@ -14,7 +14,7 @@ import { WIZARD_OCCASIONS } from "../../model";
 import { stepHref } from "../../steps";
 import { AGE_OPTIONS, capitalizeName, isAgeOutsideStories, validateChildName } from "../../validation";
 import { StepFooter } from "../StepFooter";
-import { Button, Check, Chip, Disclosure, Field, Notice, StepTitle, Toggle, inputClass, splitOptions } from "../ui";
+import { Button, Check, Chip, Disclosure, Field, FieldError, Notice, StepTitle, Toggle, inputClass, splitOptions } from "../ui";
 import { useWizard } from "../WizardContext";
 
 export type ChildInitial = {
@@ -105,7 +105,7 @@ export function ChildStep({ initial, bookLanguages }: { initial: ChildInitial; b
     <>
       <StepTitle title={t("child.title")} />
 
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-7">
         <Field
           label={t("child.name.label")}
           htmlFor={`${ids}-name`}
@@ -129,12 +129,12 @@ export function ChildStep({ initial, bookLanguages }: { initial: ChildInitial; b
         </Field>
 
         {lookup && lookup.variants.length > 0 && (
-          <fieldset className="flex flex-col gap-2">
-            <legend className="text-sm font-semibold text-ink">{t("child.name.forms.label")}</legend>
+          <fieldset className="flex flex-col gap-2.5">
+            <legend className="mb-2.5 text-sm font-semibold text-ink">{t("child.name.forms.label")}</legend>
             <p className="text-sm text-ink/65">{t("child.name.forms.help")}</p>
             <div className="flex flex-wrap gap-2">
               {lookup.variants.map((variant) => (
-                <Chip key={variant} selected={capitalizeName(name) === variant} onClick={() => setName(variant)}>
+                <Chip key={variant} shape="pill" selected={capitalizeName(name) === variant} onClick={() => setName(variant)}>
                   {variant}
                 </Chip>
               ))}
@@ -142,12 +142,13 @@ export function ChildStep({ initial, bookLanguages }: { initial: ChildInitial; b
           </fieldset>
         )}
 
-        <fieldset className="flex flex-col gap-2">
-          <legend className="text-sm font-semibold text-ink">{t("child.gender.label")}</legend>
+        <fieldset className="flex flex-col gap-2.5">
+          <legend className="mb-2.5 text-sm font-semibold text-ink">{t("child.gender.label")}</legend>
           <div className="grid grid-cols-2 gap-2">
             {(["girl", "boy"] as const).map((g) => (
               <Chip
                 key={g}
+                shape="pill"
                 selected={gender === g}
                 onClick={() => {
                   setGender(g);
@@ -160,29 +161,29 @@ export function ChildStep({ initial, bookLanguages }: { initial: ChildInitial; b
               </Chip>
             ))}
           </div>
-          {touched && !gender && <p role="alert" className="text-sm text-[#b3261e]">{t("configurator.required")}</p>}
+          {touched && !gender && <FieldError>{t("configurator.required")}</FieldError>}
         </fieldset>
 
-        <fieldset className="flex flex-col gap-2">
-          <legend className="text-sm font-semibold text-ink">{t("child.age.label")}</legend>
+        <fieldset className="flex flex-col gap-2.5">
+          <legend className="mb-1 text-sm font-semibold text-ink">{t("child.age.label")}</legend>
           <p className="text-sm text-ink/65">{t("child.age.help")}</p>
           <div className="grid grid-cols-5 gap-2 sm:grid-cols-9">
             {AGE_OPTIONS.map((a) => (
-              <Chip key={a} selected={age === a} onClick={() => setAge(a)} className="px-0 text-center" aria-label={t("configurator.age.years", { n: a })}>
+              <Chip key={a} shape="pill" selected={age === a} onClick={() => setAge(a)} className="px-0 text-center" aria-label={t("configurator.age.years", { n: a })}>
                 {a}
               </Chip>
             ))}
           </div>
           {age !== null && isAgeOutsideStories(age) && <Notice tone="warn">{t("child.age.outside")}</Notice>}
-          {touched && age === null && <p role="alert" className="text-sm text-[#b3261e]">{t("configurator.required")}</p>}
+          {touched && age === null && <FieldError>{t("configurator.required")}</FieldError>}
         </fieldset>
 
         {bookLanguages.length > 1 && (
-          <fieldset className="flex flex-col gap-2">
-            <legend className="text-sm font-semibold text-ink">{t("child.language.label")}</legend>
+          <fieldset className="flex flex-col gap-2.5">
+            <legend className="mb-2.5 text-sm font-semibold text-ink">{t("child.language.label")}</legend>
             <div className="grid grid-cols-2 gap-2">
               {bookLanguages.map((l) => (
-                <Chip key={l} selected={language === l} onClick={() => setLanguage(l)} className="text-center">
+                <Chip key={l} shape="pill" selected={language === l} onClick={() => setLanguage(l)} className="text-center">
                   {t(`configurator.language.${l}`)}
                 </Chip>
               ))}
