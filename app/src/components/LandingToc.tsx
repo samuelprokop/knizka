@@ -3,7 +3,7 @@
 /*
   Obsah úvodnej stránky – zvislé kroky vľavo podľa „Vertical Titles“ (21st.dev,
   Ark UI Steps), upravené na menu: položky sú zastávky knihy v hero + pätička,
-  každá s nadpisom a kľúčovým popisom. Aktuálna je zvýraznená, prejdené sa
+  každá len s kľúčovým slovom. Aktuálna je zvýraznená, prejdené sa
   NEodškrtávajú.
 
   Na desktope (od lg) je to trvalý stĺpec a hero si preň rezervuje miesto
@@ -18,28 +18,27 @@ import type { LandingCopy } from "@/content/landing";
 import { heroNavigation } from "./BookHero";
 import { FooterRevealFadeOut } from "./FooterReveal";
 
-type Item = { key: string; label: string; description: string; marker: ReactNode; target: number | "footer" };
+type Item = { key: string; label: string; marker: ReactNode; target: number | "footer" };
 
 const cx = (...classes: (string | false | undefined)[]) => classes.filter(Boolean).join(" ");
 
 /** Priestor, ktorý si hero rezervuje vľavo (okraj + stĺpec) – nastavuje sa na stránke. */
-export const TOC_INSET_CLASS = "lg:[--hero-inset:17.5rem] xl:[--hero-inset:20rem]";
+export const TOC_INSET_CLASS = "lg:[--hero-inset:10.5rem] xl:[--hero-inset:11.5rem]";
 
 export function LandingToc({ copy }: { copy: LandingCopy }) {
   const reduceMotion = useReducedMotion();
   const current = useSyncExternalStore(heroNavigation.subscribe, heroNavigation.getCurrent, () => 0);
 
   const items: Item[] = [
-    { key: "intro", label: copy.toc.intro, description: copy.toc.introShort, marker: <BookIcon />, target: 0 },
+    { key: "intro", label: copy.toc.intro, marker: <BookIcon />, target: 0 },
     ...copy.steps.map((step, i) => ({
       key: step.number,
-      label: step.title,
-      description: step.short,
+      label: step.toc,
       marker: String(i + 1),
       target: i + 1,
     })),
-    { key: "outro", label: copy.toc.outro, description: copy.toc.outroShort, marker: <PenIcon />, target: heroNavigation.stops - 1 },
-    { key: "footer", label: copy.toc.footer, description: copy.toc.footerShort, marker: <InfoIcon />, target: "footer" },
+    { key: "outro", label: copy.toc.outro, marker: <PenIcon />, target: heroNavigation.stops - 1 },
+    { key: "footer", label: copy.toc.footer, marker: <InfoIcon />, target: "footer" },
   ];
 
   const go = (target: Item["target"]) => {
@@ -53,7 +52,7 @@ export function LandingToc({ copy }: { copy: LandingCopy }) {
   return (
     <nav
       aria-label={copy.toc.label}
-      className="fixed top-1/2 left-4 z-40 hidden w-60 -translate-y-1/2 lg:block xl:left-6 xl:w-72"
+      className="fixed top-1/2 left-3 z-40 hidden w-36 -translate-y-1/2 lg:block xl:left-5"
     >
       <FooterRevealFadeOut>
         <ol className="flex flex-col">
@@ -63,37 +62,34 @@ export function LandingToc({ copy }: { copy: LandingCopy }) {
             return (
               <li key={item.key} className="relative">
                 {/* Spojovacia čiara ku ďalšiemu kroku – bez „dokončeného“ stavu. */}
-                {!last && <span aria-hidden className="absolute top-11 -bottom-1 left-[23px] w-0.5 rounded-full bg-ink/10" />}
+                {!last && <span aria-hidden className="absolute top-[34px] -bottom-[6px] left-[19.5px] w-px bg-ink/15" />}
                 <button
                   type="button"
                   onClick={() => go(item.target)}
                   aria-current={active ? "step" : undefined}
-                  className="group relative flex w-full items-start gap-3 rounded-2xl p-2 text-left transition-colors outline-none hover:bg-ink/[0.03] focus-visible:ring-4 focus-visible:ring-brand-orange/40"
+                  className="group relative flex min-h-10 w-full items-center gap-2.5 rounded-full px-2 py-1 text-left transition-colors outline-none hover:bg-ink/[0.03] focus-visible:ring-4 focus-visible:ring-brand-orange/40"
                 >
-                  <span className="relative flex size-8 shrink-0 items-center justify-center">
+                  <span className="relative flex size-6 shrink-0 items-center justify-center">
                     {active && (
                       <motion.span
                         layoutId="landing-toc-current"
                         aria-hidden
-                        className="absolute inset-0 rounded-full bg-brand-orange shadow-md shadow-brand-orange/30"
+                        className="absolute inset-0 rounded-full bg-brand-orange shadow-sm shadow-brand-orange/30"
                         transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 420, damping: 34 }}
                       />
                     )}
                     <span
                       aria-hidden
                       className={cx(
-                        "relative flex size-8 items-center justify-center rounded-full text-xs font-bold transition-colors duration-150",
+                        "relative flex size-6 items-center justify-center rounded-full text-[11px] font-bold transition-colors duration-150",
                         active ? "text-ink" : "bg-white text-ink/70 ring-1 ring-ink/15 group-hover:text-ink group-hover:ring-ink/35"
                       )}
                     >
                       {item.marker}
                     </span>
                   </span>
-                  <span className="flex min-w-0 flex-col pt-0.5">
-                    <span className={cx("text-sm leading-snug", active ? "font-semibold text-ink" : "font-medium text-ink/80 group-hover:text-ink")}>
-                      {item.label}
-                    </span>
-                    <span className={cx("text-[13px] leading-snug", active ? "text-ink/70" : "text-ink/60")}>{item.description}</span>
+                  <span className={cx("truncate text-sm", active ? "font-semibold text-ink" : "font-medium text-ink/65 group-hover:text-ink")}>
+                    {item.label}
                   </span>
                 </button>
               </li>
@@ -114,7 +110,7 @@ const iconProps = {
   strokeWidth: 1.6,
   strokeLinecap: "round" as const,
   strokeLinejoin: "round" as const,
-  className: "size-4",
+  className: "size-3.5",
 };
 
 function BookIcon() {
