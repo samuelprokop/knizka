@@ -32,7 +32,7 @@ export default async function PaymentResultPage({ params, searchParams }: PagePr
 
   return (
     <>
-      <ShopHeader />
+      <ShopHeader home />
       <main className="mx-auto flex w-full flex-1 max-w-xl flex-col justify-center gap-6 px-4 py-16">
       <StepTitle title={t("checkout.title")} />
       <Notice tone="error">{t("checkout.error.payment_failed")}</Notice>

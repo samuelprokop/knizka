@@ -82,7 +82,13 @@ export function BookPage({ book, page, opts = {} }: { book: Book; page: PageRef;
 function InteriorContent({ ctx, part, number, side }: { ctx: Ctx; part: BookPart; number: number; side?: "left" | "right" }) {
   switch (part.kind) {
     case "story_spread":
-      return <StoryHalf ctx={ctx} part={part} side={side ?? "left"} number={number} />;
+      // Rámiky (voľba zákazníka) aj na stranách príbehu – vo všetkých layoutoch, nielen na textových stranách.
+      return (
+        <>
+          <StoryHalf ctx={ctx} part={part} side={side ?? "left"} number={number} />
+          {ctx.book.options.frames && <div className="bk-frame" style={{ position: "absolute", inset: 0, pointerEvents: "none" }} />}
+        </>
+      );
     case "title":
       return (
         <TextPage ctx={ctx} number={number}>
@@ -223,7 +229,7 @@ function StoryHalf({ ctx, part, side, number }: { ctx: Ctx; part: StorySpreadPar
     case "classic":
       if (side === "left") return <div className="bk-full">{image()}</div>;
       return (
-        <TextPage ctx={ctx} number={number}>
+        <TextPage ctx={ctx} number={number} frames={false}>
           <div className="bk-classic-text">
             <Ornament />
             <div className="bk-fit">{text(part.text)}</div>

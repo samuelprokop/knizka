@@ -13,7 +13,7 @@ export default async function PersonalBookPage({ params }: PageProps<"/[market]/
 
   return (
     <>
-      <ShopHeader />
+      <ShopHeader home />
       <main className="mx-auto flex w-full flex-1 max-w-xl flex-col gap-8 px-4 py-10 text-center">
       <StepTitle title={view.bookTitle} subtitle={t("book.imprint.qr")} />
       {view.thumbnailUrl ? (

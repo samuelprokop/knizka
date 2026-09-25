@@ -237,7 +237,8 @@ export function BookFlipbook({
       <SpreadCarousel3D
         book={book}
         spreads={spreads}
-        current={index}
+        // Valec sa otáča už so začiatkom otočenia strany (nie až po jeho dokončení).
+        current={flip ? flip.to : index}
         label={t("book.preview.thumbnails")}
         spreadLabel={(i) => spreadLabel(spreads[i], i, spreads.length, t)}
         opts={{ watermark: undefined }}

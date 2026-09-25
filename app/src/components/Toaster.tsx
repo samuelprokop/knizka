@@ -12,7 +12,8 @@
   Len na krátke potvrdenia („Odkaz sme poslali“). Chyby formulárov patria
   k poľu, nie sem. Prístupnosť: oblasť aria-live="polite", fokus sa
   nepresúva, zmiznú po 5 s (pri prejdení myšou alebo fokuse čakajú),
-  zatváracie tlačidlo 44 px. Na mobile hore, od tabletu vpravo dole.
+  zatváracie tlačidlo 44 px. Na mobile hore, od tabletu vpravo hore pod hlavičkou –
+  nikdy nie dole, kde je spodná lišta s „Pokračovať“ a platba (notifikácia by zavadzala).
 */
 
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
@@ -54,7 +55,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
       <div
         aria-live="polite"
-        className="pointer-events-none fixed inset-x-0 top-3 z-[60] flex flex-col items-center gap-2 px-4 sm:top-auto sm:right-6 sm:bottom-6 sm:left-auto sm:w-96 sm:flex-col-reverse sm:items-stretch sm:px-0"
+        className="pointer-events-none fixed inset-x-0 top-3 z-[60] flex flex-col items-center gap-2 px-4 sm:top-24 sm:right-6 sm:left-auto sm:w-96 sm:items-stretch sm:px-0"
       >
         <AnimatePresence initial={false}>
           {toasts.map((toast) => (

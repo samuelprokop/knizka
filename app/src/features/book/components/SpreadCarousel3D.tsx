@@ -65,7 +65,7 @@ export function SpreadCarousel3D({
     // Najkratšou cestou okolo valca.
     const delta = ((((target - now) % 360) + 540) % 360) - 180;
     if (reduce) rotation.set(now + delta);
-    else animate(rotation, now + delta, { type: "spring", stiffness: 140, damping: 22 });
+    else animate(rotation, now + delta, { type: "spring", stiffness: 220, damping: 26 });
   };
 
   // Listovanie šípkami v náhľade → valec sa natočí na aktuálnu dvojstranu.
