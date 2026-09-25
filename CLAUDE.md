@@ -10,6 +10,9 @@ v `analyza/` – pred prácou si prečítaj časti, ktoré sa týkajú tvojho ba
 
 Zadania balíkov práce: `docs/work-packages/`.
 
+**Nová session alebo iný účet:** najprv prečítaj `docs/handoff/README.md` (rola, pravidlá spolupráce,
+stav, ďalšia práca, skilly v `.claude/skills/`) a na konci práce napíš report do `docs/handoff/reports/`.
+
 ## Stav rozhodnutí
 
 - Identita: dočasne **TAKTIK** (farby a písmo v `app/src/app/globals.css`, logo `app/public/brand/`).

@@ -31,3 +31,6 @@ blender/*.blend1
 blender/render.log
 hero videos/
 brand manual/*.pdf
+
+# python cache (skilly)
+__pycache__/
