@@ -23,6 +23,7 @@ import { useState, type ReactNode } from "react";
 
 import { STYLES } from "@/config/catalog";
 import { useI18n } from "@/i18n/client";
+import { HeroNameShowcase, HeroPreviewShowcase, HeroStoryShowcase } from "./HeroPages";
 import { HeroStyleShowcase } from "./HeroStyleShowcase";
 
 import type { LandingCopy } from "@/content/landing";
@@ -49,12 +50,14 @@ export function HeroBook({
   progress,
   stateAt,
   steps,
+  pages,
   coverTitle,
   label,
 }: {
   progress: MotionValue<number>;
   stateAt: (p: number) => BookState;
   steps: LandingCopy["steps"];
+  pages: LandingCopy["pages"];
   coverTitle: string;
   label: string;
 }) {
@@ -67,10 +70,10 @@ export function HeroBook({
     // rodič v Chrome občas rozbije poradie a zadné strany listov (presvitá text pod knihou).
     <div role="img" aria-label={label} className="absolute top-[8%] left-[3%] aspect-[1.3] w-[94%] [container-type:inline-size] md:top-[3.5%] md:left-[11%] md:w-[68%]">
       <Leaf index={0} state={state} board front={<Cover title={coverTitle} />} back={<StepLeft step={s1} page={1} />} />
-      <Leaf index={1} state={state} front={<StepRight step={s1} page={2} art={<ArtChild />} />} back={<StepLeft step={s2} page={3} />} />
+      <Leaf index={1} state={state} front={<LivePage state={state} spread={1} page={2}>{(active) => <HeroNameShowcase active={active} copy={pages.child} text={s1.text} />}</LivePage>} back={<StepLeft step={s2} page={3} />} />
       <Leaf index={2} state={state} front={<StylePage state={state} text={s2.text} page={4} />} back={<StepLeft step={s3} page={5} />} />
-      <Leaf index={3} state={state} front={<StepRight step={s3} page={6} art={<ArtStory />} />} back={<StepLeft step={s4} page={7} />} />
-      <Leaf index={4} state={state} board front={<StepRight step={s4} page={8} art={<ArtBook />} />} back={<BackCover />} />
+      <Leaf index={3} state={state} front={<LivePage state={state} spread={3} page={6}>{(active) => <HeroStoryShowcase active={active} copy={pages.story} text={s3.text} />}</LivePage>} back={<StepLeft step={s4} page={7} />} />
+      <Leaf index={4} state={state} board front={<LivePage state={state} spread={4} page={8}>{(active) => <HeroPreviewShowcase active={active} copy={pages.preview} text={s4.text} />}</LivePage>} back={<BackCover />} />
     </div>
   );
 }
@@ -171,11 +174,23 @@ function StepLeft({ step, page }: { step: LandingCopy["steps"][number]; page: nu
   );
 }
 
-function StepRight({ step, page, art }: { step: LandingCopy["steps"][number]; page: number; art: ReactNode }) {
+/** Je dvojstrana otvorená a kniha stojí? (Odvodená hodnota sa prepočíta aj počas
+    vykresľovania knihy – stav sa preto mení až mimo neho.) */
+function useSpreadActive(state: MotionValue<BookState>, spread: number) {
+  const [active, setActive] = useState(false);
+  useMotionValueEvent(state, "change", (s) => {
+    const next = s.done === spread && s.moving === -1;
+    queueMicrotask(() => setActive(next));
+  });
+  return active;
+}
+
+/** Pravá strana s interaktívnym obsahom (beží len kým je jej dvojstrana otvorená). */
+function LivePage({ state, spread, page, children }: { state: MotionValue<BookState>; spread: number; page: number; children: (active: boolean) => ReactNode }) {
+  const active = useSpreadActive(state, spread);
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-[2.67cqw] px-[13%] pb-[8%] mix-blend-multiply">
-      <div className="w-[52%]">{art}</div>
-      <p className="text-center text-[1.87cqw] leading-relaxed text-pretty text-[#3a3228]">{step.text}</p>
+    <div className="relative h-full">
+      {children(active)}
       <PageNumber side="right">{page}</PageNumber>
     </div>
   );
@@ -184,12 +199,7 @@ function StepRight({ step, page, art }: { step: LandingCopy["steps"][number]; pa
 /** Pravá strana dvojstrany „Fotka“: fotka dieťaťa → ilustračné štýly (beží len keď je dvojstrana otvorená). */
 function StylePage({ state, text, page }: { state: MotionValue<BookState>; text: string; page: number }) {
   const { t } = useI18n();
-  const [active, setActive] = useState(false);
-  // Odvodená hodnota sa prepočíta aj počas vykresľovania knihy – stav meníme až mimo neho.
-  useMotionValueEvent(state, "change", (s) => {
-    const next = s.done === 2 && s.moving === -1;
-    queueMicrotask(() => setActive(next));
-  });
+  const active = useSpreadActive(state, 2);
   const labels = {
     photo: t("common.progress.photo"),
     ...Object.fromEntries(STYLES.map((id) => [id, t(`style.${id}`)])),
@@ -246,54 +256,6 @@ function Star({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 48 48" className={className} fill="currentColor" aria-hidden>
       <path d="M24 4l5.6 12.2L43 18l-9.8 9.2L35.8 41 24 34.4 12.2 41l2.6-13.8L5 18l13.4-1.8z" />
-    </svg>
-  );
-}
-
-const art = "h-auto w-full";
-
-function ArtChild() {
-  return (
-    <svg viewBox="0 0 120 100" className={art} aria-hidden>
-      <circle cx="60" cy="52" r="34" fill="#ffe3cf" />
-      <circle cx="60" cy="44" r="16" fill="#f6c9a6" />
-      <path d="M44 42c0-12 8-18 16-18s16 6 16 18c-4-5-10-7-16-7s-12 2-16 7z" fill="#8a4b2a" />
-      <circle cx="54" cy="46" r="1.8" fill="#2a241c" />
-      <circle cx="66" cy="46" r="1.8" fill="#2a241c" />
-      <path d="M55 52c3 2.5 7 2.5 10 0" stroke="#c0552a" strokeWidth="2" fill="none" strokeLinecap="round" />
-      <path d="M38 86c3-14 12-22 22-22s19 8 22 22" fill="#00a5a0" />
-      <path d="M22 22l2.4 5 5.4.8-4 3.8 1 5.4-4.8-2.6-4.8 2.6 1-5.4-4-3.8 5.4-.8zM98 16l1.8 3.8 4.2.6-3 2.9.7 4.1-3.7-2-3.7 2 .7-4.1-3-2.9 4.2-.6z" fill="#ff661a" />
-    </svg>
-  );
-}
-
-function ArtStory() {
-  return (
-    <svg viewBox="0 0 120 100" className={art} aria-hidden>
-      <circle cx="88" cy="26" r="10" fill="#ffd166" />
-      <path d="M10 84c18-14 34-18 50-10s32 4 50-8v18H10z" fill="#bfe3c9" />
-      <rect x="40" y="38" width="36" height="40" fill="#ffe3cf" />
-      <path d="M36 40l22-18 22 18z" fill="#ff661a" />
-      <rect x="52" y="58" width="12" height="20" rx="6" fill="#5e3f61" />
-      <rect x="44" y="46" width="8" height="8" rx="1.5" fill="#fff" />
-      <rect x="64" y="46" width="8" height="8" rx="1.5" fill="#fff" />
-      <path d="M58 22v-10l10 4-10 4" fill="#00a5a0" />
-      <path d="M18 30l1.6 3.4 3.8.5-2.8 2.6.7 3.7-3.3-1.8-3.3 1.8.7-3.7-2.8-2.6 3.8-.5z" fill="#ff661a" />
-    </svg>
-  );
-}
-
-function ArtBook() {
-  return (
-    <svg viewBox="0 0 120 100" className={art} aria-hidden>
-      <ellipse cx="60" cy="86" rx="40" ry="5" fill="#e6ddc9" />
-      <path d="M22 30c14-6 26-6 38 2v50c-12-8-24-8-38-2z" fill="#ff661a" />
-      <path d="M98 30c-14-6-26-6-38 2v50c12-8 24-8 38-2z" fill="#ff8a4d" />
-      <path d="M28 36c10-3 19-3 28 2v38c-9-5-18-5-28-2z" fill="#fff" opacity=".9" />
-      <path d="M92 36c-10-3-19-3-28 2v38c9-5 18-5 28-2z" fill="#fff" opacity=".9" />
-      <path d="M60 32v50" stroke="#c0552a" strokeWidth="2" />
-      <path d="M74 20h8v18l-4-3-4 3z" fill="#00a5a0" />
-      <path d="M100 14l1.6 3.4 3.8.5-2.8 2.6.7 3.7-3.3-1.8-3.3 1.8.7-3.7-2.8-2.6 3.8-.5zM16 18l1.2 2.6 2.8.4-2 2 .5 2.8-2.5-1.4-2.5 1.4.5-2.8-2-2 2.8-.4z" fill="#ffd166" />
     </svg>
   );
 }

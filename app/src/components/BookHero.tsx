@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, useSyncExternalStore, type ReactNode } from "react";
 import {
   animate,
   motion,
@@ -175,9 +175,14 @@ function Overlay({
 
 type HeroProps = { copy: LandingCopy; ctaHref: string; /** Naformátované ceny trhu pre cenovú kotvu. */ prices: { ebook: string; print: string } };
 
+const noopSubscribe = () => () => {};
+
 export function BookHero(props: HeroProps) {
   const reduced = useReducedMotion();
-  if (reduced) return <StaticHero {...props} />;
+  // Server nevie o prefers-reduced-motion – prvé vykreslenie je vždy animované (zhodné so
+  // serverom, bez chyby hydratácie), statická verzia sa prepne až v prehliadači.
+  const mounted = useSyncExternalStore(noopSubscribe, () => true, () => false);
+  if (mounted && reduced) return <StaticHero {...props} />;
   return <AnimatedHero {...props} />;
 }
 
@@ -433,7 +438,7 @@ function AnimatedHero({ copy, ctaHref, prices }: HeroProps) {
           className="relative aspect-[4/3] [container-type:inline-size] md:aspect-video"
           style={{ width: "min(calc(100vw - var(--hero-inset, 0px)), calc((100dvh - var(--hero-top, 0px) - 0.75rem) * 16 / 9))" }}
         >
-          <HeroBook progress={progress} stateAt={bookStateAt} steps={copy.steps} coverTitle={copy.coverTitle} label={copy.animationLabel} />
+          <HeroBook progress={progress} stateAt={bookStateAt} steps={copy.steps} pages={copy.pages} coverTitle={copy.coverTitle} label={copy.animationLabel} />
           {/* Texty krokov sú vytlačené na stranách knihy (aria-hidden) – pre čítačku tu. */}
           <ol className="sr-only">
             {copy.steps.map((step) => (
@@ -525,7 +530,7 @@ function StaticHero({ copy, ctaHref, prices }: HeroProps) {
           {copy.title}
         </h1>
 <div className="relative mt-10 aspect-video w-full [container-type:inline-size]">
-          <HeroBook progress={progress} stateAt={bookStateAt} steps={copy.steps} coverTitle={copy.coverTitle} label={copy.staticImageAlt} />
+          <HeroBook progress={progress} stateAt={bookStateAt} steps={copy.steps} pages={copy.pages} coverTitle={copy.coverTitle} label={copy.staticImageAlt} />
         </div>
         <ol className="mt-10 space-y-8">
           {copy.steps.map((step) => (

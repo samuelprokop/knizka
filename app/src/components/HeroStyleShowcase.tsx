@@ -139,8 +139,8 @@ export function HeroStyleShowcase({
   );
 }
 
-/** Zmaže starý text po písmenách a napíše nový. */
-function useTypewriter(target: string, animated: boolean) {
+/** Zmaže starý text po písmenách a napíše nový (aj pre stranu „Dieťa“). */
+export function useTypewriter(target: string, animated: boolean) {
   const [text, setText] = useState(target);
   useEffect(() => {
     if (!animated) return;
