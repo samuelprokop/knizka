@@ -4,8 +4,8 @@
   mazanie fotiek, doručenie, reklamácie). České texty sú prvý návrh na korektúru.
 
   Premenné v odpovediach dopĺňa faqFor() z konfigurácie trhu (ceny, dni doručenia) –
-  cena sa nikdy nepíše natvrdo. Otázky s `top` sa ukážu aj na úvodnej stránke
-  (najčastejšie obavy pred nákupom: podoba, fotka, cena, platba, doručenie, chyba).
+  cena sa nikdy nepíše natvrdo. Otázky s `top` (5) sa ukážu aj na úvodnej stránke –
+  najčastejšie obavy pred nákupom: podoba, fotka, cena, kedy sa platí, doručenie.
 */
 
 import { formatMoney, type Market } from "@/config/markets";
@@ -23,7 +23,6 @@ const SK = (v: Vars): FaqCategory[] => [
     items: [
       {
         id: "ako-vznikne",
-        top: true,
         q: "Ako vznikne kniha s mojím dieťaťom?",
         a: "Zadáte meno a vek, nahráte fotku alebo dieťa opíšete a vyberiete štýl ilustrácií. Z fotky nakreslíme hrdinu, vyberiete príbeh a knihu poskladáme. Celý náhľad si prelistujete zadarmo a až potom sa rozhodnete.",
       },
@@ -129,7 +128,6 @@ const SK = (v: Vars): FaqCategory[] => [
       },
       {
         id: "chyba",
-        top: true,
         q: "Čo ak je vo vytlačenej knihe chyba?",
         a: "Každú knihu pred tlačou skontroluje človek. Ak sa výtlačok líši od schváleného náhľadu alebo príde poškodený, nahláste to na stránke objednávky – vytlačíme ho znova zadarmo.",
       },
@@ -154,7 +152,6 @@ const CS = (v: Vars): FaqCategory[] => [
     items: [
       {
         id: "ako-vznikne",
-        top: true,
         q: "Jak vznikne kniha s mým dítětem?",
         a: "Zadáte jméno a věk, nahrajete fotku nebo dítě popíšete a vyberete styl ilustrací. Z fotky nakreslíme hrdinu, vyberete příběh a knihu poskládáme. Celý náhled si prolistujete zdarma a teprve potom se rozhodnete.",
       },
@@ -256,7 +253,6 @@ const CS = (v: Vars): FaqCategory[] => [
       { id: "stav", q: "Kde vidím stav objednávky?", a: "Odkaz na stav objednávky je v potvrzovacím e-mailu. Najdete tam i e-knihu ke stažení." },
       {
         id: "chyba",
-        top: true,
         q: "Co když je v tištěné knize chyba?",
         a: "Každou knihu před tiskem zkontroluje člověk. Pokud se výtisk liší od schváleného náhledu nebo dorazí poškozený, nahlaste to na stránce objednávky – vytiskneme ho znovu zdarma.",
       },

@@ -15,7 +15,7 @@ import type { FaqItem } from "@/content/faq";
 import { EASE } from "@/lib/motion";
 import { ChevronDownIcon } from "./icons";
 
-export function FaqAccordion({ items, idPrefix = "" }: { items: FaqItem[]; idPrefix?: string }) {
+export function FaqAccordion({ items, idPrefix = "", compact = false }: { items: FaqItem[]; idPrefix?: string; /** Nižšie riadky (úvodná stránka – sekcia na jednu obrazovku). */ compact?: boolean }) {
   const reduce = useReducedMotion();
   const [open, setOpen] = useState<string | null>(null);
 
@@ -44,7 +44,7 @@ export function FaqAccordion({ items, idPrefix = "" }: { items: FaqItem[]; idPre
                 aria-expanded={expanded}
                 aria-controls={`${id}-a`}
                 onClick={() => setOpen(expanded ? null : id)}
-                className="group flex min-h-14 w-full items-center justify-between gap-4 py-4 text-left text-base font-semibold text-ink outline-none focus-visible:ring-4 focus-visible:ring-brand-orange/40 sm:text-lg"
+                className={`group flex w-full items-center justify-between gap-4 text-left text-base font-semibold text-ink outline-none focus-visible:ring-4 focus-visible:ring-brand-orange/40 ${compact ? "min-h-12 py-3" : "min-h-14 py-4 sm:text-lg"}`}
               >
                 <span className="transition-colors group-hover:text-brand-orange-dark">{item.q}</span>
                 <span

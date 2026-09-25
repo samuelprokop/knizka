@@ -4,6 +4,7 @@ import type { FaqItem } from "@/content/faq";
 import type { Translator } from "@/i18n/format";
 import { FaqAccordion } from "./FaqAccordion";
 import { MailIcon, QuestionIcon } from "./icons";
+import { StepSection } from "./StepSection";
 
 /*
   Sekcia častých otázok (úvodná stránka aj stránka /otazky): odznak, nadpis,
@@ -18,24 +19,33 @@ export function FaqSection({
   allHref,
   id,
   headingLevel = 2,
+  previousId,
 }: {
   t: Translator;
   items: FaqItem[];
   supportEmail: string;
   /** Odkaz „Všetky otázky“ (na úvodnej stránke); na stránke /otazky chýba. */
   allHref?: string;
-  id?: string;
+  id: string;
   headingLevel?: 1 | 2;
+  /** Sekcia pred touto (recenzie) – otázky sú ďalší krok úvodnej stránky ako recenzie. */
+  previousId?: string;
 }) {
   const Heading = headingLevel === 1 ? "h1" : "h2";
   return (
-    <section id={id} aria-labelledby={`${id ?? "faq"}-title`} className="mx-auto flex w-full max-w-3xl scroll-mt-24 flex-col gap-8 px-6 py-16 sm:px-10 md:py-24">
-      <div className="flex flex-col items-center gap-3 text-center">
+    // Na jednu obrazovku (ako recenzie): krok sa zastaví na začiatku sekcie; rozbalená odpoveď ju môže predĺžiť.
+    <StepSection
+      id={id}
+      previousId={previousId}
+      labelledBy={`${id}-title`}
+      className="mx-auto flex min-h-dvh w-full max-w-3xl flex-col justify-center gap-6 px-6 pt-24 pb-8 sm:px-10"
+    >
+      <div className="flex flex-col items-center gap-2.5 text-center">
         <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-orange/12 px-3 py-1 text-xs font-semibold tracking-wide text-brand-orange-dark uppercase">
           <QuestionIcon className="size-4" />
           {t("faq.eyebrow")}
         </span>
-        <Heading id={`${id ?? "faq"}-title`} className="font-heading text-3xl leading-tight font-extrabold text-balance text-ink md:text-5xl">
+        <Heading id={`${id}-title`} className="font-heading text-3xl leading-tight font-extrabold text-balance text-ink md:text-4xl">
           {t("faq.title")}
         </Heading>
         <p className="max-w-xl text-base text-ink/70">
@@ -47,7 +57,7 @@ export function FaqSection({
         </p>
       </div>
 
-      <FaqAccordion items={items} idPrefix={id ? `${id}-` : ""} />
+      <FaqAccordion items={items} idPrefix={`${id}-`} compact />
 
       <div className="flex flex-col items-start gap-4 rounded-3xl bg-paper p-5 ring-1 ring-ink/10 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
@@ -73,6 +83,6 @@ export function FaqSection({
           </a>
         </div>
       </div>
-    </section>
+    </StepSection>
   );
 }

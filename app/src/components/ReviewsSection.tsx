@@ -13,12 +13,13 @@
   slučku je pred čítačkou skrytá.
 */
 
-import { animate, motion, useReducedMotion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 import { EASE } from "@/lib/motion";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 
 import type { LandingCopy } from "@/content/landing";
 import type { Review } from "@/content/reviews";
+import { useSectionStep } from "./useSectionStep";
 
 const cx = (...classes: (string | false | undefined)[]) => classes.filter(Boolean).join(" ");
 
@@ -39,7 +40,8 @@ export function ReviewsSection({
   const [paused, setPaused] = useState(false);
   const scrolling = useScrolling();
   const sectionRef = useRef<HTMLElement>(null);
-  useSectionStep(sectionRef, !!reduceMotion);
+  // Z konca knihy jedno gesto = recenzie; nahor späť na koniec knihy (obrazovka nad nimi).
+  useSectionStep(sectionRef, !!reduceMotion, () => (sectionRef.current?.getBoundingClientRect().top ?? 0) + window.scrollY - window.innerHeight);
   const columns = [0, 1, 2].map((c) => reviews.filter((_, i) => i % 3 === c));
 
   return (
@@ -123,135 +125,6 @@ export function ReviewsSection({
  * zotrvačnosť touchpadu ju neprešvihne). Ak posúvanie skončí s odkrytou sekciou
  * (aspoň do polovice), dotiahne sa. Nahor sa nezastavuje.
  */
-/*
-  Recenzie ako ďalší krok knihy: z poslednej zastávky hero (recenzie sú tesne
-  pod obrazovkou) jedno gesto nadol = plynulý posun presne na recenzie; zvyšok
-  gesta (aj zotrvačnosť touchpadu) sa zahodí, k pätičke vedie až nové gesto.
-  Nahor: z recenzií späť na koniec knihy, z pätičky zastaví na recenziách.
-  Vstup sa zachytáva vo fáze capture, takže ho hero zároveň nespracuje.
-*/
-function useSectionStep(ref: React.RefObject<HTMLElement | null>, reduceMotion: boolean) {
-  useEffect(() => {
-    const GESTURE_GAP_MS = 200;
-    const COOLDOWN_MS = 450;
-    const SWIPE_PX = 30;
-    let running: { stop: () => void } | null = null;
-    let lockedUntil = 0;
-    let consumed = false;
-    let lastWheel = 0;
-
-    const vh = () => window.innerHeight;
-    const top = () => ref.current?.getBoundingClientRect().top ?? Infinity;
-    const absTop = () => top() + window.scrollY;
-    const busy = () => running !== null || performance.now() < lockedUntil;
-    // Oblasť, kde krok riadi táto sekcia: od konca knihy po pätičku.
-    const inZone = () => top() <= vh() + 2 && top() > -vh();
-
-    const scrollToY = (y: number) => {
-      running?.stop();
-      if (reduceMotion) {
-        window.scrollTo(0, y);
-        lockedUntil = performance.now() + COOLDOWN_MS;
-        return;
-      }
-      running = animate(window.scrollY, y, {
-        duration: 0.75,
-        ease: EASE.inOut,
-        onUpdate: (v) => window.scrollTo(0, v),
-        onComplete: () => {
-          running = null;
-          lockedUntil = performance.now() + COOLDOWN_MS;
-        },
-      });
-    };
-
-    /** Kam ísť pri kroku daným smerom (null = nechať prehliadač / hero). */
-    const targetFor = (dir: 1 | -1, delta: number): number | null => {
-      const t = top();
-      if (dir === 1 && t > 2 && t <= vh() + 2) return absTop(); // koniec knihy → recenzie
-      if (dir === -1 && t >= -2 && t < vh() - 2) return absTop() - vh(); // recenzie → koniec knihy
-      if (dir === -1 && t < -2 && t - delta >= -2) return absTop(); // z pätičky → zastaviť na recenziách
-      return null;
-    };
-
-    const consume = (e: Event) => {
-      e.preventDefault();
-      e.stopPropagation();
-    };
-
-    const onWheel = (e: WheelEvent) => {
-      if (e.ctrlKey) return;
-      const now = performance.now();
-      if (now - lastWheel > GESTURE_GAP_MS) consumed = false;
-      lastWheel = now;
-      const d = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaMode === 2 ? e.deltaY * vh() : e.deltaY;
-      if (d === 0) return;
-      if (busy() || consumed) {
-        if (inZone()) consume(e);
-        return;
-      }
-      const target = targetFor(d > 0 ? 1 : -1, d);
-      if (target === null) return;
-      consume(e);
-      consumed = true;
-      scrollToY(target);
-    };
-
-    let touchY = 0;
-    let touchFired = false;
-    const onTouchStart = (e: TouchEvent) => {
-      touchY = e.touches[0].clientY;
-      touchFired = false;
-    };
-    const onTouchMove = (e: TouchEvent) => {
-      if (e.touches.length !== 1) return;
-      const dy = touchY - e.touches[0].clientY;
-      if (touchFired || busy()) {
-        if (inZone()) consume(e);
-        return;
-      }
-      if (dy === 0) return;
-      const target = targetFor(dy > 0 ? 1 : -1, dy);
-      if (target === null) return;
-      consume(e);
-      if (Math.abs(dy) > SWIPE_PX) {
-        touchFired = true;
-        scrollToY(target);
-      }
-    };
-
-    const onKey = (e: KeyboardEvent) => {
-      const el = e.target as HTMLElement | null;
-      if (el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName))) return;
-      if (e.key === " " && el?.closest("button, a")) return;
-      const next = ["ArrowDown", "PageDown"].includes(e.key) || (e.key === " " && !e.shiftKey);
-      const prev = ["ArrowUp", "PageUp"].includes(e.key) || (e.key === " " && e.shiftKey);
-      if (!next && !prev) return;
-      if (busy()) {
-        if (inZone()) consume(e);
-        return;
-      }
-      const target = targetFor(next ? 1 : -1, next ? vh() : -vh());
-      if (target === null) return;
-      consume(e);
-      scrollToY(target);
-    };
-
-    const capture = { capture: true, passive: false } as const;
-    window.addEventListener("wheel", onWheel, capture);
-    window.addEventListener("touchstart", onTouchStart, { capture: true, passive: true });
-    window.addEventListener("touchmove", onTouchMove, capture);
-    window.addEventListener("keydown", onKey, { capture: true });
-    return () => {
-      running?.stop();
-      window.removeEventListener("wheel", onWheel, capture);
-      window.removeEventListener("touchstart", onTouchStart, { capture: true });
-      window.removeEventListener("touchmove", onTouchMove, capture);
-      window.removeEventListener("keydown", onKey, { capture: true });
-    };
-  }, [ref, reduceMotion]);
-}
-
 /** true, kým sa stránka posúva (a chvíľu po poslednom posune). */
 function useScrolling(idleMs = 180) {
   const [scrolling, setScrolling] = useState(false);

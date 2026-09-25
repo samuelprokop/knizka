@@ -45,7 +45,7 @@ export default async function Home() {
           <BookHero copy={copy} ctaHref={ctaHref} prices={prices} />
           {reviews && <ReviewsSection copy={copy.reviews} reviews={REVIEWS[market.uiLanguage]} placeholder={REVIEWS_ARE_PLACEHOLDERS} />}
           {/* Posledné obavy pred nákupom (podoba, fotka, cena, platba, doručenie) – tesne pred pätičkou. */}
-          <FaqSection id="otazky" t={t} items={topFaq(faqFor(market))} supportEmail={market.supportEmail} allHref={`/${market.code}/otazky`} />
+          <FaqSection id="otazky" previousId={reviews ? "recenzie" : undefined} t={t} items={topFaq(faqFor(market))} supportEmail={market.supportEmail} allHref={`/${market.code}/otazky`} />
         </main>
       </FooterRevealContent>
       <FooterRevealFooter>
