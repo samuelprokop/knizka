@@ -1,5 +1,6 @@
 "use client";
 
+import { motion, useReducedMotion } from "motion/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useMemo, useRef, useState, useTransition } from "react";
 
@@ -13,7 +14,6 @@ import type { Gender } from "@/lib/language";
 import { lookupNameAction } from "../../actions/child";
 import {
   addCompanionAction,
-  approveCompanionAction,
   generateCompanionCardAction,
   onlyHeroAction,
   removeCompanionAction,
@@ -30,8 +30,9 @@ import { PhotoUploader, type PhotoView } from "../PhotoUploader";
 import { StepFooter } from "../StepFooter";
 import { Button, Check, Chip, Field, Notice, StepTitle, inputClass, splitOptions } from "../ui";
 import { useWizard } from "../WizardContext";
-import { BanIcon, CheckIcon, CloseIcon, PencilIcon, PlusIcon, SmileIcon } from "@/components/icons";
+import { BanIcon, CloseIcon, PencilIcon, PlusIcon, SmileIcon } from "@/components/icons";
 import { ToastOnMount } from "@/components/Toaster";
+import { stagger } from "@/lib/motion";
 import { useSubStep } from "../WizardMotion";
 
 export type CompanionView = {
@@ -75,6 +76,7 @@ export function CharactersStep({
   const [error, setError] = useState<MessageKey | null>(null);
   const [pending, start] = useTransition();
   const heroCtx = hero ?? undefined;
+  const reduce = useReducedMotion();
   const generating = companions.some((c) => c.card?.status === "generating");
 
   const next = () =>
@@ -176,9 +178,10 @@ export function CharactersStep({
       )}
 
       {!adding && companions.length > 0 && (
-        <ul className="grid gap-3 lg:grid-cols-2">
+        <motion.ul variants={stagger.list} initial={reduce ? false : "hidden"} animate="show" className="grid gap-3 lg:grid-cols-2">
           {companions.map((c) => (
-            <li
+            <motion.li
+              variants={stagger.item}
               key={c.id}
               className="relative flex flex-col gap-3 rounded-3xl bg-white p-4 ring-1 ring-ink/10 transition-shadow has-[[data-edit]:hover]:shadow-lg has-[[data-edit]:focus-visible]:ring-4 has-[[data-edit]:focus-visible]:ring-brand-orange/40"
             >
@@ -226,20 +229,9 @@ export function CharactersStep({
                 </div>
               )}
               {c.card?.status === "generating" && <p className="pointer-events-none relative text-sm text-ink/70">{t("hero.updating")}</p>}
-              {c.card?.status === "ready" && !c.card.approved && (
-                <Button variant="secondary" className="relative" onClick={() => refresh(() => approveCompanionAction(projectId!, c.id))}>
-                  {t("configurator.chars.approve_card", { name: c.name })}
-                </Button>
-              )}
-              {c.card?.approved && (
-                <p className="pointer-events-none relative flex items-center gap-1.5 text-sm font-medium text-[#1f7a3a]">
-                  <CheckIcon className="size-4" />
-                  {t("configurator.chars.card_approved")}
-                </p>
-              )}
-            </li>
+            </motion.li>
           ))}
-        </ul>
+        </motion.ul>
       )}
 
       {(adding || companions.length > 0) && companions.length < MAX_EXTRA_CHARACTERS && (

@@ -10,7 +10,6 @@ import {
   LAYOUTS,
   LAYOUT_IMAGE_RATIO,
   LIMITS,
-  PAGE_COUNTS,
   type ActivityId,
   type LayoutId,
   type StyleId,
@@ -103,10 +102,12 @@ export async function saveLook(projectId: string, input: LookInput) {
 
   const layout = oneOf(LAYOUTS, input.layout, (bundle.project.layoutId ?? "classic") as LayoutId);
   const format = oneOf(BOOK_FORMATS, input.format, bundle.project.format === "A4" ? "A4" : "A5");
-  // Pri 16 dvojstranách príbehu je rozsah vždy 40 strán.
-  const minPages = (bundle.storyInput.spreadCount ?? 12) === 16 ? 40 : 32;
-  const requestedPages = PAGE_COUNTS.includes(input.pageCount as 32 | 40) ? (input.pageCount as 32 | 40) : bundle.project.pageCount;
-  const pageCount = Math.max(requestedPages, minPages);
+  // Rozsah určuje príbeh: 12 dvojstrán = 32 strán, 16 dvojstrán = 40 strán. Hotový príbeh
+  // s 12 dvojstranami sa na 40 strán nedá natiahnuť (zostavenie knihy by zlyhalo), preto
+  // voľba z kroku 6 rozsah nemení – dlhšiu verziu si zákazník volí pri príbehu na mieru.
+  const story = await storyOf(bundle);
+  const longStory = bundle.storyInput.spreadCount === 16 || story?.spreads.length === 16;
+  const pageCount: 32 | 40 = longStory ? 40 : 32;
 
   const oldLayout = (bundle.project.layoutId ?? "classic") as LayoutId;
   const ratioChanged = LAYOUT_IMAGE_RATIO[oldLayout] !== LAYOUT_IMAGE_RATIO[layout];

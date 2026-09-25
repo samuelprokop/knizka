@@ -17,12 +17,13 @@
 */
 
 import { AnimatePresence, motion, useInView, useReducedMotion } from "motion/react";
+import { EASE } from "@/lib/motion";
 import { createContext, useContext, useRef, useState, type CSSProperties, type ReactNode } from "react";
 
 const cx = (...classes: (string | false | null | undefined)[]) => classes.filter(Boolean).join(" ");
 
-const EASE_OUT = [0.22, 1, 0.36, 1] as const;
-const EASE_IN_OUT = [0.65, 0, 0.35, 1] as const;
+const EASE_OUT = EASE.out;
+const EASE_IN_OUT = EASE.inOut;
 
 // ---------------------------------------------------------------- kosť
 
@@ -57,7 +58,7 @@ export function Skeleton({
         <motion.span
           className="absolute inset-y-0 -left-full w-full bg-linear-to-r from-transparent via-white/70 to-transparent"
           animate={{ x: ["0%", "200%"] }}
-          transition={{ duration: 1.5, ease: "linear", repeat: Infinity, repeatDelay: 0.25 }}
+          transition={{ duration: 1.5, ease: EASE.inOut, repeat: Infinity, repeatDelay: 0.25 }}
         />
       )}
     </span>

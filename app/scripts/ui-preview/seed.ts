@@ -115,6 +115,13 @@ async function main() {
   await withPhotos(await create("krok-2-fotky"));
   await withPortraits(await create("krok-3-styl"));
   await withCard(await create("krok-3-karta"));
+  // Vyčerpané 3 pokusy – sekcia „Podoba sa ešte nedarí“.
+  const exhausted = await withCard(await create("krok-3-vycerpane"));
+  const exhaustedHero = (await loadBundle(exhausted))!.hero!.id;
+  for (const reason of ["face", "hair", "age"]) {
+    await hero.generateCard({ projectId: exhausted, characterId: exhaustedHero, style: "watercolor", reason, feedback: { reasons: [reason] } });
+  }
+  await runPendingJobs();
   await withHero(await create("krok-4"));
 
   const companions = await withHero(await create("krok-4-postavy"));

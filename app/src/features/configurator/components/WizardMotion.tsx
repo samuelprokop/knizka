@@ -14,6 +14,7 @@
 
 import Link from "next/link";
 import { motion, useReducedMotion } from "motion/react";
+import { EASE } from "@/lib/motion";
 import { useEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from "react";
 
 import { ChevronLeftIcon } from "@/components/icons";
@@ -127,7 +128,7 @@ export function WizardProgress({
                   className="absolute inset-0 origin-left rounded-full bg-brand-orange"
                   initial={{ scaleX: i === current && previous !== null && previous < current ? 0 : 1 }}
                   animate={{ scaleX: 1 }}
-                  transition={reduceMotion ? { duration: 0 } : { duration: 0.45, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
+                  transition={reduceMotion ? { duration: 0 } : { duration: 0.45, ease: EASE.out, delay: 0.1 }}
                 />
               )}
               <span className="sr-only">{item.ariaLabel}</span>
@@ -143,7 +144,7 @@ export function WizardProgress({
           className="h-full rounded-full bg-brand-orange"
           initial={{ width: `${ratio(previous ?? current) * 100}%` }}
           animate={{ width: `${ratio(current) * 100}%` }}
-          transition={reduceMotion ? { duration: 0 } : { duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+          transition={reduceMotion ? { duration: 0 } : { duration: 0.5, ease: EASE.out }}
         />
       </div>
       <ol className="relative grid" style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}>
@@ -214,7 +215,7 @@ export function StepTransition({ index, children, className }: { index: number; 
       className={className}
       initial={direction === 0 || reduceMotion ? false : { opacity: 0, x: direction * 48 }}
       animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: 0.32, ease: EASE.out }}
     >
       {children}
     </motion.div>

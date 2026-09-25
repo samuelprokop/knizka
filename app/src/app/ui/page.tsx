@@ -78,6 +78,7 @@ export default async function UiCatalogPage() {
         { label: "Výber štýlu", note: "mriežka 4 portrétov", href: step("krok-3-styl", "podoba") },
         { label: "Karta hrdinu na schválenie", href: step("krok-3-karta", "podoba") },
         { label: "Zmena štýlu", href: step("krok-3-karta", "podoba", "?zmena=1") },
+        { label: "Podoba sa ešte nedarí", note: "vyčerpané 3 pokusy", href: step("krok-3-vycerpane", "podoba") },
         { label: "Po schválení", href: step("krok-4", "podoba", "?schvalene=1") },
       ],
     },

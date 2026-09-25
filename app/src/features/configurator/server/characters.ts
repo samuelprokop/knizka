@@ -120,16 +120,6 @@ export async function generateCompanionCard(projectId: string, characterId: stri
   await generateCard({ projectId, characterId, style: bundle.project.styleId as StyleId });
 }
 
-export async function approveCompanionCard(projectId: string, characterId: string) {
-  const bundle = await loadBundle(projectId);
-  const card = bundle?.cards.find((c) => c.characterId === characterId && c.version >= 1);
-  if (!bundle || !card || !bundle.companions.some((c) => c.id === characterId)) throw new Error("Karta nepatrí k projektu");
-  await db
-    .update(schema.characterCards)
-    .set({ status: "approved", approvedAt: new Date() })
-    .where(eq(schema.characterCards.id, card.id));
-}
-
 /**
  * Úprava existujúcej postavy (klik na jej kartu v kroku 4). Pri opise sa po zmene
  * podoby, typu alebo rodu nakreslí nová Karta; pri fotke ostáva, kým sa nenahrá nová.

@@ -1,5 +1,6 @@
 import { isMarketCode } from "@/config/markets";
 import { loadPersonalPage } from "@/features/checkout/server/personal";
+import { pdfDisposition } from "@/lib/pdf-filename";
 import { storage } from "@/server/storage";
 
 /** E-kniha na stiahnutie z osobnej stránky – prístup cez token, bez cookie session. */
@@ -19,7 +20,7 @@ export async function GET(_request: Request, { params }: RouteContext<"/[market]
   return new Response(new Uint8Array(pdf), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="kniha-${view.projectId}.pdf"`,
+      "Content-Disposition": pdfDisposition(view.bookTitle, "TAKTIK"),
       "Cache-Control": "private, no-store",
     },
   });

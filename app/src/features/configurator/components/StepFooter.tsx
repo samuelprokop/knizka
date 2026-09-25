@@ -23,7 +23,7 @@ export function StepFooter({ children, hidePrice, back = true }: { children?: Re
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="sticky bottom-0 z-30 -mx-4 mt-auto border-t border-ink/10 bg-white/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur sm:-mx-6 sm:px-6 md:flex md:items-center md:gap-6 md:py-3 lg:-mx-8 lg:px-8">
+    <div data-step-footer className="sticky bottom-0 z-30 -mx-4 mt-auto border-t border-ink/10 bg-white/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur sm:-mx-6 sm:px-6 md:flex md:items-center md:gap-6 md:py-3 lg:-mx-8 lg:px-8">
       {!hidePrice && (
         // Rozpis príplatkov: pri prejdení myšou / zameraní nad cenou; na dotyk ťuknutím na cenu.
         <div className="group relative md:shrink-0" onMouseLeave={() => setOpen(false)}>

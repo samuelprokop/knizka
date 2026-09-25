@@ -204,9 +204,9 @@ export function ApproveStep({
         >
           {t("approve.cta")}
         </Button>
-        <Link href={stepHref(market, projectId!, 8)} className={buttonClass("ghost")}>
-          {t("approve.back_to_edit")}
-        </Link>
+        {/* „Ešte niečo upraviť“ tu nie je: viedlo na to isté miesto ako Späť (náhľad) – dve
+            tlačidlá s rovnakým cieľom vedľa hlavnej akcie len zdržujú. Konkrétne úpravy sú
+            pri riadkoch kontroly („Upraviť“ vedie priamo na daný krok). */}
       </StepFooter>
     </>
   );

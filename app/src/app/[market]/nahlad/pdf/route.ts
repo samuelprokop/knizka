@@ -1,3 +1,4 @@
+import { pdfDisposition } from "@/lib/pdf-filename";
 import { isMarketCode } from "@/config/markets";
 import { buildDemoBook, parseDemoParams } from "@/features/book/server/demo";
 import { PDF_KINDS, renderBookPdfInWorker } from "@/server/render";
@@ -19,7 +20,7 @@ export async function GET(request: Request, { params }: RouteContext<"/[market]/
   return new Response(new Uint8Array(pdf), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="kniha-${book.options.layout}-${book.options.format}-${kind}.pdf"`,
+      "Content-Disposition": pdfDisposition(`${book.meta.title} (${book.options.format}, ${kind})`, "ukážka"),
       "Cache-Control": "private, no-store",
     },
   });

@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { AlertIcon, BanIcon, BookIcon, InfoIcon, TruckIcon } from "@/components/icons";
+import { ComplaintTypeSelect } from "@/features/checkout/components/ComplaintTypeSelect";
+
 import { submitComplaintAction } from "@/features/checkout/actions";
 import { COMPLAINT_TYPES } from "@/features/checkout/server/complaints";
 import { getOrder, orderRefOf } from "@/features/checkout/server/orders";
@@ -34,6 +37,15 @@ function statusKey(orderStatus: string, projectStatus: ProjectStatus | undefined
       return "status.paid";
   }
 }
+
+/** Ikony typov hlásenia v rozbaľovacom výbere. */
+const COMPLAINT_ICONS: Record<(typeof COMPLAINT_TYPES)[number], React.ReactNode> = {
+  damaged: <BanIcon />,
+  print_error: <AlertIcon />,
+  mismatch: <BookIcon />,
+  not_delivered: <TruckIcon />,
+  other: <InfoIcon />,
+};
 
 export default async function OrderStatusPage({ params, searchParams }: PageProps<"/[market]/objednavka/[id]">) {
   const { market, t } = await getMarketContext();
@@ -73,19 +85,13 @@ export default async function OrderStatusPage({ params, searchParams }: PageProp
         <Notice tone="ok">{t("complaint.received")}</Notice>
       ) : (
         <Disclosure summary={t("complaint.cta")}>
-          <p className="text-sm text-ink/60">{t("complaint.types")}</p>
           <form action={submitComplaintAction} className="flex flex-col gap-4">
             <input type="hidden" name="orderId" value={order.id} />
             <input type="hidden" name="market" value={market.code} />
-            <Field label={t("complaint.cta")} htmlFor="type">
-              <select id="type" name="type" className={inputClass} defaultValue={COMPLAINT_TYPES[0]}>
-                {COMPLAINT_TYPES.map((type) => (
-                  <option key={type} value={type}>
-                    {t(`complaint.type.${type}` as MessageKey)}
-                  </option>
-                ))}
-              </select>
-            </Field>
+            <ComplaintTypeSelect
+              label={t("complaint.type.label")}
+              options={COMPLAINT_TYPES.map((type) => ({ value: type, label: t(`complaint.type.${type}` as MessageKey), icon: COMPLAINT_ICONS[type] }))}
+            />
             <Field label={t("complaint.message")} htmlFor="message">
               <textarea id="message" name="message" required rows={4} className={inputClass.replace("min-h-12", "min-h-24 py-3")} />
             </Field>

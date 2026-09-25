@@ -4,7 +4,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useId, useMemo, useState, useTransition } from "react";
 
+import { motion, useReducedMotion } from "motion/react";
+
 import { NextArrow, ShowMoreButton } from "@/components/buttons";
+import { stagger } from "@/lib/motion";
 import { ArrowRightIcon, PlusIcon } from "@/components/icons";
 
 import type { ReadingLevel } from "@/config/catalog";
@@ -121,6 +124,7 @@ function StoryLibrary({ tiles, heroAge, heroPortrait, themeColor, companions, gu
   const hiddenCount = Math.max(0, filtered.length - LIBRARY_PREVIEW);
   const visible = showAll ? filtered : filtered.slice(0, LIBRARY_PREVIEW);
   const listId = useId();
+  const reduce = useReducedMotion();
 
   return (
     <>
@@ -160,9 +164,10 @@ function StoryLibrary({ tiles, heroAge, heroPortrait, themeColor, companions, gu
       </Disclosure>
 
       {noAgeMatch && <Notice>{t("story.no_age_match", { age: t(`configurator.age.years.${pluralForm(age!)}`, { n: age! }) })}</Notice>}
-      <ul id={listId} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {/* Karty nastupujú postupne (priehľadnosť + posun + mierka), nie naraz. */}
+      <motion.ul id={listId} variants={stagger.list} initial={reduce ? false : "hidden"} animate="show" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {visible.map((tile) => (
-          <li key={tile.id}>
+          <motion.li key={tile.id} variants={stagger.item}>
             <Link
               href={nav({ pribeh: tile.id })}
               className={cx(
@@ -191,9 +196,9 @@ function StoryLibrary({ tiles, heroAge, heroPortrait, themeColor, companions, gu
                 </span>
               </div>
             </Link>
-          </li>
+          </motion.li>
         ))}
-        <li>
+        <motion.li variants={stagger.item}>
           <Link
             href={nav({ v: "vlastny" })}
             className="group flex h-full min-h-48 flex-col justify-center gap-2 rounded-3xl border-2 border-dashed border-brand-orange/60 bg-brand-orange/5 p-6 outline-none transition duration-200 hover:-translate-y-0.5 hover:border-brand-orange hover:shadow-lg focus-visible:ring-4 focus-visible:ring-brand-orange/40 motion-reduce:hover:translate-y-0"
@@ -205,8 +210,8 @@ function StoryLibrary({ tiles, heroAge, heroPortrait, themeColor, companions, gu
               {t("story.not_found.cta")}
             </span>
           </Link>
-        </li>
-      </ul>
+        </motion.li>
+      </motion.ul>
       {hiddenCount > 0 && (
         <ShowMoreButton
           className="self-center"

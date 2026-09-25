@@ -11,11 +11,12 @@
 */
 
 import { AnimatePresence, motion, useAnimate, useReducedMotion } from "motion/react";
+import { EASE } from "@/lib/motion";
 import { useCallback, useRef, useState, type ReactNode } from "react";
 
 import { BasketIcon, BookIcon } from "./icons";
 
-type Flight = { x: number; y: number };
+type Flight = { x: number; y: number; floating: boolean };
 
 export function useFlyToBasket(label: string) {
   const reduce = useReducedMotion();
@@ -27,12 +28,17 @@ export function useFlyToBasket(label: string) {
     async (from: HTMLElement | null) => {
       if (reduce || !from) return;
       const rect = from.getBoundingClientRect();
-      setFlight({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
+      // Cieľ: košík v hlavičke (ak je na obrazovke), inak plávajúci košík vpravo hore.
+      const header = document.querySelector<HTMLElement>("[data-cart-target]");
+      const headerRect = header?.getBoundingClientRect();
+      const useHeader = !!headerRect && headerRect.width > 0 && headerRect.bottom > 0;
+      setFlight({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2, floating: !useHeader });
       // Počkať na vykreslenie vrstvy s košíkom.
       await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
       const item = scope.current?.querySelector<HTMLElement>("[data-item]");
-      const basket = basketRef.current?.getBoundingClientRect();
-      if (!item || !basket) return;
+      const target = useHeader ? header : basketRef.current;
+      const basket = target?.getBoundingClientRect();
+      if (!item || !basket || !target) return;
       const dx = basket.left + basket.width / 2 - (rect.left + rect.width / 2);
       const dy = basket.top + basket.height / 2 - (rect.top + rect.height / 2);
       // Oblúk: vodorovne rovnomerne, zvislo najprv nahor (nie nad okraj okna), potom do košíka.
@@ -40,10 +46,10 @@ export function useFlyToBasket(label: string) {
       await animate(
         item,
         { x: [0, dx * 0.55, dx], y: [0, peak, dy], scale: [1, 0.9, 0.35], rotate: [0, -12, 8] },
-        { duration: 0.75, ease: ["easeOut", "easeIn"], times: [0, 0.45, 1] }
+        { duration: 0.75, ease: [EASE.out, EASE.in], times: [0, 0.45, 1] }
       );
       await animate(item, { opacity: 0 }, { duration: 0.08 });
-      await animate(basketRef.current!, { scale: [1, 1.18, 0.96, 1] }, { duration: 0.35 });
+      await animate(target, { scale: [1, 1.18, 0.96, 1] }, { duration: 0.35 });
       setFlight(null);
     },
     [animate, reduce, scope]
@@ -54,7 +60,7 @@ export function useFlyToBasket(label: string) {
       <AnimatePresence>
         {flight && (
           <>
-            <motion.div
+            {flight.floating && <motion.div
               ref={basketRef}
               initial={{ opacity: 0, scale: 0.6, y: -8 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -64,7 +70,7 @@ export function useFlyToBasket(label: string) {
               title={label}
             >
               <BasketIcon className="size-7" />
-            </motion.div>
+            </motion.div>}
             <div data-item className="absolute flex size-16 items-center justify-center rounded-xl bg-brand-orange-dark text-white shadow-lg" style={{ left: flight.x - 32, top: flight.y - 32 }}>
               <BookIcon className="size-8" />
             </div>

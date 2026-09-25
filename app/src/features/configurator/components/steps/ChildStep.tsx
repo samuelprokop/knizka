@@ -239,6 +239,9 @@ export function ChildStep({ initial }: { initial: ChildInitial }) {
           />
         </div>
 
+        {/* Meno mimo slovníka: upozornenie vľavo (je tam miesto), kontrola tvarov vpravo – bez posúvania. */}
+        {nameCtx && lookup && !lookup.known && <Notice tone="warn">{t("child.check.unknown")}</Notice>}
+
         {/* Jazyk knihy = jazyk trhu (/sk slovensky, /cz česky) – na výber nie je. */}
 
         </div>
@@ -277,7 +280,6 @@ export function ChildStep({ initial }: { initial: ChildInitial }) {
                 <li key={key}>„{bookT(key, undefined, nameCtx)}“</li>
               ))}
             </ul>
-            {lookup && !lookup.known && <Notice tone="warn">{t("child.check.unknown")}</Notice>}
             <Button variant="secondary" className="self-start" onClick={() => setEditForms(true)}>
               {t("child.check.edit")}
             </Button>
@@ -379,8 +381,8 @@ function EmailDialog({
 }
 
 /**
- * Vek posuvníkom (2 – 10). Kým sa zákazník posuvníka nedotkne, vek nie je
- * vybraný (sivý bežec, bez výplne); ťuknutie na číslo pod ním vek nastaví tiež.
+ * Vek posuvníkom (2 – 10), mení sa len posúvaním. Kým sa zákazník posuvníka nedotkne,
+ * vek nie je vybraný: sivý bežec jemne „dýcha“ (pozvánka potiahnuť), bez výplne.
  */
 function AgeSlider({
   id,
@@ -423,27 +425,16 @@ function AgeSlider({
         className="range"
         style={{ "--fill": value === null ? "0%" : at(ratio(value)) } as React.CSSProperties}
       />
-      {/* Čísla pod posuvníkom sa dajú ťuknúť. Kým vek nie je vybraný, bežec nie je vidieť
-          a čísla sú krúžky – nič nevyzerá ako predvolená hodnota. */}
-      <div aria-hidden className="relative h-8">
+      {/* Čísla sú len popisky osi – vek sa mení posúvaním bežca. */}
+      <div aria-hidden className="relative h-6">
         {AGE_OPTIONS.map((n) => (
-          <button
+          <span
             key={n}
-            type="button"
-            tabIndex={-1}
-            onClick={() => onChange(n)}
             style={{ left: at(ratio(n)) }}
-            className={
-              "absolute top-0 flex size-8 -translate-x-1/2 items-center justify-center rounded-full text-sm tabular-nums transition-colors " +
-              (value === n
-                ? "bg-brand-orange-dark font-semibold text-white"
-                : value === null
-                  ? "bg-white text-ink ring-1 ring-ink/20 hover:ring-brand-orange hover:text-brand-orange-dark"
-                  : "text-ink/50 hover:text-ink")
-            }
+            className={"absolute top-0 -translate-x-1/2 text-sm tabular-nums " + (value === n ? "font-semibold text-brand-orange-dark" : "text-ink/50")}
           >
             {n}
-          </button>
+          </span>
         ))}
       </div>
     </div>

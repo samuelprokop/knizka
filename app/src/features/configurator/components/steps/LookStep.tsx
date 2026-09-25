@@ -12,7 +12,7 @@ import { generateBookAction, saveLookAction } from "../../actions/book";
 import { ENDPAPERS, FONT_PAIRS, THEME_SPECS, THEMES, TITLE_POSITIONS, type LookOptions } from "../../model";
 import { stepHref } from "../../steps";
 import { StepFooter } from "../StepFooter";
-import { Button, Chip, cx, Notice, StepTitle, Toggle, splitOptions } from "../ui";
+import { Button, Chip, cx, Notice, StepTitle, Toggle } from "../ui";
 import { useWizard } from "../WizardContext";
 import { useSubStep } from "../WizardMotion";
 import { ChevronRightIcon } from "@/components/icons";
@@ -29,7 +29,6 @@ export type LookStepProps = {
   layout: LayoutId;
   format: "A4" | "A5";
   pageCount: 32 | 40;
-  forced40: boolean;
   /** Dáta ukážkovej dvojstrany z renderera (text prvej dvojstrany s menom, ilustrácie). */
   sample: SampleSpreadData | null;
   canGenerate: boolean;
@@ -45,7 +44,6 @@ export function LookStep(props: LookStepProps) {
   const [look, setLook] = useState(props.look);
   const [layout, setLayout] = useState(props.layout);
   const [format, setFormat] = useState(props.format);
-  const [pageCount, setPageCount] = useState(props.pageCount);
   const [notice, setNotice] = useState<MessageKey | null>(null);
   const [error, setError] = useState<MessageKey | null>(null);
   const [saving, startSave] = useTransition();
@@ -73,7 +71,6 @@ export function LookStep(props: LookStepProps) {
     setOption("activities", has ? look.activities.filter((a) => a !== id) : [...look.activities, id]);
   }
 
-  const pageLabels = splitOptions(t("book.pages.options", { price: props.prices.pages40 }));
 
   useSubStep(more === "cover" ? t("look.more.cover") : more === "activities" ? t("look.more.activities") : null, () => setMore(null));
 
@@ -208,16 +205,11 @@ export function LookStep(props: LookStepProps) {
               <Toggle checked={look.coloringBook} onChange={(v) => setOption("coloringBook", v)} label={t("activities.coloring", { price: props.prices.coloring })} />
             </div>
 
-            <fieldset className="flex flex-col gap-2">
-              <legend className="text-sm font-semibold">{t("book.pages")}</legend>
-              <div className="grid grid-cols-2 gap-2">
-                {([32, 40] as const).map((n, i) => (
-                  <Chip key={n} selected={pageCount === n} disabled={props.forced40 && n === 32} onClick={() => { setPageCount(n); save({ pageCount: n }); }}>
-                    {pageLabels[i]}
-                  </Chip>
-                ))}
-              </div>
-            </fieldset>
+            {/* Rozsah určuje príbeh (12 dvojstrán = 32 strán, 16 = 40) – tu sa len ukazuje. */}
+            <p className="flex items-center justify-between gap-3 rounded-2xl bg-paper px-4 py-3 text-sm">
+              <span className="font-semibold text-ink">{t("book.pages")}</span>
+              <span className="text-ink/75">{t(props.pageCount === 40 ? "book.pages.fixed40" : "book.pages.fixed", { n: props.pageCount, price: props.prices.pages40 })}</span>
+            </p>
             </div>
           )}
         </div>

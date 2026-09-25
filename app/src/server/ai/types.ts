@@ -30,6 +30,8 @@ export type CharacterPortraitRequest = {
   appearance: Record<string, unknown>;
   age?: number;
   style: StyleId;
+  /** Pregenerovanie: čo zákazníkovi nesedelo (vybrané dôvody + vlastné slová, max. 200 znakov). */
+  feedback?: { reasons: string[]; note?: string };
 };
 
 export type SceneRequest = {

@@ -27,6 +27,7 @@ export function FluidSelect({
   onChange,
   placeholder,
   labelledBy,
+  name,
 }: {
   id: string;
   value: string | null;
@@ -35,6 +36,8 @@ export function FluidSelect({
   placeholder: string;
   /** id viditeľného popisu poľa (label). */
   labelledBy: string;
+  /** Pre odoslanie vo formulári (skryté pole s hodnotou). */
+  name?: string;
 }) {
   const reduce = useReducedMotion();
   const listId = useId();
@@ -48,9 +51,12 @@ export function FluidSelect({
 
   const show = () => {
     const rect = buttonRef.current?.getBoundingClientRect();
-    // Výška zoznamu ≈ položky po 2.75rem + okraje; nahor len ak dole nie je miesto a hore áno.
+    // Výška zoznamu ≈ položky po 2.75rem + okraje. Spodná hranica je lepiaca lišta kroku
+    // (cena, Pokračovať), ak je na stránke – zoznam ju nesmie prekryť; inak okraj okna.
     const needed = options.length * 44 + 24;
-    if (rect) setUp(window.innerHeight - rect.bottom < needed && rect.top > needed);
+    const footer = document.querySelector("[data-step-footer]")?.getBoundingClientRect();
+    const floor = footer ? Math.min(footer.top, window.innerHeight) : window.innerHeight;
+    if (rect) setUp(floor - rect.bottom < needed && rect.top > needed);
     setActive(Math.max(0, options.findIndex((o) => o.value === value)));
     setOpen(true);
   };
@@ -90,6 +96,7 @@ export function FluidSelect({
 
   return (
     <div ref={rootRef} className="relative">
+      {name && <input type="hidden" name={name} value={value ?? ""} />}
       <button
         ref={buttonRef}
         id={id}

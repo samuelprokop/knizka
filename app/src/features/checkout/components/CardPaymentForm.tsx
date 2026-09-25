@@ -13,6 +13,7 @@
 */
 
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { EASE } from "@/lib/motion";
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 
 import { CloseIcon } from "@/components/icons";
@@ -322,7 +323,7 @@ export function CardPaymentForm({ total, defaultOpen = false, asDialog = false }
             initial={reduceMotion ? { opacity: 0 } : { opacity: 0, height: 0 }}
             animate={reduceMotion ? { opacity: 1 } : { opacity: 1, height: "auto" }}
             exit={reduceMotion ? { opacity: 0 } : { opacity: 0, height: 0 }}
-            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 0.28, ease: EASE.out }}
             className="overflow-hidden"
           >
             {content}
@@ -475,7 +476,7 @@ function AnimatedChar({ char, dim }: { char: string; dim: boolean }) {
           initial={reduceMotion ? false : { y: "-70%", opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={reduceMotion ? { opacity: 0, transition: { duration: 0 } } : { y: "70%", opacity: 0 }}
-          transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: 0.18, ease: EASE.out }}
         >
           {char}
         </motion.span>

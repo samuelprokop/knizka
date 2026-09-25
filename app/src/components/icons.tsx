@@ -70,6 +70,14 @@ export const BasketIcon = (p: P) => (
     <path d="m8 9.5 3-5M16 9.5l-3-5M9.5 13v3M14.5 13v3" />
   </Icon>
 );
+export const TruckIcon = (p: P) => (
+  <Icon {...p}>
+    <path d="M3 6.5h11v9H3zM14 9.5h3.5l3 3.2v2.8H14" />
+    <circle cx="7" cy="17.5" r="1.8" />
+    <circle cx="17" cy="17.5" r="1.8" />
+  </Icon>
+);
+export const HomeIcon = (p: P) => <Icon {...p}><path d="M4 10.5 12 4l8 6.5V19a1.5 1.5 0 0 1-1.5 1.5H15v-6H9v6H5.5A1.5 1.5 0 0 1 4 19z" /></Icon>;
 export const InfoIcon = (p: P) => <Icon {...p}><circle cx="12" cy="12" r="9" /><path d="M12 11v5M12 7.5h.01" /></Icon>;
 export const AlertIcon = (p: P) => <Icon {...p}><path d="M12 8v5M12 16.5h.01" /><circle cx="12" cy="12" r="9" /></Icon>;
 export const CameraIcon = (p: P) => (

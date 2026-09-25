@@ -187,6 +187,7 @@ export async function generateCard(input: {
   characterId: string;
   style: StyleId;
   reason?: string | null;
+  feedback?: { reasons: string[]; note?: string };
 }) {
   const bundle = await loadBundle(input.projectId);
   const character = [bundle?.hero, ...(bundle?.companions ?? []), bundle?.guide].find((c) => c?.id === input.characterId);
@@ -207,7 +208,7 @@ export async function generateCard(input: {
   const jobId = await enqueue({
     type: "character_card",
     projectId: input.projectId,
-    payload: { cardId: card.id, request: portraitRequest(bundle, character, input.style) },
+    payload: { cardId: card.id, request: { ...portraitRequest(bundle, character, input.style), ...(input.feedback ? { feedback: input.feedback } : {}) } },
     relatedType: "character_card",
     relatedId: card.id,
     maxAttempts: 3,

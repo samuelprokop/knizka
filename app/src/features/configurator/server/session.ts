@@ -28,6 +28,17 @@ export async function hasProjectSession(projectId: string) {
   return verifyProjectSession(projectId, store.get(cookieName(projectId))?.value);
 }
 
+/** Projekty, ku ktorým má toto zariadenie prístup (overené podpisom cookie). */
+export async function sessionProjectIds() {
+  const store = await cookies();
+  return store
+    .getAll()
+    .filter((c) => c.name.startsWith("kniha_"))
+    .map((c) => ({ id: c.name.slice("kniha_".length), value: c.value }))
+    .filter((c) => verifyProjectSession(c.id, c.value))
+    .map((c) => c.id);
+}
+
 export class AccessDeniedError extends Error {
   constructor() {
     super("Bez prístupu k projektu");

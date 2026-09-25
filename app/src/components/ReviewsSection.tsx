@@ -14,6 +14,7 @@
 */
 
 import { animate, motion, useReducedMotion } from "motion/react";
+import { EASE } from "@/lib/motion";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 
 import type { LandingCopy } from "@/content/landing";
@@ -52,7 +53,7 @@ export function ReviewsSection({
         initial={{ opacity: 0, y: 24 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "-80px" }}
-        transition={reduceMotion ? { duration: 0 } : { duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+        transition={reduceMotion ? { duration: 0 } : { duration: 0.6, ease: EASE.out }}
         className="mx-auto flex max-w-xl flex-col items-center text-center"
       >
         <span className="rounded-full px-4 py-1 text-xs font-bold tracking-wider text-brand-orange-dark uppercase ring-1 ring-brand-orange/30">
@@ -155,7 +156,7 @@ function useSectionStep(ref: React.RefObject<HTMLElement | null>, reduceMotion: 
       }
       running = animate(window.scrollY, y, {
         duration: 0.75,
-        ease: [0.65, 0, 0.35, 1],
+        ease: EASE.inOut,
         onUpdate: (v) => window.scrollTo(0, v),
         onComplete: () => {
           running = null;

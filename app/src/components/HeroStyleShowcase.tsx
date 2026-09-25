@@ -14,6 +14,7 @@
 
 import Image from "next/image";
 import { motion, useAnimate, useReducedMotion } from "motion/react";
+import { EASE } from "@/lib/motion";
 import { useEffect, useRef, useState } from "react";
 
 import { STYLES } from "@/config/catalog";
@@ -68,9 +69,9 @@ export function HeroStyleShowcase({
     } else {
       // Opona prejde zľava, pod ňou sa vymení obrázok, odíde doprava.
       await animate("[data-curtain]", { backgroundColor: CURTAIN[look] }, { duration: 0 });
-      await animate("[data-curtain]", { scaleX: [0, 1], originX: 0 }, { duration: 0.38, ease: [0.65, 0, 0.35, 1] });
+      await animate("[data-curtain]", { scaleX: [0, 1], originX: 0 }, { duration: 0.38, ease: EASE.inOut });
       setShown(next);
-      await animate("[data-curtain]", { scaleX: [1, 0], originX: 1 }, { duration: 0.38, ease: [0.65, 0, 0.35, 1], delay: 0.05 });
+      await animate("[data-curtain]", { scaleX: [1, 0], originX: 1 }, { duration: 0.38, ease: EASE.inOut, delay: 0.05 });
     }
     busy.current = false;
   };

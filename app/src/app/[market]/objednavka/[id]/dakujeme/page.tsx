@@ -9,6 +9,7 @@ import { buttonClass, StepTitle } from "@/features/configurator/components/ui";
 import { hasProjectSession } from "@/features/configurator/server/session";
 import { getMarketContext } from "@/i18n/server";
 import { ShopHeader } from "@/components/ShopHeader";
+import { HomeIcon, PlusIcon } from "@/components/icons";
 
 export default async function ThanksPage({ params }: PageProps<"/[market]/objednavka/[id]/dakujeme">) {
   const { market, t } = await getMarketContext();
@@ -42,6 +43,17 @@ export default async function ThanksPage({ params }: PageProps<"/[market]/objedn
           {t("thanks.personal_page")}
         </Link>
       </div>
+      {/* Koniec nákupu: tiché odkazy ďalej (hlavná akcia ostáva stiahnutie e-knihy). */}
+      <nav aria-label={t("thanks.more")} className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 border-t border-ink/10 pt-5 text-sm">
+        <Link href={`/${market.code}/vytvorit`} className="inline-flex min-h-11 items-center gap-1.5 rounded-full px-2 font-semibold text-brand-orange-dark underline-offset-4 outline-none hover:underline focus-visible:ring-4 focus-visible:ring-brand-orange/40">
+          <PlusIcon className="size-4" />
+          {t("thanks.another_book")}
+        </Link>
+        <Link href={`/${market.code}`} className="inline-flex min-h-11 items-center gap-1.5 rounded-full px-2 font-semibold text-ink/70 underline-offset-4 outline-none hover:text-ink hover:underline focus-visible:ring-4 focus-visible:ring-brand-orange/40">
+          <HomeIcon className="size-4" />
+          {t("thanks.home")}
+        </Link>
+      </nav>
       </main>
     </>
   );

@@ -1,7 +1,14 @@
 import { isMarketCode } from "@/config/markets";
 import { getOrder } from "@/features/checkout/server/orders";
 import { hasProjectSession } from "@/features/configurator/server/session";
+import { loadBookVersion } from "@/features/book/server/versions";
+import { pdfDisposition } from "@/lib/pdf-filename";
 import { storage } from "@/server/storage";
+
+async function bookTitleOf(versionId: string | null) {
+  const book = versionId ? await loadBookVersion(versionId) : null;
+  return book?.meta.title ?? "kniha";
+}
 
 export async function GET(_request: Request, { params }: RouteContext<"/[market]/objednavka/[id]/ebook">) {
   const { market, id } = await params;
@@ -20,7 +27,7 @@ export async function GET(_request: Request, { params }: RouteContext<"/[market]
   return new Response(new Uint8Array(pdf), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="kniha-${order.id}.pdf"`,
+      "Content-Disposition": pdfDisposition(await bookTitleOf(order.bookVersionId), "TAKTIK"),
       "Cache-Control": "private, no-store",
     },
   });

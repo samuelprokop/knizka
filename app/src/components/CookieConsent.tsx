@@ -7,6 +7,7 @@
 */
 
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { EASE } from "@/lib/motion";
 import { useId, useSyncExternalStore } from "react";
 
 import { useI18n } from "@/i18n/client";
@@ -29,7 +30,7 @@ export function CookieConsent({ policyHref = "#" }: { policyHref?: string }) {
           initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 24 }}
-          transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: 0.35, ease: EASE.out }}
           className="fixed inset-x-4 bottom-4 z-[60] mx-auto flex max-w-sm flex-col items-center rounded-3xl bg-white p-6 text-center text-sm text-ink/70 shadow-2xl shadow-ink/15 ring-1 ring-ink/10 sm:right-auto sm:left-6 sm:mx-0 sm:w-96"
         >
           <CookieIcon />

@@ -2,7 +2,7 @@
 
 /*
   Listovací náhľad knihy (K8.1, proces: Krok 8 – Náhľad): dvojstrany s animovaným
-  otáčaním, vodoznak cez obrázky, 3D prehľad strán (PageCarousel3D), zväčšenie strany dvojitým
+  otáčaním, vodoznak cez obrázky, 3D prehľad dvojstrán (SpreadCarousel3D), zväčšenie strany dvojitým
   klepnutím, ovládanie šípkami, tlačidlami aj potiahnutím prstom.
 
   Použitie (balík A, krok 7 – 8):
@@ -11,6 +11,7 @@
 */
 
 import { motion, useReducedMotion } from "motion/react";
+import { EASE } from "@/lib/motion";
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent } from "react";
 
 import { useI18n } from "@/i18n/client";
@@ -18,7 +19,7 @@ import { FORMAT_SPECS } from "../design";
 import { previewSpreads, type PreviewSpread } from "../model/pages";
 import type { Book, PageRef } from "../model/types";
 import { BookPage, type PageRenderOptions } from "./BookPage";
-import { PageCarousel3D, type CarouselPage } from "./PageCarousel3D";
+import { SpreadCarousel3D } from "./SpreadCarousel3D";
 
 type Sides = { left: PageRef | null; right: PageRef | null };
 
@@ -100,24 +101,6 @@ export function BookFlipbook({
     if (Math.abs(delta) > 50) go(delta < 0 ? index + 1 : index - 1);
   };
 
-  // Jednotlivé strany pre 3D prehľad (prázdne strany vynechané).
-  const carouselPages: CarouselPage[] = useMemo(
-    () =>
-      spreads.flatMap((spread, spreadIndex) => {
-        const { left, right } = sides(spread);
-        return [left, right].flatMap((ref, side): CarouselPage[] => {
-          if (!ref || ref.type === "blank") return [];
-          const label =
-            ref.type === "cover" ? t("book.preview.cover")
-            : ref.type === "back_cover" ? t("book.preview.back_cover")
-            : ref.type === "endpaper" ? t("book.preview.endpaper")
-            : t("book.preview.page", { n: ref.page.number });
-          return [{ key: `${spread.id}-${side}`, ref, spreadIndex, label }];
-        });
-      }),
-    [spreads, t]
-  );
-
   const current = sides(spreads[index]);
   const forward = flip ? flip.to > flip.from : true;
   const target = flip ? sides(spreads[flip.to]) : null;
@@ -197,7 +180,7 @@ export function BookFlipbook({
             }}
             initial={{ rotateY: 0 }}
             animate={{ rotateY: forward ? -180 : 180 }}
-            transition={{ duration: 0.7, ease: [0.4, 0, 0.2, 1] }}
+            transition={{ duration: 0.7, ease: EASE.inOut }}
             onAnimationComplete={() => {
               setIndex(flip.to);
               setFlip(null);
@@ -251,16 +234,14 @@ export function BookFlipbook({
       </div>
 
       {/* Prehľad strán: 3D valec jednotlivých strán; klik = zväčšenie + nalistovanie. */}
-      <PageCarousel3D
+      <SpreadCarousel3D
         book={book}
-        pages={carouselPages}
-        currentSpread={index}
+        spreads={spreads}
+        current={index}
         label={t("book.preview.thumbnails")}
+        spreadLabel={(i) => spreadLabel(spreads[i], i, spreads.length, t)}
         opts={{ watermark: undefined }}
-        onPick={(page) => {
-          go(page.spreadIndex);
-          setZoom(page.ref);
-        }}
+        onSelect={(i) => go(i)}
       />
 
       {zoom && <ZoomDialog book={book} page={zoom} opts={opts} onClose={() => setZoom(null)} closeLabel={t("book.preview.close")} />}

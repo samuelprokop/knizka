@@ -20,7 +20,7 @@ import { stepHref } from "../../steps";
 import { AppearancePicker } from "../AppearancePicker";
 import { AutoRefresh } from "../AutoRefresh";
 import { StepFooter } from "../StepFooter";
-import { Button, buttonClass, Chip, cx, Notice, StepTitle } from "../ui";
+import { Button, buttonClass, Chip, cx, Notice, StepTitle, Field, inputClass } from "../ui";
 import { useWizard } from "../WizardContext";
 import { useSubStep } from "../WizardMotion";
 
@@ -131,7 +131,9 @@ function HeroCard({
   const router = useRouter();
   const [panel, setPanel] = useState<"none" | "edit" | "retry">("none");
   const [look, setLook] = useState<Appearance>(appearance);
-  const [reason, setReason] = useState<(typeof REASONS)[number] | null>(null);
+  const [reasons, setReasons] = useState<(typeof REASONS)[number][]>([]);
+  const [note, setNote] = useState("");
+  const toggleReason = (r: (typeof REASONS)[number]) => setReasons(reasons.includes(r) ? reasons.filter((x) => x !== r) : [...reasons, r]);
   const [error, setError] = useState<MessageKey | null>(null);
   const [pending, start] = useTransition();
   const heroCtx = hero ?? undefined;
@@ -147,6 +149,8 @@ function HeroCard({
     });
 
   const exhausted = retriesLeft <= 0;
+  // Po vyčerpaní pokusov sú obrázky Karty štvorcové – sekcia s možnosťami sa zmestí bez posúvania.
+  const tall = exhausted && !approved ? "lg:aspect-square" : "lg:aspect-[4/5]";
   useSubStep(panel === "edit" ? t("hero.edit") : panel === "retry" ? t("hero.retry") : null, () => setPanel("none"));
 
   return (
@@ -155,10 +159,10 @@ function HeroCard({
 
       {panel === "none" && (
       <section aria-busy={busy} className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <CardImage loading={busy} src={card.portrait} alt={t("configurator.card.portrait")} className="col-span-2 aspect-square sm:col-span-1 lg:col-span-1 lg:aspect-[4/5]" />
-        <CardImage loading={busy} src={card.fullBody} alt={t("configurator.card.full_body")} className="aspect-[2/3] sm:row-span-2 lg:row-span-1 lg:aspect-[4/5]" />
-        <CardImage loading={busy} src={card.smile} alt={t("configurator.card.smile")} className="aspect-square lg:aspect-[4/5]" />
-        <CardImage loading={busy} src={card.surprise} alt={t("configurator.card.surprise")} className="aspect-square lg:aspect-[4/5]" />
+        <CardImage loading={busy} src={card.portrait} alt={t("configurator.card.portrait")} className={`col-span-2 aspect-square sm:col-span-1 lg:col-span-1 ${tall}`} />
+        <CardImage loading={busy} src={card.fullBody} alt={t("configurator.card.full_body")} className={`aspect-[2/3] sm:row-span-2 lg:row-span-1 ${tall}`} />
+        <CardImage loading={busy} src={card.smile} alt={t("configurator.card.smile")} className={`aspect-square ${tall}`} />
+        <CardImage loading={busy} src={card.surprise} alt={t("configurator.card.surprise")} className={`aspect-square ${tall}`} />
       </section>
       )}
       {busy && (
@@ -191,19 +195,30 @@ function HeroCard({
       {panel === "retry" && !exhausted && (
         <fieldset className="flex flex-col gap-3 rounded-3xl bg-white p-4 ring-1 ring-ink/10">
           <legend className="px-1 font-semibold">{t("hero.retry.reason.title")}</legend>
-          <div className="grid grid-cols-2 gap-2">
+          {/* Viac dôvodov naraz + vlastné slová – nie každá chyba sa zmestí do ponuky. */}
+          <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
             {REASONS.map((r) => (
-              <Chip key={r} selected={reason === r} onClick={() => setReason(r)}>
+              <Chip key={r} selected={reasons.includes(r)} onClick={() => toggleReason(r)}>
                 {t(`hero.retry.reason.${r}`)}
               </Chip>
             ))}
           </div>
+          <Field label={t("hero.retry.note")} htmlFor="retry-note" help={t("hero.retry.note.help", { n: note.length })}>
+            <textarea
+              id="retry-note"
+              className={`${inputClass} min-h-24 py-3`}
+              maxLength={200}
+              placeholder={t("hero.retry.note.placeholder")}
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+            />
+          </Field>
           <p className="text-sm text-ink/70">{t("hero.retry.counter", { n: retriesLeft })}</p>
         </fieldset>
       )}
       {panel === "retry" && !exhausted && (
         <StepFooter>
-          <Button variant="next" className="w-full sm:w-auto" disabled={!reason} pending={pending} onClick={() => run(() => retryCardAction(projectId!, reason!), () => setPanel("none"))}>
+          <Button variant="next" className="w-full sm:w-auto" disabled={reasons.length === 0 && !note.trim()} pending={pending} onClick={() => run(() => retryCardAction(projectId!, { reasons, note }), () => setPanel("none"))}>
             {t("hero.retry")}
           </Button>
         </StepFooter>
@@ -211,17 +226,22 @@ function HeroCard({
 
       {exhausted && !approved && (
         <section className="flex flex-col gap-3 rounded-3xl bg-white p-4 ring-1 ring-ink/10">
-          <h2 className="font-heading text-xl font-extrabold">{t("hero.exhausted.title")}</h2>
-          <p className="text-sm text-ink/75">{t("hero.exhausted.body")}</p>
-          <Link href={stepHref(market, projectId!, 2)} className={buttonClass("secondary")}>
-            {t("hero.exhausted.other_photo")}
-          </Link>
-          <Link href={`${stepHref(market, projectId!, 2)}?opis=1`} className={buttonClass("secondary")}>
-            {t("hero.exhausted.describe")}
-          </Link>
-          <Button variant="secondary" disabled={manualRequested} pending={pending} onClick={() => run(() => requestManualHeroAction(projectId!))}>
-            {t("hero.exhausted.human")}
-          </Button>
+          <div className="flex flex-col gap-1">
+            <h2 className="font-heading text-xl font-extrabold">{t("hero.exhausted.title")}</h2>
+            <p className="text-sm text-ink/75">{t("hero.exhausted.body")}</p>
+          </div>
+          {/* Tri cesty vedľa seba – sekcia sa zmestí pod Kartu bez posúvania. */}
+          <div className="grid gap-2 sm:grid-cols-3">
+            <Link href={stepHref(market, projectId!, 2)} className={buttonClass("secondary", "px-4")}>
+              {t("hero.exhausted.other_photo")}
+            </Link>
+            <Link href={`${stepHref(market, projectId!, 2)}?opis=1`} className={buttonClass("secondary", "px-4")}>
+              {t("hero.exhausted.describe")}
+            </Link>
+            <Button variant="secondary" className="px-4" disabled={manualRequested} pending={pending} onClick={() => run(() => requestManualHeroAction(projectId!))}>
+              {t("hero.exhausted.human")}
+            </Button>
+          </div>
         </section>
       )}
 

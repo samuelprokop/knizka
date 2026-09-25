@@ -7,7 +7,6 @@ import { getMarket, isMarketCode } from "@/config/markets";
 import { loadBundle } from "../server/bundle";
 import {
   addCompanion,
-  approveCompanionCard,
   generateCompanionCard,
   onlyHero,
   removeCompanion,
@@ -93,10 +92,6 @@ export async function generateCompanionCardAction(projectId: string, characterId
     if (!bundle?.companions.some((c) => c.id === characterId)) throw new ValidationError("error.generic");
     await generateCompanionCard(id, characterId);
   });
-}
-
-export async function approveCompanionAction(projectId: string, characterId: string): Promise<ActionResult> {
-  return projectAction(projectId, (id) => approveCompanionCard(id, String(characterId)));
 }
 
 export async function removeCompanionAction(projectId: string, characterId: string): Promise<ActionResult> {

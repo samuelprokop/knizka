@@ -9,6 +9,7 @@ import type { MessageKey } from "@/i18n/messages";
 import type { NameContext } from "@/lib/language";
 import { priceSelection, type PriceInputs } from "../pricing";
 import { PROGRESS_STEPS, progressIndex, stepHref, type StepNumber } from "../steps";
+import { HeaderCart } from "@/components/HeaderCart";
 import { SaveExitButton } from "./SaveExitButton";
 import { WizardProvider, type PriceView } from "./WizardContext";
 import { StepTransition, SubStepSuffix, WizardProgress, type ProgressItem } from "./WizardMotion";
@@ -35,6 +36,7 @@ export function WizardShell({
   hero,
   bookLanguage,
   notice,
+  cartHref = null,
   children,
 }: {
   market: Market;
@@ -47,6 +49,8 @@ export function WizardShell({
   hero: NameContext | null;
   bookLanguage: string;
   notice?: ReactNode;
+  /** Kniha je schválená a čaká v košíku – ikona košíka vedie tam. */
+  cartHref?: string | null;
   children: ReactNode;
 }) {
   const current = progressIndex(step);
@@ -89,7 +93,10 @@ export function WizardShell({
                 <SubStepSuffix />
               </p>
             </div>
-            {projectId ? <SaveExitButton projectId={projectId} /> : <span className="hidden w-14 md:block" />}
+            <div className="flex shrink-0 items-center gap-1">
+              {projectId && <SaveExitButton projectId={projectId} />}
+              <HeaderCart href={cartHref} />
+            </div>
           </div>
         </header>
 

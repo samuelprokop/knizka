@@ -288,7 +288,6 @@ async function lookStep({ bundle, market }: Ctx) {
       layout={(bundle.project.layoutId ?? "classic") as LayoutId}
       format={bundle.project.format === "A4" ? "A4" : "A5"}
       pageCount={bundle.project.pageCount === 40 ? 40 : 32}
-      forced40={(bundle.storyInput.spreadCount ?? 12) === 16 || story?.spreads.length === 16}
       sample={sample}
       canGenerate={bundle.project.status === "text_approved"}
       bookExists={!!bundle.book && statusAtLeast(bundle.project.status, "preview")}

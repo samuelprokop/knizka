@@ -53,6 +53,7 @@ export default async function StepPage({ params, searchParams }: PageProps<"/[ma
       hero={bundle.hero ? nameContextOf(bundle.hero) : null}
       bookLanguage={bundle.project.bookLanguage}
       notice={notice}
+      cartHref={status === "approved_by_customer" ? `/${market.code}/kosik?projekt=${id}` : null}
       price={priceView(market, t, {
         storyPath: bundle.project.storyPath,
         companionCount: bundle.companions.length,

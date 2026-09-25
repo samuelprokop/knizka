@@ -9,6 +9,7 @@ import { LANDING_COPY } from "@/content/landing";
 import { REVIEWS, REVIEWS_ARE_PLACEHOLDERS, showReviews } from "@/content/reviews";
 import { ReviewsSection } from "@/components/ReviewsSection";
 import { formatMoney, type Market } from "@/config/markets";
+import { LandingCart } from "@/components/LandingCart";
 import { LandingHeaderCta } from "@/components/LandingHeaderCta";
 import { getMarketContext } from "@/i18n/server";
 import { siteUrl } from "@/lib/site-url";
@@ -31,7 +32,10 @@ export default async function Home() {
               <Link href={`/${market.code}`} aria-label="TAKTIK">
                 <Image src="/brand/taktik-logo.svg" alt="TAKTIK" width={81} height={72} priority unoptimized />
               </Link>
-              <LandingHeaderCta href={ctaHref} label={copy.cta} />
+              <div className="flex items-center gap-2">
+                <LandingCart />
+                <LandingHeaderCta href={ctaHref} label={copy.cta} />
+              </div>
             </FooterRevealFadeOut>
           </header>
 

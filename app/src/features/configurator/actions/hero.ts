@@ -1,6 +1,7 @@
 "use server";
 
 import { after } from "next/server";
+import { z } from "zod";
 import { db, schema } from "@/db";
 import { STYLES, type StyleId } from "@/config/catalog";
 import { eq } from "drizzle-orm";
@@ -80,13 +81,28 @@ export async function chooseStyleAction(projectId: string, style: string): Promi
 const REASONS = ["face", "hair", "age", "expression"] as const;
 
 /** „Skúsiť znova“ s dôvodom – 3 pokusy v cene, počítadlo je viditeľné (K3.3). */
-export async function retryCardAction(projectId: string, reason: string): Promise<ActionResult> {
+const retrySchema = z.object({
+  reasons: z.array(z.enum(REASONS)).max(REASONS.length),
+  /** Vlastnými slovami, čo nesedí – ide len do obrazového modelu (nie do textového, S13). */
+  note: z.string().trim().max(200),
+});
+
+/** Pregenerovanie Karty: aspoň jeden dôvod alebo vlastný opis. */
+export async function retryCardAction(projectId: string, input: unknown): Promise<ActionResult> {
   return projectAction(projectId, async (id) => {
+    const parsed = retrySchema.safeParse(input);
+    if (!parsed.success || (parsed.data.reasons.length === 0 && !parsed.data.note)) throw new ValidationError("hero.retry.reason.title");
+    const { reasons, note } = parsed.data;
     const { bundle, hero } = await heroOf(id);
-    if (!REASONS.includes(reason as (typeof REASONS)[number])) throw new ValidationError("hero.retry.reason.title");
     if (!bundle.project.styleId) throw new ValidationError("style.title");
     if (regenerationsLeft(bundle, hero.id, bundle.project.styleId) <= 0) throw new ValidationError("limit.retry_hero");
-    await generateCard({ projectId: id, characterId: hero.id, style: bundle.project.styleId as StyleId, reason });
+    await generateCard({
+      projectId: id,
+      characterId: hero.id,
+      style: bundle.project.styleId as StyleId,
+      reason: [...reasons, ...(note ? ["other"] : [])].join(","),
+      feedback: { reasons, ...(note ? { note } : {}) },
+    });
   });
 }
 

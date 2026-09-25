@@ -12,6 +12,7 @@
 */
 
 import { motion, useAnimate, useMotionValue, useReducedMotion, useTransform } from "motion/react";
+import { EASE } from "@/lib/motion";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
@@ -82,7 +83,16 @@ export function CouponReveal({ code, percent }: { code: string; percent: number 
     const c = size.current.w - f;
     return toPolygon(clipHalf(rect(), c, "peeled").map(([x, y]): Pt => [y + c, x - c]));
   });
-  const hover = (to: number) => !reduce && !peeling.current && animate(fold, to, { duration: 0.2 });
+  // V pokoji sa roh nálepky raz za čas jemne nadvihne – pozvánka odlepiť (idle „dýchanie“).
+  const idle = () => {
+    if (reduce || peeling.current) return;
+    animate(fold, [FOLD_REST, FOLD_REST + 7, FOLD_REST], { duration: 1.6, ease: EASE.inOut, repeat: Infinity, repeatDelay: 3 });
+  };
+  useEffect(idle, []); // eslint-disable-line react-hooks/exhaustive-deps -- spustiť raz po zobrazení
+  const hover = (to: number) => {
+    if (reduce || peeling.current) return;
+    animate(fold, to, { duration: 0.2, ease: EASE.out }).then(() => to === FOLD_REST && idle());
+  };
 
   // Po odkrytí zameranie na Uplatniť – klávesnica pokračuje tam, kde bola nálepka.
   useEffect(() => {
@@ -94,7 +104,7 @@ export function CouponReveal({ code, percent }: { code: string; percent: number 
     peeling.current = true;
     if (!reduce) {
       const { w, h } = size.current;
-      await animate(fold, w + h + 2, { duration: 0.8, ease: [0.45, 0, 0.25, 1] });
+      await animate(fold, w + h + 2, { duration: 0.8, ease: EASE.inOut });
       await animate(sticker.current, { opacity: 0 }, { duration: 0.12 });
     }
     setRevealed(true);
