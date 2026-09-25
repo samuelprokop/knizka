@@ -10,7 +10,12 @@ import { createTranslator } from "@/i18n/format";
 import { getMailer } from "@/server/email";
 import { renderBookPdfInWorker } from "@/server/render";
 import { storage } from "@/server/storage";
+import { estimatedDelivery } from "@/domain/delivery";
+import { scheduleLifecycleEmail } from "@/server/jobs/lifecycle";
 import { orderRefOf, type Order } from "./orders";
+
+/** Koľko dní po odhadovanom doručení požiadať o hodnotenie (dieťa si knihu stihne prečítať). */
+const REVIEW_AFTER_DELIVERY_DAYS = 5;
 
 /*
   Výroba po zaplatení: e-kniha ihneď (K10 – „E-kniha ihneď po zaplatení“), tlačové
@@ -42,6 +47,12 @@ export async function triggerProductionAfterPayment(order: Order, opts: { isFirs
   // Ďalší výtlačok (O6) nemení stav projektu ani neposiela znova potvrdenie objednávky
   // rovnakým znením – projekt už svoj "Ďakujeme" e-mail dostal pri prvej platbe.
   if (opts.isFirstOrder) await sendOrderConfirmation(order);
+
+  // Žiadosť o recenziu až po doručení tlačenej knihy (A4): odhad doručenia + pár dní na prečítanie.
+  if (opts.isFirstOrder && order.variant === "print_ebook" && isMarketCode(order.market)) {
+    const delivered = estimatedDelivery(new Date(), getMarket(order.market));
+    await scheduleLifecycleEmail(order.projectId, "review_request", new Date(delivered.getTime() + REVIEW_AFTER_DELIVERY_DAYS * 86_400_000));
+  }
 }
 
 async function sendOrderConfirmation(order: Order) {

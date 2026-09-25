@@ -2,14 +2,20 @@ import { and, desc, eq, inArray } from "drizzle-orm";
 
 import { stepHref, type StepNumber } from "@/features/configurator/steps";
 
-import { isMarketCode } from "@/config/markets";
+import { getMarket, isMarketCode } from "@/config/markets";
 import { db, schema } from "@/db";
+import { loadCart } from "@/features/checkout/server/cart";
+import { nameContextOf } from "@/features/configurator/server/bundle";
 import { sessionProjectIds } from "@/features/configurator/server/session";
+import { createTranslator } from "@/i18n/format";
 
 /*
   Stav pre menu úvodnej stránky: kniha v košíku a rozpracovaná kniha na tomto
   zariadení (podľa cookie projektu). Úvodná stránka ostáva statická – klient si
   stav zistí až po načítaní.
+
+  `resume` = pripomienka pre vracajúceho sa zákazníka (ResumeNudge): kniha v košíku
+  má prednosť pred rozpracovanou. Meno/názov ide len na zariadenie s cookie projektu.
 */
 type Status = (typeof schema.projects.$inferSelect)["status"];
 const IN_CART: Status[] = ["approved_by_customer"];
@@ -30,12 +36,28 @@ export async function GET(_request: Request, { params }: RouteContext<"/[market]
   const cartCount = rows.filter((p) => IN_CART.includes(p.status)).length;
   const inCart = rows.find((p) => IN_CART.includes(p.status));
   const inProgress = rows.find((p) => IN_PROGRESS.includes(p.status));
+  const continueHref = inProgress ? stepHref(market, inProgress.id, Math.min(Math.max(inProgress.currentStep, 1), 9) as StepNumber) : null;
+  const cartHref = cartCount > 1 ? `/${market}/kosik` : inCart ? `/${market}/kosik?projekt=${inCart.id}` : null;
+
+  let resume: { kind: "cart" | "progress"; text: string; href: string } | null = null;
+  const t = createTranslator(getMarket(market).uiLanguage);
+  if (inCart && cartHref) {
+    const cart = await loadCart(inCart.id);
+    if (cart) resume = { kind: "cart", text: cart.bookTitle, href: cartHref };
+  } else if (inProgress && continueHref) {
+    const hero = await db.query.characters.findFirst({
+      where: and(eq(schema.characters.projectId, inProgress.id), eq(schema.characters.role, "hero")),
+    });
+    resume = { kind: "progress", text: hero ? t("landing.resume.progress.text", undefined, nameContextOf(hero)) : t("landing.resume.progress.text_anon"), href: continueHref };
+  }
+
   return Response.json(
     {
+      resume,
       cartCount,
-      cartHref: cartCount > 1 ? `/${market}/kosik` : inCart ? `/${market}/kosik?projekt=${inCart.id}` : null,
+      cartHref,
       // Rozpracovaná kniha – menu ponúkne návrat presne na krok, kde zákazník skončil.
-      continueHref: inProgress ? stepHref(market, inProgress.id, Math.min(Math.max(inProgress.currentStep, 1), 9) as StepNumber) : null,
+      continueHref,
     },
     { headers: { "Cache-Control": "private, no-store" } }
   );

@@ -1,6 +1,7 @@
 import "server-only";
 
 import { characterCardHandler } from "./handlers/character-card";
+import { lifecycleEmailHandler } from "./handlers/lifecycle-email";
 import { spreadEditHandler } from "./handlers/spread-edit";
 import { spreadIllustrationHandler } from "./handlers/spread-illustration";
 import { stylePortraitHandler } from "./handlers/style-portrait";
@@ -11,4 +12,5 @@ export const registry: Record<JobType, AnyJobHandler> = {
   spread_edit: spreadEditHandler,
   style_portrait: stylePortraitHandler,
   character_card: characterCardHandler,
+  lifecycle_email: lifecycleEmailHandler,
 };

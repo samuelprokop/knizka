@@ -6,7 +6,7 @@ import { loadPersonalPage } from "@/features/checkout/server/personal";
 import { buttonClass } from "@/features/configurator/components/ui";
 import { pluralForm } from "@/i18n/plural";
 import { getMarketContext } from "@/i18n/server";
-import { BookIcon, ChevronRightIcon, DownloadIcon, LockIcon, PrinterIcon } from "@/components/icons";
+import { BookIcon, ChevronRightIcon, DownloadIcon, LockIcon, PlusIcon, PrinterIcon } from "@/components/icons";
 import { ShopHeader } from "@/components/ShopHeader";
 
 /*
@@ -67,6 +67,12 @@ export default async function PersonalBookPage({ params }: PageProps<"/[market]/
               icon={<BookIcon />}
               title={t("personal.reorder")}
               text={t("personal.reorder.text")}
+            />
+            <ActionRow
+              href={`/${market.code}/vytvorit`}
+              icon={<PlusIcon />}
+              title={t("personal.another.title")}
+              text={t("personal.another.text")}
             />
           </ul>
 

@@ -116,7 +116,8 @@ export async function createProject(input: {
 
   await recordConsents(
     created.project.id,
-    [{ type: "marketing", granted: input.marketingConsent, textKey: "common.email_dialog.marketing" }],
+    // Znenie v2 pokrýva aj pripomienky rozpracovanej knihy (A3); pôvodný kľúč ostáva v slovníku pre staršie súhlasy.
+    [{ type: "marketing", granted: input.marketingConsent, textKey: "common.email_dialog.marketing_v2" }],
     { language: input.market.uiLanguage, userAgent: input.userAgent }
   );
   return { project: created.project, linkToken };
@@ -191,7 +192,7 @@ export const linkUrl = (origin: string, market: string, projectId: string, token
   `${origin}/${market}/kniha/pokracovat?p=${encodeURIComponent(projectId)}&t=${encodeURIComponent(token)}`;
 
 /** Pošle odkaz na návrat na e-mail projektu. */
-export async function sendProjectLink(projectId: string, origin: string, kind: "link" | "preview_ready" = "link") {
+export async function sendProjectLink(projectId: string, origin: string, kind: "link" | "preview_ready" | "reminder" = "link") {
   const bundle = await loadBundle(projectId);
   if (!bundle?.project.email || !bundle.hero) return;
   const token = await issueLink(projectId);
@@ -201,7 +202,7 @@ export async function sendProjectLink(projectId: string, origin: string, kind: "
   await getMailer().send({
     to: bundle.project.email,
     kind,
-    subject: t(kind === "link" ? "email.subject.link" : "email.subject.preview_ready", undefined, nameContextOf(bundle.hero)),
+    subject: t(`email.subject.${kind}`, undefined, nameContextOf(bundle.hero)),
     url: linkUrl(origin, bundle.project.market, projectId, token),
   });
 }

@@ -53,6 +53,8 @@ export type Market = {
   carriers: Carrier[];
   freeShippingFromMinor: number;
   deliveryWorkingDays: number;
+  /** Štátne sviatky s pevným dátumom ("MM-DD") – nepracovné dni pri odhade doručenia (Veľký piatok a pondelok sa rátajú zvlášť). */
+  holidays: string[];
   supportEmail: string;
   /**
    * Úvodná zľava novej značky – kód, ktorý si zákazník v pokladni odkryje (null = vypnuté).
@@ -90,6 +92,7 @@ export const MARKETS: Record<MarketCode, Market> = {
     ],
     freeShippingFromMinor: 4500,
     deliveryWorkingDays: 5,
+    holidays: ["01-01", "01-06", "05-01", "05-08", "07-05", "08-29", "09-15", "11-01", "12-24", "12-25", "12-26"],
     supportEmail: "podpora@example.sk",
     launchVoucherCode: "VITAJTE10",
   },
@@ -120,6 +123,7 @@ export const MARKETS: Record<MarketCode, Market> = {
     ],
     freeShippingFromMinor: 115000,
     deliveryWorkingDays: 5,
+    holidays: ["01-01", "05-01", "05-08", "07-05", "07-06", "09-28", "10-28", "11-17", "12-24", "12-25", "12-26"],
     supportEmail: "podpora@example.cz",
     launchVoucherCode: "VITEJTE10",
   },

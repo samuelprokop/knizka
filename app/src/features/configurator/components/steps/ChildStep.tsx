@@ -365,7 +365,7 @@ function EmailDialog({
           />
         </Field>
         <Check id={`${ids}-marketing`} checked={marketing} onChange={setMarketing}>
-          {t("common.email_dialog.marketing")}
+          {t("common.email_dialog.marketing_v2")}
         </Check>
         <div className="flex flex-col gap-2">
           <Button type="submit" pending={pending}>

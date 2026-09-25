@@ -15,6 +15,8 @@ export async function enqueue<T extends JobType>(input: {
   relatedType?: string;
   relatedId?: string;
   maxAttempts?: number;
+  /** Odložené spustenie (naplánované e-maily); predvolene hneď. */
+  runAt?: Date;
 }): Promise<string> {
   const [row] = await db
     .insert(schema.jobs)
@@ -25,6 +27,7 @@ export async function enqueue<T extends JobType>(input: {
       relatedType: input.relatedType,
       relatedId: input.relatedId,
       maxAttempts: input.maxAttempts ?? 3,
+      ...(input.runAt ? { runAt: input.runAt } : {}),
     })
     .returning({ id: schema.jobs.id });
   return row.id;

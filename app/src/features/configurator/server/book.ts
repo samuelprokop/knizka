@@ -37,6 +37,7 @@ import {
   type ProjectOptions,
 } from "../model";
 import { cleanText } from "../validation";
+import { LIFECYCLE_DELAY_MS, scheduleLifecycleEmail } from "@/server/jobs/lifecycle";
 
 // ---------------------------------------------------------------- krok 6
 
@@ -203,6 +204,7 @@ export async function finalizeGenerationIfDone(projectId: string) {
   const unfinished = bundle.pages.some((p) => p.kind === "story_spread" && (p.status === "pending" || p.status === "generating"));
   if (unfinished) return;
   await db.update(schema.projects).set({ status: advanceStatus("generating", "preview"), currentStep: 8 }).where(eq(schema.projects.id, projectId));
+  await scheduleLifecycleEmail(projectId, "reminder_preview", new Date(Date.now() + LIFECYCLE_DELAY_MS.reminder_preview));
 }
 
 /**
@@ -387,4 +389,5 @@ export async function approveBook(projectId: string) {
       .set({ status: advanceStatus(bundle.project.status, "approved_by_customer"), currentStep: 9 })
       .where(eq(schema.projects.id, projectId));
   });
+  await scheduleLifecycleEmail(projectId, "reminder_cart", new Date(Date.now() + LIFECYCLE_DELAY_MS.reminder_cart));
 }

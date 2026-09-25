@@ -55,3 +55,12 @@ export function computeOrderPrice(selection: PriceSelection, market: Market, cho
 export function voucherFeedback(code: string, market: Market): VoucherResult | null {
   return code.trim() ? validateVoucherCode(code, market.code) : null;
 }
+
+/**
+ * Koľko chýba do dopravy zadarmo (null = bez tlače, 0 = doprava už je zadarmo).
+ * Rovnaké pravidlo ako v computeOrderPrice – porovnáva sa cena knihy s doplnkami.
+ */
+export function freeShippingGapMinor(selection: PriceSelection, market: Market): number | null {
+  if (selection.variant !== "print_ebook") return null;
+  return Math.max(0, market.freeShippingFromMinor - computePrice(selection, market).totalMinor);
+}

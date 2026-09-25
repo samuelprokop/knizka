@@ -12,6 +12,7 @@
   Stav košíka a rozpracovanej knihy sa načíta po zobrazení (stránka ostáva statická).
 */
 
+import { useSessionStatus } from "./useSessionStatus";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
@@ -30,18 +31,7 @@ export function LandingMenu({ supportEmail }: { supportEmail: string }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
-  const [state, setState] = useState<{ cartHref: string | null; cartCount: number; continueHref: string | null }>({ cartHref: null, cartCount: 0, continueHref: null });
-
-  useEffect(() => {
-    let alive = true;
-    fetch(`/${market}/kosik/stav`, { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => alive && data && setState(data))
-      .catch(() => {});
-    return () => {
-      alive = false;
-    };
-  }, [market]);
+  const state = useSessionStatus(market);
 
   useEffect(() => {
     if (!open) return;

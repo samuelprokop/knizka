@@ -22,11 +22,16 @@ export type CharacterCardPayload = {
   request: CharacterPortraitRequest;
 };
 
+/** Naplánovaný e-mail (retencia): pripomienka nedokončenej knihy, žiadosť o recenziu. */
+export type LifecycleEmailKind = "reminder_preview" | "reminder_cart" | "review_request";
+export type LifecycleEmailPayload = { kind: LifecycleEmailKind };
+
 export type JobPayloadByType = {
   spread_illustration: SpreadIllustrationPayload;
   spread_edit: SpreadEditPayload;
   style_portrait: StylePortraitPayload;
   character_card: CharacterCardPayload;
+  lifecycle_email: LifecycleEmailPayload;
 };
 
 export type JobType = keyof JobPayloadByType;

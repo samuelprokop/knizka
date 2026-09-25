@@ -13,6 +13,7 @@ import { FaqSection } from "@/components/FaqSection";
 import { LandingMenu } from "@/components/LandingMenu";
 import { faqFor, topFaq } from "@/content/faq";
 import { LandingHeaderCta } from "@/components/LandingHeaderCta";
+import { ResumeNudge } from "@/components/ResumeNudge";
 import { getMarketContext } from "@/i18n/server";
 import { siteUrl } from "@/lib/site-url";
 
@@ -42,6 +43,7 @@ export default async function Home() {
           </header>
 
           <LandingToc copy={copy} reviews={reviews} />
+          <ResumeNudge />
           <BookHero copy={copy} ctaHref={ctaHref} prices={prices} />
           {reviews && <ReviewsSection copy={copy.reviews} reviews={REVIEWS[market.uiLanguage]} placeholder={REVIEWS_ARE_PLACEHOLDERS} />}
           {/* Posledné obavy pred nákupom (podoba, fotka, cena, platba, doručenie) – tesne pred pätičkou. */}

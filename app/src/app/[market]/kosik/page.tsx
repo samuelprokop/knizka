@@ -11,7 +11,8 @@ import { RemoveFromCart } from "@/features/checkout/components/RemoveFromCart";
 import { VoucherDialog } from "@/features/checkout/components/VoucherDialog";
 import { CartOverview } from "@/features/checkout/components/CartOverview";
 import { loadCart, sessionCart } from "@/features/checkout/server/cart";
-import { computeOrderPrice } from "@/features/checkout/pricing";
+import { computeOrderPrice, freeShippingGapMinor } from "@/features/checkout/pricing";
+import { estimatedDelivery, formatDeliveryDate } from "@/domain/delivery";
 import { validateVoucherCode } from "@/features/checkout/voucher";
 import { SessionExpired } from "@/features/configurator/components/SessionExpired";
 import { StepTitle } from "@/features/configurator/components/ui";
@@ -88,6 +89,8 @@ export default async function CartPage({ params, searchParams }: PageProps<"/[ma
     ...price.surcharges,
   ];
   const shippingCarrierName = isPrint ? (market.carriers[0]?.name ?? "") : "";
+  // Doprava zadarmo od hranice (goal-gradient): koľko chýba a či ju dorovná ďalší výtlačok.
+  const shippingGap = freeShippingGapMinor(selection, market);
 
   // Cena variantu bez doplnkov (výtlačky, balenie) – porovnanie v kartách.
   const planPrice = (v: PriceSelection["variant"]) =>
@@ -116,7 +119,7 @@ export default async function CartPage({ params, searchParams }: PageProps<"/[ma
         t("cart.plan.print.f1", { format: t(`book.format.${cart.format}` as MessageKey) }),
         t("cart.plan.print.f2"),
         t("cart.plan.print.f3"),
-        t("cart.plan.print.f4", { days: market.deliveryWorkingDays }),
+        t("cart.plan.print.f4", { date: formatDeliveryDate(estimatedDelivery(new Date(), market), market) }),
         t("cart.plan.print.f5"),
       ],
       href: qs({ variant: "print_ebook" }),
@@ -128,7 +131,7 @@ export default async function CartPage({ params, searchParams }: PageProps<"/[ma
   return (
     <>
       <ShopHeader wide home />
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 pt-5 pb-32 lg:pb-4">
+      <main className="mx-auto w-full max-w-5xl flex-1 px-4 pt-4 pb-32 lg:pb-2">
         <div className="flex flex-wrap items-baseline justify-between gap-x-4">
           <StepTitle title={t(cart.reorder ? "cart.reorder.title" : "cart.title")} />
           {/* Viac kníh v košíku: odkaz na prehľad (každá sa platí samostatne). */}
@@ -140,7 +143,7 @@ export default async function CartPage({ params, searchParams }: PageProps<"/[ma
         </div>
 
         {/* Dva stĺpce od lg: voľby vľavo, súhrn objednávky vpravo (lepí sa pri posúvaní). */}
-        <div className="mt-4 grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start lg:gap-10">
+        <div className="mt-3 grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start lg:gap-10">
           <div className="flex min-w-0 flex-col gap-8">
           <section className="flex gap-4 rounded-2xl border-2 border-ink/10 bg-white p-4 lg:hidden">
             {cart.thumbnailUrl ? (
@@ -156,12 +159,12 @@ export default async function CartPage({ params, searchParams }: PageProps<"/[ma
             {!cart.reorder && <PlanCards plans={plans} t={t} />}
           </div>
 
-          <aside aria-labelledby="cart-summary" className="flex flex-col gap-3 rounded-3xl bg-white p-5 shadow-sm ring-1 ring-ink/10 lg:sticky lg:top-6">
+          <aside aria-labelledby="cart-summary" className="flex flex-col gap-2.5 rounded-3xl bg-white p-5 shadow-sm ring-1 ring-ink/10 lg:sticky lg:top-6">
             <h2 id="cart-summary" className="sr-only">{t("cart.summary")}</h2>
             <div className="hidden gap-3 lg:flex">
               {cart.thumbnailUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element -- podpísaná URL, nie next/image doména
-                <img src={cart.thumbnailUrl} alt="" className="h-20 w-16 shrink-0 rounded-lg object-cover" />
+                <img src={cart.thumbnailUrl} alt="" className="h-16 w-12 shrink-0 rounded-lg object-cover" />
               ) : null}
               {/* Dlhý názov knihy na 2 riadky (celý v title) – súhrn sa zmestí bez posúvania;
                   sľub doručenia je pri tlačenej knihe vľavo, tu by sa opakoval. */}
@@ -213,9 +216,28 @@ export default async function CartPage({ params, searchParams }: PageProps<"/[ma
                 </div>
               ))}
               {price.shipping && (
-                <div className="flex justify-between text-sm text-ink/80">
-                  <span>{t("checkout.price.shipping", { carrier: shippingCarrierName })}</span>
-                  <span>{formatMoney(price.shipping.amountMinor, market)}</span>
+                <div className="flex flex-col gap-0.5">
+                  <div className="flex justify-between text-sm text-ink/80">
+                    <span>{t("checkout.price.shipping", { carrier: shippingCarrierName })}</span>
+                    <span className={price.shipping.amountMinor === 0 ? "font-semibold text-[#2e7d32]" : undefined}>
+                      {price.shipping.amountMinor === 0 ? t("cart.shipping.free") : formatMoney(price.shipping.amountMinor, market)}
+                    </span>
+                  </div>
+                  {!!shippingGap && (
+                    <div className="flex items-center gap-3">
+                      <p className="min-w-0 flex-1 text-xs text-ink/65">
+                        {shippingGap <= market.prices.extraCopy && extraCopies === 0
+                          ? t("cart.shipping.gap_copy")
+                          : t("cart.shipping.gap", { price: formatMoney(shippingGap, market) })}
+                      </p>
+                      <span aria-hidden className="h-1.5 w-16 shrink-0 overflow-hidden rounded-full bg-ink/10">
+                        <span
+                          className="block h-full rounded-full bg-brand-orange transition-[width] duration-500 ease-out motion-reduce:transition-none"
+                          style={{ width: `${Math.round((1 - shippingGap / market.freeShippingFromMinor) * 100)}%` }}
+                        />
+                      </span>
+                    </div>
+                  )}
                 </div>
               )}
               {price.discount && (
