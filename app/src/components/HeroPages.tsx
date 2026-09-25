@@ -65,12 +65,15 @@ const chip = (on: boolean) =>
 // ---------------------------------------------------------------- 01 Dieťa
 
 const SAMPLES = ["child.check.sample1", "child.check.sample2", "child.check.sample3"] as const satisfies readonly MessageKey[];
-const NAME_HOLD_MS = 3400;
+/** Prvá zmena hneď po dopadnutí strany (statické strany ľudia preskakujú), ďalšie rýchlejšie. */
+const NAME_FIRST_MS = 300;
+const NAME_HOLD_MS = 2200;
 
 export function HeroNameShowcase({ active, copy, text }: { active: boolean; copy: Pages["child"]; text: string }) {
   const { t, language } = useI18n();
   const reduce = useReducedMotion();
   const [index, setIndex] = useState(0);
+  const [fresh, setFresh] = useState(true);
   const current = copy.names[index];
   const typed = useTypewriter(current.name, !reduce);
   const done = typed === current.name;
@@ -80,15 +83,21 @@ export function HeroNameShowcase({ active, copy, text }: { active: boolean; copy
   // Po dopísaní a prečítaní viet ďalšie meno – len kým je dvojstrana otvorená.
   useEffect(() => {
     if (!active || reduce || !done) return;
-    const timer = window.setTimeout(() => setIndex((i) => (i + 1) % copy.names.length), NAME_HOLD_MS);
+    const timer = window.setTimeout(() => {
+      setFresh(false);
+      setIndex((i) => (i + 1) % copy.names.length);
+    }, fresh ? NAME_FIRST_MS : NAME_HOLD_MS);
     return () => window.clearTimeout(timer);
-  }, [active, reduce, done, copy.names.length]);
+  }, [active, reduce, done, fresh, copy.names.length]);
 
   // Zatvorená dvojstrana: nabudúce od prvého mena.
   const [wasActive, setWasActive] = useState(active);
   if (active !== wasActive) {
     setWasActive(active);
-    if (!active) setIndex(0);
+    if (!active) {
+      setIndex(0);
+      setFresh(true);
+    }
   }
 
   // Čip pohlavia prepne na najbližšie meno s daným rodom.
@@ -126,7 +135,7 @@ export function HeroNameShowcase({ active, copy, text }: { active: boolean; copy
               <motion.li
                 key={`${current.name}-${key}`}
                 initial={reduce ? false : { opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0, transition: { duration: 0.4, ease: EASE.out, delay: i * 0.12 } }}
+                animate={{ opacity: 1, y: 0, transition: { duration: 0.3, ease: EASE.out, delay: i * 0.07 } }}
                 exit={{ opacity: 0, transition: { duration: 0.12, ease: EASE.in } }}
                 className="font-heading text-[1.7cqw] leading-snug text-[#2a241c]"
               >
@@ -144,7 +153,8 @@ export function HeroNameShowcase({ active, copy, text }: { active: boolean; copy
 // ---------------------------------------------------------------- 03 Príbeh
 
 const COVER_COLORS = ["#3f7d34", "#5e3f61", "#00a5a0"];
-const STORY_HOLD_MS = 2400;
+const STORY_FIRST_MS = 400;
+const STORY_HOLD_MS = 1500;
 
 export function HeroStoryShowcase({ active, copy, text }: { active: boolean; copy: Pages["story"]; text: string }) {
   const { language } = useI18n();
@@ -153,17 +163,24 @@ export function HeroStoryShowcase({ active, copy, text }: { active: boolean; cop
   const titles = copy.titles.map((title) => renderNameTokens(title, ctx));
   const count = titles.length + 1; // + karta „na mieru“
   const [front, setFront] = useState(0);
+  const [fresh, setFresh] = useState(true);
 
   useEffect(() => {
     if (!active || reduce) return;
-    const timer = window.setTimeout(() => setFront((f) => (f + 1) % count), STORY_HOLD_MS);
+    const timer = window.setTimeout(() => {
+      setFresh(false);
+      setFront((f) => (f + 1) % count);
+    }, fresh ? STORY_FIRST_MS : STORY_HOLD_MS);
     return () => window.clearTimeout(timer);
-  }, [active, reduce, front, count]);
+  }, [active, reduce, front, fresh, count]);
 
   const [wasActive, setWasActive] = useState(active);
   if (active !== wasActive) {
     setWasActive(active);
-    if (!active) setFront(0);
+    if (!active) {
+      setFront(0);
+      setFresh(true);
+    }
   }
 
   const custom = front === titles.length;
@@ -244,7 +261,9 @@ const MINI_SPREADS = [
   { sky: "#f6dcc8", ground: "#e8c9a0", sun: "#ff9a6a", lines: [88, 94, 70] },
   { sky: "#dcd3ec", ground: "#c9e0c3", sun: "#fff2b3", lines: [90, 76, 84, 52] },
 ];
-const FLIP_WAIT_MS = 1300;
+/** Prvé otočenie hneď po dopadnutí strany, ďalšie rýchlejšie. */
+const FLIP_FIRST_MS = 450;
+const FLIP_WAIT_MS = 850;
 
 function MiniScene({ spread, portrait }: { spread: (typeof MINI_SPREADS)[number]; portrait?: boolean }) {
   return (
@@ -285,11 +304,11 @@ export function HeroPreviewShowcase({ active, copy, text }: { active: boolean; c
     const from = spread;
     setTurn({ from, phase: "out" });
     await new Promise((r) => requestAnimationFrame(r));
-    await animate("[data-turn-out]", { scaleX: [1, 0] }, { duration: 0.32, ease: EASE.in });
+    await animate("[data-turn-out]", { scaleX: [1, 0] }, { duration: 0.24, ease: EASE.in });
     setSpread(next);
     setTurn({ from, phase: "in" });
     await new Promise((r) => requestAnimationFrame(r));
-    await animate("[data-turn-in]", { scaleX: [0, 1] }, { duration: 0.34, ease: EASE.out });
+    await animate("[data-turn-in]", { scaleX: [0, 1] }, { duration: 0.26, ease: EASE.out });
     setTurn(null);
   };
 
@@ -309,15 +328,15 @@ export function HeroPreviewShowcase({ active, copy, text }: { active: boolean; c
       const alive = () => activeRef.current;
       const wait = (ms: number) => new Promise((r) => window.setTimeout(r, ms));
       for (let i = 1; i < MINI_SPREADS.length && alive(); i++) {
-        await wait(FLIP_WAIT_MS);
+        await wait(i === 1 ? FLIP_FIRST_MS : FLIP_WAIT_MS);
         if (alive()) await flipTo(i);
       }
-      if (alive()) await wait(700);
+      if (alive()) await wait(450);
       if (alive()) {
         await animate("[data-like]", { scale: [1, 0.92, 1.04, 1] }, { duration: 0.4, ease: EASE.out });
         await approve();
       }
-      if (alive()) await wait(2600);
+      if (alive()) await wait(1700);
       running.current = false;
       if (alive()) {
         setApproved(false);

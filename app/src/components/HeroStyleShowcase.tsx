@@ -42,7 +42,9 @@ const CURTAIN: Record<Look, string> = {
   crayon: "#ffd166",
 };
 
-const HOLD_MS = 2600;
+/** Prvá zmena hneď po dopadnutí strany (inak ľudia strany preskočia ako statické), ďalšie rýchlejšie. */
+const FIRST_MS = 350;
+const HOLD_MS = 1600;
 
 export function HeroStyleShowcase({
   active,
@@ -56,6 +58,7 @@ export function HeroStyleShowcase({
 }) {
   const reduceMotion = useReducedMotion();
   const [shown, setShown] = useState(0); // index v SEQUENCE, ktorý je práve vidieť
+  const [fresh, setFresh] = useState(true); // dvojstrana práve otvorená – prvá zmena príde skoro
   const [scope, animate] = useAnimate();
   const busy = useRef(false);
   const label = useTypewriter(labels[SEQUENCE[shown]], !reduceMotion);
@@ -63,15 +66,16 @@ export function HeroStyleShowcase({
   const go = async (next: number) => {
     if (busy.current || next === shown) return;
     busy.current = true;
+    setFresh(false);
     const look = SEQUENCE[next];
     if (reduceMotion) {
       setShown(next);
     } else {
       // Opona prejde zľava, pod ňou sa vymení obrázok, odíde doprava.
       await animate("[data-curtain]", { backgroundColor: CURTAIN[look] }, { duration: 0 });
-      await animate("[data-curtain]", { scaleX: [0, 1], originX: 0 }, { duration: 0.38, ease: EASE.inOut });
+      await animate("[data-curtain]", { scaleX: [0, 1], originX: 0 }, { duration: 0.28, ease: EASE.inOut });
       setShown(next);
-      await animate("[data-curtain]", { scaleX: [1, 0], originX: 1 }, { duration: 0.38, ease: EASE.inOut, delay: 0.05 });
+      await animate("[data-curtain]", { scaleX: [1, 0], originX: 1 }, { duration: 0.28, ease: EASE.inOut, delay: 0.04 });
     }
     busy.current = false;
   };
@@ -84,15 +88,18 @@ export function HeroStyleShowcase({
   // Automatické striedanie, kým je dvojstrana otvorená.
   useEffect(() => {
     if (!active || reduceMotion) return;
-    const timer = window.setTimeout(() => goRef.current((shown + 1) % SEQUENCE.length), HOLD_MS);
+    const timer = window.setTimeout(() => goRef.current((shown + 1) % SEQUENCE.length), fresh ? FIRST_MS : HOLD_MS);
     return () => window.clearTimeout(timer);
-  }, [active, reduceMotion, shown]);
+  }, [active, reduceMotion, shown, fresh]);
 
   // Po zatvorení dvojstrany začne ukážka nabudúce znova od fotky (úprava stavu počas vykreslenia).
   const [wasActive, setWasActive] = useState(active);
   if (active !== wasActive) {
     setWasActive(active);
-    if (!active) setShown(0);
+    if (!active) {
+      setShown(0);
+      setFresh(true);
+    }
   }
 
   const look = SEQUENCE[shown];
@@ -151,14 +158,14 @@ export function useTypewriter(target: string, animated: boolean) {
       if (!target.startsWith(current)) {
         current = current.slice(0, -1);
         setText(current);
-        window.setTimeout(tick, 40);
+        window.setTimeout(tick, 25);
       } else if (current.length < target.length) {
         current = target.slice(0, current.length + 1);
         setText(current);
-        window.setTimeout(tick, 75);
+        window.setTimeout(tick, 50);
       }
     };
-    const start = window.setTimeout(tick, 120);
+    const start = window.setTimeout(tick, 60);
     return () => {
       cancelled = true;
       window.clearTimeout(start);
