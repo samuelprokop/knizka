@@ -54,3 +54,10 @@ export function ebookPages(book: Pick<Book, "parts">): PageRef[] {
     { type: "back_cover" },
   ];
 }
+
+/** Pracovné listy na vytlačenie (osobná stránka knihy): len strany aktivít, v poradí knihy. */
+export function worksheetPages(book: Pick<Book, "parts">): PageRef[] {
+  return interiorPages(book)
+    .filter((page) => book.parts[page.partIndex]?.kind === "activity")
+    .map((page): PageRef => ({ type: "interior", page }));
+}

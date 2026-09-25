@@ -114,7 +114,7 @@ export async function renderBookPdf(book: Book, kind: PdfKind, loadAsset: AssetL
       height: `${layout.heightMm}mm`,
       printBackground: true,
       preferCSSPageSize: true,
-      tagged: kind === "ebook",
+      tagged: kind === "ebook" || kind === "worksheets",
     })
   );
   const bytes = await finalizePdf(raw, book, kind, layout);
@@ -126,7 +126,11 @@ async function finalizePdf(raw: Uint8Array, book: Book, kind: PdfKind, layout: P
   const doc = await PDFDocument.load(raw);
   const now = new Date();
   const subject =
-    kind === "ebook" ? "E-kniha" : kind === "print-interior" ? "Tlačové PDF – vnútro" : "Tlačové PDF – obálka";
+    kind === "ebook"
+      ? "E-kniha"
+      : kind === "worksheets"
+        ? "Pracovné listy"
+        : kind === "print-interior" ? "Tlačové PDF – vnútro" : "Tlačové PDF – obálka";
   const keywords = ["personalizovaná kniha", "AI-generated illustrations", "trainedAlgorithmicMedia"];
   if (book.meta.orderRef) keywords.push(book.meta.orderRef);
 
@@ -161,7 +165,7 @@ async function finalizePdf(raw: Uint8Array, book: Book, kind: PdfKind, layout: P
       page.setBleedBox(bleed.x, bleed.y, bleed.width, bleed.height);
     }
   }
-  return doc.save({ useObjectStreams: kind === "ebook" });
+  return doc.save({ useObjectStreams: kind === "ebook" || kind === "worksheets" });
 }
 
 const xmlEscape = (value: string) =>

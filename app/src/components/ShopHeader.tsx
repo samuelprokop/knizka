@@ -15,7 +15,8 @@ export async function ShopHeader({
   cta = false,
   home = false,
 }: {
-  wide?: boolean;
+  /** Šírka obsahu stránky: true = košík a pokladňa, "book" = osobná stránka s listovaním. */
+  wide?: boolean | "book";
   /** Obsahové stránky (otázky, podmienky): výzva „Vytvoriť knihu“ vpravo. */
   cta?: boolean;
   /** Stránky mimo nákupu (stav objednávky, osobná stránka, ďalší výtlačok): viditeľný odkaz na úvod. */
@@ -24,7 +25,7 @@ export async function ShopHeader({
   const { market, t } = await getMarketContext();
   return (
     <header className="border-b border-ink/10 bg-white">
-      <div className={`mx-auto flex items-center justify-between gap-4 px-4 py-2 ${wide ? "max-w-5xl" : "max-w-2xl"}`}>
+      <div className={`mx-auto flex items-center justify-between gap-4 px-4 py-2 ${wide === "book" ? "max-w-6xl sm:px-6" : wide ? "max-w-5xl" : "max-w-2xl"}`}>
         <Link href={`/${market.code}`} aria-label="TAKTIK" className="rounded-lg outline-none focus-visible:ring-4 focus-visible:ring-brand-orange/40">
           <Image src="/brand/taktik-logo.svg" alt="TAKTIK" width={56} height={50} unoptimized />
         </Link>

@@ -4,8 +4,10 @@ import { desc, eq } from "drizzle-orm";
 
 import { isMarketCode, type MarketCode } from "@/config/markets";
 import { db, schema } from "@/db";
+import { worksheetPages } from "@/features/book/model/pages";
+import type { Book } from "@/features/book/model/types";
 import { loadBookVersion } from "@/features/book/server/versions";
-import { signedMediaUrl } from "@/features/book/server/media";
+import { withSignedImages } from "@/features/book/server/media";
 import { loadBundle, nameContextOf } from "@/features/configurator/server/bundle";
 import type { NameContext } from "@/lib/language";
 
@@ -19,12 +21,15 @@ export type PersonalPageView = {
   market: MarketCode;
   hero: NameContext;
   bookTitle: string;
-  thumbnailUrl: string | null;
+  /** Kniha bez podpísaných obrázkov – vstup pre PDF (pracovné listy). */
+  book: Book;
+  /** Kniha s podpísanými URL obrázkov – listovanie na stránke. */
+  signedBook: Book;
+  /** Počet strán aktivít – pracovné listy na vytlačenie. */
+  worksheetCount: number;
   /** Posledná zaplatená objednávka – ebook na stiahnutie, odkaz na stav. */
   latestOrderId: string | null;
 };
-
-const THUMBNAIL_WIDTH = 320;
 
 export async function loadPersonalPage(token: string): Promise<PersonalPageView | null> {
   const project = await db.query.projects.findFirst({ where: eq(schema.projects.personalToken, token) });
@@ -42,14 +47,14 @@ export async function loadPersonalPage(token: string): Promise<PersonalPageView 
     .orderBy(desc(schema.orders.createdAt))
     .limit(1);
 
-  const coverImage = book.cover.hero ?? book.cover.scene ?? book.cover.portrait;
-
   return {
     projectId: project.id,
     market: project.market,
     hero: nameContextOf(bundle.hero),
     bookTitle: book.meta.title,
-    thumbnailUrl: coverImage ? signedMediaUrl(project.market, coverImage.key, { width: THUMBNAIL_WIDTH }) : null,
+    book,
+    signedBook: withSignedImages(book, project.market),
+    worksheetCount: worksheetPages(book).length,
     latestOrderId: latestOrder && latestOrder.status !== "pending_payment" && latestOrder.status !== "cancelled" ? latestOrder.id : null,
   };
 }

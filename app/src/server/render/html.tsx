@@ -12,7 +12,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 import { BookPage } from "@/features/book/components/BookPage";
 import { FORMAT_SPECS, PRINT, spineWidthMm } from "@/features/book/design";
-import { ebookPages, interiorPages } from "@/features/book/model/pages";
+import { ebookPages, interiorPages, worksheetPages } from "@/features/book/model/pages";
 import { bookCssVars } from "@/features/book/components/primitives";
 import type { Book, BookImage, PageRef } from "@/features/book/model/types";
 
@@ -162,8 +162,8 @@ export function buildPdfLayout(bookWithImages: Book, kind: PdfKind): PdfLayout {
   const H = format.heightMm;
   const lang = book.meta.language;
 
-  if (kind === "ebook") {
-    const pages = ebookPages(book);
+  if (kind === "ebook" || kind === "worksheets") {
+    const pages = kind === "ebook" ? ebookPages(book) : worksheetPages(book);
     const body = pages.map((page, i) => (
       <section className="pdf-sheet" key={i}>
         <PlacedPage book={book} page={page} x={0} y={0} />
