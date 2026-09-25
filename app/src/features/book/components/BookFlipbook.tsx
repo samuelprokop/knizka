@@ -130,24 +130,27 @@ export function BookFlipbook({
         <button
           type="button"
           onClick={() => setZoom(ref)}
-          className="grid size-11 place-items-center rounded-full bg-white text-ink shadow-sm ring-1 ring-ink/10 transition hover:ring-ink/30 focus-visible:outline-2 focus-visible:outline-brand-orange"
+          className="grid size-11 shrink-0 place-items-center rounded-full bg-white text-ink shadow-sm ring-1 ring-ink/10 transition hover:ring-ink/30 focus-visible:outline-2 focus-visible:outline-brand-orange"
           aria-label={number !== null ? t("book.preview.zoom_page", { n: number }) : t("book.preview.zoom")}
+          title={number !== null ? t("book.preview.zoom_page", { n: number }) : t("book.preview.zoom")}
         >
           <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
             <circle cx="11" cy="11" r="6.5" />
             <path d="M16 16l4.5 4.5M11 8v6M8 11h6" strokeLinecap="round" />
           </svg>
         </button>
+        {/* Len ikona (text by sa pri menšej knihe nezmestil); číslo strany je v aria-label a v popise pri prejdení myšou. */}
         {onEditPage && number !== null && (
           <button
             type="button"
             onClick={() => onEditPage(number)}
-            className="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-full bg-white px-4 text-sm font-semibold whitespace-nowrap text-ink shadow-sm ring-1 ring-ink/10 transition hover:ring-ink/30 focus-visible:outline-2 focus-visible:outline-brand-orange"
+            aria-label={t("preview.edit_page_n", { n: number })}
+            title={t("preview.edit_page_n", { n: number })}
+            className="grid size-11 shrink-0 place-items-center rounded-full bg-white text-ink shadow-sm ring-1 ring-ink/10 transition hover:ring-ink/30 focus-visible:outline-2 focus-visible:outline-brand-orange"
           >
-            <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M14.5 5.5l4 4L8 20H4v-4z" />
             </svg>
-            {t("preview.edit_page_n", { n: number })}
           </button>
         )}
       </div>

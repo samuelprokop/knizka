@@ -127,7 +127,7 @@ export default async function CartPage({ params, searchParams }: PageProps<"/[ma
 
   return (
     <>
-      <ShopHeader wide home={cart.reorder} />
+      <ShopHeader wide home />
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 pt-5 pb-32 lg:pb-4">
         <div className="flex flex-wrap items-baseline justify-between gap-x-4">
           <StepTitle title={t(cart.reorder ? "cart.reorder.title" : "cart.title")} />
