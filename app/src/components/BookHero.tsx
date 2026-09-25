@@ -425,10 +425,13 @@ function AnimatedHero({ copy, ctaHref, prices }: HeroProps) {
       style={{ height: `${(TOTAL_WEIGHT * VIEWPORTS_PER_WEIGHT + 1) * 100}svh` }}
     >
       {/* --hero-inset: miesto pre obsah stránky vľavo (LandingToc), inak 0. */}
-      <section className="sticky top-0 flex h-[100dvh] w-full items-center justify-center overflow-hidden bg-white pl-[var(--hero-inset,0px)]">
+      {/* Od tabletu scéna začína pod hlavičkou (--hero-top) – výzva „Vytvoriť knihu“ v hlavičke
+          má okolo seba voľné miesto a otvorená kniha na ňu nenalieha. Scéna sa zmenší podľa
+          výšky, ktorá pod hlavičkou ostane. */}
+      <section className="sticky top-0 flex h-[100dvh] w-full items-center justify-center overflow-hidden bg-white pl-[var(--hero-inset,0px)] md:pt-[var(--hero-top)] md:pb-3 md:[--hero-top:6rem]">
         <div
           className="relative aspect-[4/3] [container-type:inline-size] md:aspect-video"
-          style={{ width: "min(calc(100vw - var(--hero-inset, 0px)), calc(100dvh * 16 / 9))" }}
+          style={{ width: "min(calc(100vw - var(--hero-inset, 0px)), calc((100dvh - var(--hero-top, 0px) - 0.75rem) * 16 / 9))" }}
         >
           <HeroBook progress={progress} stateAt={bookStateAt} steps={copy.steps} coverTitle={copy.coverTitle} label={copy.animationLabel} />
           {/* Texty krokov sú vytlačené na stranách knihy (aria-hidden) – pre čítačku tu. */}

@@ -180,12 +180,14 @@ function Ideas(props: StoryStepProps) {
   return (
     <>
       <StepTitle title={t("wizard.ideas.title", undefined, heroCtx)} />
-      <ul className="flex flex-col gap-3">
+      {/* Tri námety vedľa seba – porovnajú sa naraz a stránka sa neposúva. */}
+      <ul className="grid gap-3 lg:grid-cols-3">
         {ideas.map((idea, i) => (
           <li key={i} className="flex flex-col gap-3 rounded-3xl bg-white p-5 ring-1 ring-ink/10">
             <h2 className="font-heading text-xl font-extrabold">{render(idea.title)}</h2>
             <p className="text-ink/80">{render(idea.summary)}</p>
             <Button
+              className="mt-auto"
               variant="secondary"
               pending={pending && picking === i}
               disabled={pending}

@@ -9,39 +9,45 @@ import type { MessageKey } from "@/i18n/messages";
 /*
   Pätička verejných stránok v identite TAKTIK: oranžové pozadie, tmavý text
   (biely text na #FF661A nemá dostatočný kontrast), logo jednofarebne tmavé.
-  Odkazy na obsahové stránky sú PLACEHOLDER, kým tieto stránky nevzniknú.
+  Väčšina odkazov vedie priamo na odpovede v častých otázkach (/otazky#…) –
+  zákazník hľadá odpoveď, nie ďalšiu stránku; podmienky majú vlastnú stránku.
 */
-
-const PLACEHOLDER = "#";
 
 type Column = { title: MessageKey; links: { label: MessageKey; href: string }[] };
 
 export function SiteFooter({ market, t }: { market: Market; t: Translator }) {
+  const faq = (anchor = "") => `/${market.code}/otazky${anchor && `#${anchor}`}`;
+  const terms = (anchor = "") => `/${market.code}/obchodne-podmienky${anchor && `#${anchor}`}`;
   const columns: Column[] = [
     {
       title: "footer.col.book",
       links: [
-        { label: "footer.link.how", href: PLACEHOLDER },
-        { label: "footer.link.stories", href: PLACEHOLDER },
-        { label: "footer.link.pricing", href: PLACEHOLDER },
+        { label: "footer.link.how", href: faq("ako-vznika") },
+        { label: "footer.link.stories", href: faq("pribehy") },
+        { label: "footer.link.photo", href: faq("fotka") },
+        { label: "footer.link.pricing", href: faq("cena") },
+        { label: "footer.link.gift", href: faq("dorucenie") },
       ],
     },
     {
       title: "footer.col.help",
       links: [
-        { label: "footer.link.faq", href: PLACEHOLDER },
+        { label: "footer.link.faq", href: faq() },
+        { label: "footer.link.order_status", href: faq("stav") },
+        { label: "footer.link.complaint", href: faq("chyba") },
         { label: "footer.link.contact", href: `mailto:${market.supportEmail}` },
       ],
     },
     {
       title: "footer.col.info",
       links: [
-        { label: "footer.link.terms", href: PLACEHOLDER },
-        { label: "footer.link.privacy", href: PLACEHOLDER },
-        { label: "photo.consent.link", href: PLACEHOLDER },
+        { label: "footer.link.terms", href: terms() },
+        { label: "footer.link.privacy", href: terms("osobne-udaje") },
+        { label: "photo.consent.link", href: faq("fotka-sukromie") },
       ],
     },
   ];
+  const other = market.code === "sk" ? "cz" : "sk";
 
   return (
     <div className="bg-brand-orange text-ink">
@@ -64,9 +70,15 @@ export function SiteFooter({ market, t }: { market: Market; t: Translator }) {
               <ul className="flex flex-col gap-1.5 text-sm md:gap-2 md:text-base">
                 {column.links.map((link) => (
                   <li key={link.label}>
-                    <a href={link.href} className="font-medium underline-offset-4 hover:underline">
-                      {t(link.label)}
-                    </a>
+                    {link.href.startsWith("mailto:") ? (
+                      <a href={link.href} className="font-medium underline-offset-4 hover:underline">
+                        {t(link.label)}
+                      </a>
+                    ) : (
+                      <Link href={link.href} className="font-medium underline-offset-4 hover:underline">
+                        {t(link.label)}
+                      </Link>
+                    )}
                   </li>
                 ))}
                 {column.title === "footer.col.info" && (
@@ -88,7 +100,15 @@ export function SiteFooter({ market, t }: { market: Market; t: Translator }) {
               <p>{t("ai.notice.short")}</p>
             </div>
           </div>
-          <p>{t("footer.copyright", { year: new Date().getFullYear() })}</p>
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+            <a href={`mailto:${market.supportEmail}`} className="font-medium underline-offset-4 hover:underline">
+              {market.supportEmail}
+            </a>
+            <Link href={`/${other}`} hrefLang={other === "cz" ? "cs-CZ" : "sk-SK"} className="font-medium underline-offset-4 hover:underline">
+              {t("landing.menu.market")}
+            </Link>
+            <p>{t("footer.copyright", { year: new Date().getFullYear() })}</p>
+          </div>
         </div>
       </div>
     </div>

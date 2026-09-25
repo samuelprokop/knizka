@@ -34,10 +34,11 @@ body {
   color: var(--color-ink);
 }
 
-/* Kniha v hero v pokoji: pomalé vznášanie (skill remotion-motion-graphics – „idle elements breathe“). */
-@keyframes book-breathe {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-1.1%); }
+/* Nezaškrtnuté povinné políčko: krátke „ťuknutie“ do strán (pozornosť bez systémovej bubliny). */
+@keyframes nudge {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  60% { transform: translateX(3px); }
 }
 
 /* Recenzie na úvodnej stránke: stĺpec má zoznam dvakrát pod sebou (medzera 1.5rem);

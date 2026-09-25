@@ -128,13 +128,23 @@ export async function approveBookAction(projectId: string, checks: boolean[]): P
 
 /** „Ešte niečo upraviť“ po schválení – pred platbou sa dá vrátiť k úpravám bez obmedzenia. */
 export async function reopenBookAction(projectId: string): Promise<ActionResult> {
-  return projectAction(projectId, async (id) => {
-    const bundle = await loadBundle(id);
-    if (!bundle?.book || bundle.project.status !== "approved_by_customer") return;
-    await db.update(schema.bookVersions).set({ lockedAt: null }).where(eq(schema.bookVersions.id, bundle.book.id));
-    await db
-      .update(schema.projects)
-      .set({ status: advanceStatus("approved_by_customer", "preview") })
-      .where(eq(schema.projects.id, id));
-  });
+  return projectAction(projectId, reopenBook);
+}
+
+/**
+ * Odstránenie knihy z košíka: kniha sa vráti do náhľadu (nič sa nemaže – ostáva uložená,
+ * dá sa k nej vrátiť cez menu úvodnej stránky alebo odkaz v e-maile).
+ */
+export async function removeFromCartAction(projectId: string): Promise<ActionResult> {
+  return projectAction(projectId, reopenBook);
+}
+
+async function reopenBook(id: string) {
+  const bundle = await loadBundle(id);
+  if (!bundle?.book || bundle.project.status !== "approved_by_customer") return;
+  await db.update(schema.bookVersions).set({ lockedAt: null }).where(eq(schema.bookVersions.id, bundle.book.id));
+  await db
+    .update(schema.projects)
+    .set({ status: advanceStatus("approved_by_customer", "preview") })
+    .where(eq(schema.projects.id, id));
 }

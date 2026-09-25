@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 
+import { cartHrefFor, sessionCart } from "@/features/checkout/server/cart";
 import { SessionExpired } from "@/features/configurator/components/SessionExpired";
 import { priceView, WizardShell } from "@/features/configurator/components/WizardShell";
 import { Notice } from "@/features/configurator/components/ui";
@@ -36,6 +37,8 @@ export default async function StepPage({ params, searchParams }: PageProps<"/[ma
   await touchStep(id, step.n);
 
   const status = bundle.project.status;
+  // Košík v hlavičke: všetky schválené knihy na tomto zariadení (nielen táto).
+  const cart = await sessionCart(market.code);
   const notice =
     changeRegeneratesBook(status) && step.n <= 6 ? (
       <Notice tone="warn">{t("common.change_earlier_step", { minutes: 10 })}</Notice>
@@ -53,7 +56,8 @@ export default async function StepPage({ params, searchParams }: PageProps<"/[ma
       hero={bundle.hero ? nameContextOf(bundle.hero) : null}
       bookLanguage={bundle.project.bookLanguage}
       notice={notice}
-      cartHref={status === "approved_by_customer" ? `/${market.code}/kosik?projekt=${id}` : null}
+      cartHref={cartHrefFor(market.code, cart)}
+      cartCount={cart.length}
       price={priceView(market, t, {
         storyPath: bundle.project.storyPath,
         companionCount: bundle.companions.length,

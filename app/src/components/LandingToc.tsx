@@ -18,10 +18,11 @@ import type { LandingCopy } from "@/content/landing";
 import { heroNavigation } from "./BookHero";
 import { FooterRevealFadeOut } from "./FooterReveal";
 
-type Item = { key: string; label: string; marker: ReactNode; target: number | "reviews" | "footer" };
+type Item = { key: string; label: string; marker: ReactNode; target: number | "reviews" | "faq" | "footer" };
 
-/** id sekcie recenzií na stránke (ReviewsSection). */
+/** id sekcie recenzií na stránke (ReviewsSection) a častých otázok (FaqSection). */
 const REVIEWS_ID = "recenzie";
+const FAQ_ID = "otazky";
 
 const cx = (...classes: (string | false | undefined)[]) => classes.filter(Boolean).join(" ");
 
@@ -32,6 +33,7 @@ export function LandingToc({ copy, reviews = false }: { copy: LandingCopy; revie
   const reduceMotion = useReducedMotion();
   const current = useSyncExternalStore(heroNavigation.subscribe, heroNavigation.getCurrent, () => 0);
   const inReviews = useSectionInView(reviews ? REVIEWS_ID : null);
+  const inFaq = useSectionInView(FAQ_ID);
 
   const items: Item[] = [
     { key: "intro", label: copy.toc.intro, marker: <BookIcon />, target: 0 },
@@ -43,13 +45,14 @@ export function LandingToc({ copy, reviews = false }: { copy: LandingCopy; revie
     })),
     { key: "outro", label: copy.toc.outro, marker: <PenIcon />, target: heroNavigation.stops - 1 },
     ...(reviews ? [{ key: "reviews", label: copy.toc.reviews, marker: <QuoteIcon />, target: "reviews" as const }] : []),
+    { key: "faq", label: copy.toc.faq, marker: "?", target: "faq" },
     { key: "footer", label: copy.toc.footer, marker: <InfoIcon />, target: "footer" },
   ];
 
   // Menu skáče rovno na cieľ – bez prehrávania otočení a bez plynulého posúvania cez knihu.
   const go = (target: Item["target"]) => {
-    if (target === "reviews") {
-      document.getElementById(REVIEWS_ID)?.scrollIntoView({ behavior: "instant" });
+    if (target === "reviews" || target === "faq") {
+      document.getElementById(target === "reviews" ? REVIEWS_ID : FAQ_ID)?.scrollIntoView({ behavior: "instant" });
     } else if (target === "footer") {
       window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "instant" });
     } else {
@@ -65,7 +68,7 @@ export function LandingToc({ copy, reviews = false }: { copy: LandingCopy; revie
       <FooterRevealFadeOut>
         <ol className="flex flex-col">
           {items.map((item, index) => {
-            const active = item.target === "reviews" ? inReviews : !inReviews && item.target === current;
+            const active = item.target === "reviews" ? inReviews : item.target === "faq" ? inFaq : !inReviews && !inFaq && item.target === current;
             const last = index === items.length - 1;
             return (
               <li key={item.key} className="relative">

@@ -8,6 +8,9 @@ import { loadBookVersion } from "@/features/book/server/versions";
 import { signedMediaUrl } from "@/features/book/server/media";
 import type { NameContext } from "@/lib/language";
 import type { ProjectStatus } from "@/domain/project-status";
+import { and, desc, eq, inArray } from "drizzle-orm";
+import { db, schema } from "@/db";
+import { sessionProjectIds } from "@/features/configurator/server/session";
 
 /*
   Košík sa nikde neukladá (K10: „zákazník zmení knihu → položka v košíku sa
@@ -72,3 +75,24 @@ export async function loadCart(projectId: string): Promise<CartView | null> {
     reorder,
   };
 }
+
+/**
+ * Knihy v košíku na tomto zariadení (schválené a nezaplatené, podľa cookie projektov),
+ * od najnovšej. Pri viacerých knihách vedie ikona košíka na prehľad /kosik.
+ */
+export async function sessionCart(market: MarketCode): Promise<CartView[]> {
+  const ids = (await sessionProjectIds()).filter((id) => /^[0-9a-f-]{36}$/i.test(id));
+  if (!ids.length) return [];
+  const rows = await db
+    .select({ id: schema.projects.id })
+    .from(schema.projects)
+    .where(and(inArray(schema.projects.id, ids), eq(schema.projects.market, market), eq(schema.projects.status, "approved_by_customer")))
+    .orderBy(desc(schema.projects.lastActivityAt))
+    .limit(20);
+  const carts = await Promise.all(rows.map((r) => loadCart(r.id)));
+  return carts.filter((c): c is CartView => !!c && !c.reorder);
+}
+
+/** Odkaz ikony košíka: jedna kniha = jej košík, viac kníh = prehľad. */
+export const cartHrefFor = (market: MarketCode, items: { projectId: string }[]) =>
+  items.length === 0 ? null : items.length === 1 ? `/${market}/kosik?projekt=${items[0].projectId}` : `/${market}/kosik`;

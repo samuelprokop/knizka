@@ -16,17 +16,17 @@ import { BasketIcon } from "./icons";
 const BASE =
   "relative flex size-11 shrink-0 items-center justify-center rounded-full text-ink outline-none transition-colors hover:bg-ink/5 focus-visible:ring-4 focus-visible:ring-brand-orange/40";
 
-export function HeaderCart({ href }: { href: string | null }) {
+export function HeaderCart({ href, count = href ? 1 : 0 }: { href: string | null; count?: number }) {
   const { t } = useI18n();
   const tipId = useId();
   const [open, setOpen] = useState(false);
 
   if (href)
     return (
-      <Link href={href} data-cart-target aria-label={t("cart.header.full", { n: 1 })} className={BASE}>
+      <Link href={href} data-cart-target aria-label={t("cart.header.full", { n: count })} className={BASE}>
         <BasketIcon className="size-6" />
         <span aria-hidden className="absolute top-1 right-0.5 flex size-4.5 items-center justify-center rounded-full bg-brand-orange-dark text-[0.6875rem] font-bold text-white">
-          1
+          {count}
         </span>
       </Link>
     );

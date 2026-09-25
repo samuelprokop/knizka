@@ -63,8 +63,9 @@ export function HeroBook({
   const [s1, s2, s3, s4] = steps;
 
   return (
-    // Kniha v pokoji jemne „dýcha“ (pomalé vznášanie) – prvok dlho na obrazovke nemá byť úplne mŕtvy.
-    <div role="img" aria-label={label} className="absolute top-[8%] left-[3%] aspect-[1.3] w-[94%] [container-type:inline-size] motion-safe:animate-[book-breathe_7s_cubic-bezier(0.65,0,0.35,1)_infinite] md:top-[3.5%] md:left-[11%] md:w-[68%]">
+    // Bez animácie transformácie na rodičovi: listy sú 3D (backface-visibility) a animovaný
+    // rodič v Chrome občas rozbije poradie a zadné strany listov (presvitá text pod knihou).
+    <div role="img" aria-label={label} className="absolute top-[8%] left-[3%] aspect-[1.3] w-[94%] [container-type:inline-size] md:top-[3.5%] md:left-[11%] md:w-[68%]">
       <Leaf index={0} state={state} board front={<Cover title={coverTitle} />} back={<StepLeft step={s1} page={1} />} />
       <Leaf index={1} state={state} front={<StepRight step={s1} page={2} art={<ArtChild />} />} back={<StepLeft step={s2} page={3} />} />
       <Leaf index={2} state={state} front={<StylePage state={state} text={s2.text} page={4} />} back={<StepLeft step={s3} page={5} />} />
@@ -184,7 +185,11 @@ function StepRight({ step, page, art }: { step: LandingCopy["steps"][number]; pa
 function StylePage({ state, text, page }: { state: MotionValue<BookState>; text: string; page: number }) {
   const { t } = useI18n();
   const [active, setActive] = useState(false);
-  useMotionValueEvent(state, "change", (s) => setActive(s.done === 2 && s.moving === -1));
+  // Odvodená hodnota sa prepočíta aj počas vykresľovania knihy – stav meníme až mimo neho.
+  useMotionValueEvent(state, "change", (s) => {
+    const next = s.done === 2 && s.moving === -1;
+    queueMicrotask(() => setActive(next));
+  });
   const labels = {
     photo: t("common.progress.photo"),
     ...Object.fromEntries(STYLES.map((id) => [id, t(`style.${id}`)])),

@@ -10,6 +10,7 @@ import type { NameContext } from "@/lib/language";
 import { priceSelection, type PriceInputs } from "../pricing";
 import { PROGRESS_STEPS, progressIndex, stepHref, type StepNumber } from "../steps";
 import { HeaderCart } from "@/components/HeaderCart";
+import { HomeIcon } from "@/components/icons";
 import { SaveExitButton } from "./SaveExitButton";
 import { WizardProvider, type PriceView } from "./WizardContext";
 import { StepTransition, SubStepSuffix, WizardProgress, type ProgressItem } from "./WizardMotion";
@@ -37,6 +38,7 @@ export function WizardShell({
   bookLanguage,
   notice,
   cartHref = null,
+  cartCount = 0,
   children,
 }: {
   market: Market;
@@ -51,6 +53,7 @@ export function WizardShell({
   notice?: ReactNode;
   /** Kniha je schválená a čaká v košíku – ikona košíka vedie tam. */
   cartHref?: string | null;
+  cartCount?: number;
   children: ReactNode;
 }) {
   const current = progressIndex(step);
@@ -94,8 +97,17 @@ export function WizardShell({
               </p>
             </div>
             <div className="flex shrink-0 items-center gap-1">
+              {/* Na úvod – rozpracovaná kniha ostáva uložená (návrat cez menu úvodnej stránky). */}
+              <Link
+                href={`/${market.code}`}
+                aria-label={t("configurator.home")}
+                title={t("configurator.home")}
+                className="flex size-11 items-center justify-center rounded-full text-ink/70 outline-none transition-colors hover:bg-ink/5 hover:text-ink focus-visible:ring-4 focus-visible:ring-brand-orange/40"
+              >
+                <HomeIcon className="size-5" />
+              </Link>
               {projectId && <SaveExitButton projectId={projectId} />}
-              <HeaderCart href={cartHref} />
+              <HeaderCart href={cartHref} count={cartCount} />
             </div>
           </div>
         </header>

@@ -23,7 +23,7 @@ export type LandingCopy = {
   /** Názov na obálke knihy v hero. */
   coverTitle: string;
   /** Obsah stránky (bočné menu): názov navigácie a kľúčové slová položiek mimo 4 krokov. */
-  toc: { label: string; intro: string; outro: string; reviews: string; footer: string };
+  toc: { label: string; intro: string; outro: string; reviews: string; faq: string; footer: string };
   /** Sekcia recenzií pod knihou (samotné recenzie sú v content/reviews.ts). */
   reviews: { eyebrow: string; title: string; subtitle: string; placeholderNote: string; pause: string; play: string };
 };
@@ -47,7 +47,7 @@ export const LANDING_COPY: Record<BookLanguage, LandingCopy> = {
     animationLabel: "Animácia knihy, ktorá sa pri posúvaní stránky otvára a listuje",
     staticImageAlt: "Otvorená kniha s krokmi, ako vzniká personalizovaná kniha",
     coverTitle: "Moja kniha",
-    toc: { label: "Obsah stránky", intro: "Úvod", outro: "Objednávka", reviews: "Recenzie", footer: "Kontakt" },
+    toc: { label: "Obsah stránky", intro: "Úvod", outro: "Objednávka", reviews: "Recenzie", faq: "Otázky", footer: "Kontakt" },
     reviews: {
       eyebrow: "Recenzie",
       title: "Čo hovoria rodičia",
@@ -75,7 +75,7 @@ export const LANDING_COPY: Record<BookLanguage, LandingCopy> = {
     animationLabel: "Animace knihy, která se při posouvání stránky otevírá a listuje",
     staticImageAlt: "Otevřená kniha s kroky, jak vzniká personalizovaná kniha",
     coverTitle: "Moje kniha",
-    toc: { label: "Obsah stránky", intro: "Úvod", outro: "Objednávka", reviews: "Recenze", footer: "Kontakt" },
+    toc: { label: "Obsah stránky", intro: "Úvod", outro: "Objednávka", reviews: "Recenze", faq: "Otázky", footer: "Kontakt" },
     reviews: {
       eyebrow: "Recenze",
       title: "Co říkají rodiče",

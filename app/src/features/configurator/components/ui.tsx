@@ -3,7 +3,7 @@
   dotykové plochy aspoň 48 px, viditeľné zameranie, kontrast WCAG AA (N9).
 */
 
-import { cloneElement, isValidElement, type ButtonHTMLAttributes, type ReactNode } from "react";
+import { cloneElement, isValidElement, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode } from "react";
 
 import { NextArrow } from "@/components/buttons";
 import { AlertIcon, CheckIcon, ChevronDownIcon } from "@/components/icons";
@@ -13,7 +13,7 @@ export const cx = (...classes: (string | false | null | undefined)[]) => classes
 const FOCUS = "outline-none focus-visible:ring-4 focus-visible:ring-brand-orange/40";
 
 /** "next" = hlavná akcia kroku (Pokračovať) – s NextArrow za textom. */
-type Variant = "primary" | "next" | "secondary" | "ghost";
+type Variant = "primary" | "next" | "secondary" | "ghost" | "danger";
 
 export function buttonClass(variant: Variant = "primary", extra?: string) {
   return cx(
@@ -23,6 +23,7 @@ export function buttonClass(variant: Variant = "primary", extra?: string) {
     variant === "primary" && "bg-brand-orange-dark text-white hover:bg-[#9a3500] active:scale-[0.98]",
     variant === "next" && "group bg-brand-orange/15 text-ink transition-colors duration-300 hover:bg-brand-orange-dark hover:text-white active:scale-[0.98] disabled:hover:bg-brand-orange/15 disabled:hover:text-ink motion-reduce:active:scale-100",
     variant === "secondary" && "border-2 border-ink/15 bg-white text-ink hover:border-ink/35",
+    variant === "danger" && "bg-[#b3261e] text-white hover:bg-[#8f1e18] active:scale-[0.98]",
     variant === "ghost" && "px-3 text-ink/70 underline-offset-4 hover:text-ink hover:underline",
     extra
   );
@@ -150,18 +151,33 @@ export const inputClass = cx(
   "disabled:cursor-not-allowed disabled:bg-ink/[0.04] disabled:text-ink/45"
 );
 
-export function Check({ checked, onChange, children, id }: { checked: boolean; onChange: (v: boolean) => void; children: ReactNode; id: string }) {
+export function Check({
+  checked,
+  onChange,
+  children,
+  id,
+  invalid,
+  dense,
+  ...input
+}: { checked: boolean; onChange: (v: boolean) => void; children: ReactNode; id: string; invalid?: boolean; dense?: boolean } & Pick<
+  InputHTMLAttributes<HTMLInputElement>,
+  "name" | "required" | "onInvalid" | "aria-describedby"
+>) {
   return (
-    <label htmlFor={id} className="group flex min-h-12 cursor-pointer items-start gap-3 rounded-2xl py-2">
+    <label htmlFor={id} className={cx("group flex cursor-pointer items-start gap-3 rounded-2xl", dense ? "min-h-10 py-1.5" : "min-h-12 py-2")}>
       <span className="relative mt-px flex size-6 shrink-0">
         <input
+          {...input}
           id={id}
           type="checkbox"
           checked={checked}
+          aria-invalid={invalid || undefined}
           onChange={(e) => onChange(e.target.checked)}
           className={cx(
             "peer size-6 cursor-pointer appearance-none rounded-lg border-2 border-ink/25 bg-white transition-colors",
             "group-hover:border-ink/45 checked:border-brand-orange-dark checked:bg-brand-orange-dark",
+            // Nevyplnené povinné políčko: farby stránky namiesto systémového modrého zvýraznenia.
+            "aria-[invalid=true]:border-[#b3261e] aria-[invalid=true]:ring-4 aria-[invalid=true]:ring-[#b3261e]/15",
             "disabled:cursor-not-allowed disabled:opacity-50",
             FOCUS
           )}

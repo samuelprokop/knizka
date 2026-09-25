@@ -126,7 +126,7 @@ export function BookFlipbook({
     if (!ref) return <div key={side} />;
     const number = ref.type === "interior" ? ref.page.number : null;
     return (
-      <div key={side} className="flex flex-wrap items-center justify-center gap-2">
+      <div key={side} className="flex items-center justify-center gap-2">
         <button
           type="button"
           onClick={() => setZoom(ref)}
@@ -142,7 +142,7 @@ export function BookFlipbook({
           <button
             type="button"
             onClick={() => onEditPage(number)}
-            className="inline-flex h-11 items-center gap-1.5 rounded-full bg-white px-4 text-sm font-semibold text-ink shadow-sm ring-1 ring-ink/10 transition hover:ring-ink/30 focus-visible:outline-2 focus-visible:outline-brand-orange"
+            className="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-full bg-white px-4 text-sm font-semibold whitespace-nowrap text-ink shadow-sm ring-1 ring-ink/10 transition hover:ring-ink/30 focus-visible:outline-2 focus-visible:outline-brand-orange"
           >
             <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M14.5 5.5l4 4L8 20H4v-4z" />

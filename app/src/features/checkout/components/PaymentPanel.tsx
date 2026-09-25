@@ -39,7 +39,7 @@ export function PaymentPanel({
   const others = methods.filter((m) => m === "bank_button" || m === "cod");
 
   return (
-    <section aria-labelledby="payment-title" className={`flex flex-col rounded-3xl bg-white shadow-sm ring-1 ring-ink/10 ${compact ? "gap-3 p-5" : "gap-4 p-6"}`}>
+    <section aria-labelledby="payment-title" className={`flex flex-col rounded-3xl bg-white shadow-sm ring-1 ring-ink/10 ${compact ? "gap-3 p-4" : "gap-4 p-6"}`}>
       <div className={compact ? "sr-only" : "flex items-baseline justify-between gap-4"}>
         <h2 id="payment-title" className={compact ? "sr-only" : "font-heading text-xl font-extrabold text-ink"}>
           {t("checkout.payment")}
@@ -86,8 +86,8 @@ export function PaymentPanel({
       {has("card") && <CardPaymentForm total={total} defaultOpen={cardOpen} asDialog={compact} />}
 
       {others.length > 0 && (
-        <div className="flex flex-col gap-2 pt-1">
-          <p className="text-sm font-medium text-ink/60">{t("checkout.pay.other")}</p>
+        <div className={compact ? "flex flex-col" : "flex flex-col gap-2 pt-1"}>
+          <p className={compact ? "sr-only" : "text-sm font-medium text-ink/60"}>{t("checkout.pay.other")}</p>
           <div className={`grid gap-2 ${others.length > 1 ? "sm:grid-cols-2" : ""}`}>
             {others.map((method) => (
               <button
@@ -104,7 +104,7 @@ export function PaymentPanel({
         </div>
       )}
 
-      <p className="text-xs leading-relaxed text-ink/60">{t("checkout.pay.note")}</p>
+      <p className="text-xs leading-relaxed text-ink/60">{t(compact ? "checkout.pay.note_short" : "checkout.pay.note")}</p>
     </section>
   );
 }

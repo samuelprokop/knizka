@@ -7,8 +7,10 @@ import { formatMoney } from "@/config/markets";
 import { computePrice, type PriceSelection } from "@/domain/pricing";
 import { PlanCards, type Plan } from "@/features/checkout/components/PlanCards";
 import { CouponReveal } from "@/features/checkout/components/CouponReveal";
+import { RemoveFromCart } from "@/features/checkout/components/RemoveFromCart";
 import { VoucherDialog } from "@/features/checkout/components/VoucherDialog";
-import { loadCart } from "@/features/checkout/server/cart";
+import { CartOverview } from "@/features/checkout/components/CartOverview";
+import { loadCart, sessionCart } from "@/features/checkout/server/cart";
 import { computeOrderPrice } from "@/features/checkout/pricing";
 import { validateVoucherCode } from "@/features/checkout/voucher";
 import { SessionExpired } from "@/features/configurator/components/SessionExpired";
@@ -17,6 +19,7 @@ import { hasProjectSession } from "@/features/configurator/server/session";
 import { stepHref } from "@/features/configurator/steps";
 import type { MessageKey } from "@/i18n/messages";
 import { getMarketContext } from "@/i18n/server";
+import { pluralForm } from "@/i18n/plural";
 import { ShopHeader } from "@/components/ShopHeader";
 import { MinusIcon, PlusIcon } from "@/components/icons";
 
@@ -42,11 +45,13 @@ export default async function CartPage({ params, searchParams }: PageProps<"/[ma
   await params;
   const query = await searchParams;
   const projectId = readParam(query.projekt);
-  if (!projectId) notFound();
+  // Bez projektu: prehľad všetkých kníh v košíku na tomto zariadení.
+  if (!projectId) return <CartOverview market={market} t={t} items={await sessionCart(market.code)} />;
   if (!(await hasProjectSession(projectId))) return <SessionExpired projectId={projectId} />;
 
   const cart = await loadCart(projectId);
   if (!cart || cart.market !== market.code) notFound();
+  const others = (await sessionCart(market.code)).filter((c) => c.projectId !== projectId).length;
 
   const variant: PriceSelection["variant"] = readParam(query.variant) === "ebook" ? "ebook" : "print_ebook";
   const isPrint = variant === "print_ebook";
@@ -123,21 +128,30 @@ export default async function CartPage({ params, searchParams }: PageProps<"/[ma
   return (
     <>
       <ShopHeader wide />
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 pt-6 pb-32 lg:pb-8">
-        <StepTitle title={t(cart.reorder ? "cart.reorder.title" : "cart.title")} />
+      <main className="mx-auto w-full max-w-5xl flex-1 px-4 pt-5 pb-32 lg:pb-4">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4">
+          <StepTitle title={t(cart.reorder ? "cart.reorder.title" : "cart.title")} />
+          {/* Viac kníh v košíku: odkaz na prehľad (každá sa platí samostatne). */}
+          {others > 0 && (
+            <Link href={`/${market.code}/kosik`} className="text-sm font-semibold text-brand-orange-dark underline underline-offset-4 outline-none focus-visible:ring-4 focus-visible:ring-brand-orange/40">
+              {t(`cart.overview.others.${pluralForm(others)}`, { n: others })}
+            </Link>
+          )}
+        </div>
 
         {/* Dva stĺpce od lg: voľby vľavo, súhrn objednávky vpravo (lepí sa pri posúvaní). */}
-        <div className="mt-5 grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start lg:gap-10">
+        <div className="mt-4 grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start lg:gap-10">
           <div className="flex min-w-0 flex-col gap-8">
           <section className="flex gap-4 rounded-2xl border-2 border-ink/10 bg-white p-4 lg:hidden">
             {cart.thumbnailUrl ? (
               // eslint-disable-next-line @next/next/no-img-element -- podpísaná URL, nie next/image doména
               <img src={cart.thumbnailUrl} alt="" className="h-32 w-24 shrink-0 rounded-lg object-cover" />
             ) : null}
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-1 flex-col gap-1">
               <p className="font-heading text-lg font-bold text-ink">{t("cart.item", { title: cart.bookTitle }, cart.hero)}</p>
               <p className="text-sm text-ink/70">{t("cart.delivery_promise")}</p>
             </div>
+            {!cart.reorder && <RemoveFromCart projectIds={[projectId]} title={cart.bookTitle} />}
           </section>
             {!cart.reorder && <PlanCards plans={plans} t={t} />}
           </div>
@@ -149,10 +163,15 @@ export default async function CartPage({ params, searchParams }: PageProps<"/[ma
                 // eslint-disable-next-line @next/next/no-img-element -- podpísaná URL, nie next/image doména
                 <img src={cart.thumbnailUrl} alt="" className="h-20 w-16 shrink-0 rounded-lg object-cover" />
               ) : null}
-              <div className="flex min-w-0 flex-col gap-1">
-                <p className="font-heading text-base leading-snug font-bold text-ink">{t("cart.item", { title: cart.bookTitle }, cart.hero)}</p>
-                <p className="text-xs text-ink/65">{t("cart.delivery_promise")}</p>
+              {/* Dlhý názov knihy na 2 riadky (celý v title) – súhrn sa zmestí bez posúvania;
+                  sľub doručenia je pri tlačenej knihe vľavo, tu by sa opakoval. */}
+              <div className="flex min-w-0 flex-1 flex-col justify-center">
+                <p title={t("cart.item", { title: cart.bookTitle }, cart.hero)} className="line-clamp-2 font-heading text-base leading-snug font-bold text-ink">
+                  {cart.bookTitle}
+                </p>
+                <p className="truncate text-xs text-ink/65">{t("cart.item.for", undefined, cart.hero)}</p>
               </div>
+              {!cart.reorder && <RemoveFromCart projectIds={[projectId]} title={cart.bookTitle} />}
             </div>
             {isPrint && (
               <div className="flex flex-col gap-1 border-ink/10 lg:border-t lg:pt-3">
@@ -200,17 +219,18 @@ export default async function CartPage({ params, searchParams }: PageProps<"/[ma
                 </div>
               )}
               {price.discount && (
-                <div className="flex justify-between text-sm text-[#2e7d32]">
-                  <span>{t("checkout.price.discount", { code: voucherResult?.ok ? voucherResult.code : "" })}</span>
+                <div className="flex items-center justify-between gap-2 text-sm text-[#2e7d32]">
+                  <span className="flex flex-wrap items-center gap-x-2">
+                    {t("checkout.price.discount", { code: voucherResult?.ok ? voucherResult.code : "" })}
+                    <Link href={qs({ voucher: "" })} scroll={false} className="rounded text-xs text-ink/60 underline underline-offset-4 outline-none hover:text-ink focus-visible:ring-4 focus-visible:ring-brand-orange/40">
+                      {t("cart.voucher.remove")}
+                    </Link>
+                  </span>
                   <span>{formatMoney(price.discount.amountMinor, market)}</span>
                 </div>
               )}
             </div>
-            {voucherResult?.ok ? (
-              <Link href={qs({ voucher: "" })} scroll={false} className="self-end text-xs text-ink/60 underline underline-offset-4 hover:text-ink">
-                {t("cart.voucher.remove")}
-              </Link>
-            ) : (
+            {voucherResult?.ok ? null : (
               <>
               {launchOffer && <CouponReveal code={launchOffer.code} percent={launchOffer.percent} />}
               <VoucherDialog

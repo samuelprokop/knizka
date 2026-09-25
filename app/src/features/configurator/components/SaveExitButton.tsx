@@ -29,7 +29,8 @@ export function SaveExitButton({ projectId }: { projectId: string }) {
       aria-busy={pending || undefined}
       className="min-h-11 rounded-full px-3 text-sm font-medium text-ink/75 underline-offset-4 outline-none hover:text-ink hover:underline focus-visible:ring-4 focus-visible:ring-brand-orange/40"
     >
-      {t("common.save_exit")}
+      {/* Krátky popis v hlavičke (pás priebehu sa nesmie zalomiť), celé znenie zo slovníka v title. */}
+      <span title={t("common.save_exit")}>{t("common.save_exit.short")}</span>
     </button>
   );
 }

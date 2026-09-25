@@ -30,6 +30,13 @@ export async function hasProjectSession(projectId: string) {
 
 /** Projekty, ku ktorým má toto zariadenie prístup (overené podpisom cookie). */
 export async function sessionProjectIds() {
+  // Náhľad UI: ukážkové projekty sú otvorené bez cookie (ako hasProjectSession).
+  if (isUiPreview()) {
+    const { db, schema } = await import("@/db");
+    const { like } = await import("drizzle-orm");
+    const rows = await db.select({ id: schema.projects.id }).from(schema.projects).where(like(schema.projects.email, "%@ui.local"));
+    return rows.map((r) => r.id);
+  }
   const store = await cookies();
   return store
     .getAll()

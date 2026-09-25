@@ -16,6 +16,8 @@ import { GoBackButton } from "@/components/buttons";
 import { ShopHeader } from "@/components/ShopHeader";
 import { DeliveryFields } from "@/features/checkout/components/DeliveryFields";
 import { InvoiceFields } from "@/features/checkout/components/InvoiceFields";
+import { TermsAgreement } from "@/features/checkout/components/TermsAgreement";
+import { termsFor } from "@/content/terms";
 
 function readParam(value: string | string[] | undefined) {
   return typeof value === "string" ? value : undefined;
@@ -61,8 +63,8 @@ export default async function CheckoutPage({ searchParams }: PageProps<"/[market
   return (
     <>
       <ShopHeader wide />
-      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-5 px-4 pt-5 pb-10 lg:pb-6">
-      <h1 className="font-heading text-[1.75rem] font-extrabold text-ink sm:text-[2.1rem]">{t("checkout.title")}</h1>
+      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-4 px-4 pt-5 pb-10 lg:pb-6">
+      <h1 className="font-heading text-[1.75rem] font-extrabold text-ink">{t("checkout.title")}</h1>
 
       {errorKey && <Notice tone="error">{t(errorKey)}</Notice>}
 
@@ -134,12 +136,12 @@ export default async function CheckoutPage({ searchParams }: PageProps<"/[market
           <div className="mt-1.5 border-t border-ink/10 pt-2 text-right text-lg font-semibold text-ink tabular-nums">
             {t("checkout.total", { price: formatMoney(price.totalMinor, market) })}
           </div>
+          {/* Súhlas je súčasťou súhrnu (bez ďalšieho bloku) – pokladňa sa zmestí bez posúvania. */}
+          <div className="mt-1 border-t border-ink/10 pt-1 text-sm">
+            <TermsAgreement terms={termsFor(market)} pageHref={`/${market.code}/obchodne-podmienky`} />
+          </div>
         </section>
 
-        <label className="flex min-h-11 cursor-pointer items-center gap-3">
-          <input type="checkbox" name="termsAccepted" required className="size-5 shrink-0 accent-brand-orange-dark" />
-          <span className="text-sm text-ink">{t("checkout.terms")}</span>
-        </label>
 
         <PaymentPanel methods={paymentMethods} total={formatMoney(price.totalMinor, market)} t={t} cardOpen={readParam(query.karta) === "1"} compact />
         </div>
