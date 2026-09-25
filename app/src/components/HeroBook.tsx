@@ -98,6 +98,10 @@ function Leaf({
   const zIndex = useTransform(state, (s) => layerOf(index, s));
   // Tieň pri otáčaní: najtmavší, keď list stojí kolmo.
   const shade = useTransform(state, (s) => (s.moving === index ? Math.sin(smooth(s.t) * Math.PI) * 0.35 : 0));
+  // Odvrátená strana listu je skrytá celá: animované prvky na strane (karty, knižka) sú
+  // v Chrome vlastné vrstvy a backface-visibility rodiča na ne neplatí – presvitali by zrkadlovo.
+  const frontVisibility = useTransform(state, (s) => (angleOf(index, s) > -90 ? "visible" : "hidden"));
+  const backVisibility = useTransform(state, (s) => (angleOf(index, s) <= -90 ? "visible" : "hidden"));
 
   return (
     <motion.div
@@ -109,15 +113,15 @@ function Leaf({
       style={{ transform, zIndex }}
     >
       {/* Líce – leží vpravo */}
-      <div className="absolute inset-0 [backface-visibility:hidden]">
+      <motion.div className="absolute inset-0 [backface-visibility:hidden]" style={{ visibility: frontVisibility }}>
         {board && index === 0 ? front : <PageFace side="right" board={board}>{front}</PageFace>}
         <motion.div className="pointer-events-none absolute inset-0 bg-linear-to-l from-black to-transparent" style={{ opacity: shade }} />
-      </div>
+      </motion.div>
       {/* Rub – po otočení leží vľavo */}
-      <div className="absolute inset-0 [backface-visibility:hidden] [transform:rotateY(180deg)]">
+      <motion.div className="absolute inset-0 [backface-visibility:hidden] [transform:rotateY(180deg)]" style={{ visibility: backVisibility }}>
         {board && index === 4 ? back : <PageFace side="left" board={board}>{back}</PageFace>}
         <motion.div className="pointer-events-none absolute inset-0 bg-linear-to-r from-black to-transparent" style={{ opacity: shade }} />
-      </div>
+      </motion.div>
     </motion.div>
   );
 }
