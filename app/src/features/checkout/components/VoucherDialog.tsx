@@ -3,10 +3,12 @@
 /*
   Zľavový kód v košíku: tlačidlo „Máte zľavový kód?“ otvorí okno s poľom.
   Uplatnenie je GET formulár – košík drží všetky voľby v URL, kód sa k nim
-  pridá. Pri neplatnom kóde sa okno po načítaní otvorí znova s chybou pri poli.
+  pridá. S JS sa adresa zmení bez načítania stránky (suma sa prepočíta s animáciou);
+  pri neplatnom kóde ostane okno otvorené s chybou pri poli.
 */
 
-import { useEffect, useId, useRef } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useId, useRef, useTransition, type FormEvent } from "react";
 
 import { CloseIcon } from "@/components/icons";
 import { Field, inputClass } from "@/features/configurator/components/ui";
@@ -27,11 +29,32 @@ export function VoucherDialog({
 }) {
   const { t } = useI18n();
   const ids = useId();
+  const router = useRouter();
+  const pathname = usePathname();
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const [pending, start] = useTransition();
+  const submitted = useRef(false);
 
   useEffect(() => {
-    if (error) dialogRef.current?.showModal();
+    if (error && !dialogRef.current?.open) dialogRef.current?.showModal();
   }, [error]);
+
+  // Po prepočte: platný kód okno zavrie (suma v súhrne sa plynulo prepočíta), neplatný ho nechá otvorené s chybou.
+  useEffect(() => {
+    if (!submitted.current || pending) return;
+    submitted.current = false;
+    if (!error) dialogRef.current?.close();
+  }, [pending, error]);
+
+  // Bez JS funguje ako GET formulár; s JS sa len zmení adresa (bez načítania stránky nanovo),
+  // takže komponenty ostanú a celková suma sa prepočíta s animáciou.
+  const onSubmit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const query = new URLSearchParams();
+    new FormData(e.currentTarget).forEach((value, key) => query.set(key, String(value).trim()));
+    submitted.current = true;
+    start(() => router.replace(`${pathname}?${query}`, { scroll: false }));
+  };
 
   return (
     <>
@@ -47,7 +70,7 @@ export function VoucherDialog({
         aria-labelledby={`${ids}-title`}
         className="m-auto w-[min(100vw-2rem,26rem)] rounded-3xl bg-white p-0 text-ink shadow-2xl backdrop:bg-ink/50"
       >
-        <form method="get" action={action} className="flex flex-col gap-4 p-6">
+        <form method="get" action={action} onSubmit={onSubmit} className="flex flex-col gap-4 p-6">
           <div className="flex items-start justify-between gap-3">
             <h2 id={`${ids}-title`} className="font-heading text-xl font-extrabold">
               {t("cart.code")}
@@ -80,8 +103,11 @@ export function VoucherDialog({
           </Field>
           <button
             type="submit"
-            className="flex min-h-12 items-center justify-center rounded-full bg-brand-orange-dark px-6 font-semibold text-white outline-none hover:bg-[#9a3500] focus-visible:ring-4 focus-visible:ring-brand-orange/40"
+            disabled={pending}
+            aria-busy={pending || undefined}
+            className="flex min-h-12 items-center justify-center gap-2 rounded-full bg-brand-orange-dark px-6 font-semibold text-white outline-none hover:bg-[#9a3500] focus-visible:ring-4 focus-visible:ring-brand-orange/40 disabled:opacity-70"
           >
+            {pending && <span aria-hidden className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />}
             {t("cart.voucher.apply")}
           </button>
         </form>
